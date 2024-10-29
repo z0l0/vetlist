@@ -925,5 +925,89 @@ export const dentists: Dentist[] = [
     },
     isVerified: false,
     profileWeight: 150
-  }
+  },
+  {
+    id: 38,
+    name: "Barriere Veterinary Clinic",
+    description: "A reliable veterinary clinic offering a wide range of services for pets of all sizes.",
+    detailedDescription: `Nestled in the heart of Barrière, British Columbia, the Barriere Veterinary Clinic stands as a beacon of excellence in animal care. Located at 4643 Barriere Town Rd, this state-of-the-art facility offers a comprehensive range of services designed to keep your beloved pets healthy, happy, and thriving throughout their lives.
+
+Services Offered
+
+Barriere Veterinary Clinic boasts an impressive array of veterinary services to address the diverse needs of pets:
+
+1. Wellness Examinations: Regular check-ups to ensure your pet's optimal health.
+2. Vaccinations: Protecting pets against common and potentially dangerous diseases.
+3. Dental Care: Professional cleaning and oral health maintenance.
+4. Surgery: Both routine and complex surgical procedures.
+5. Diagnostics: Advanced imaging and laboratory services for accurate diagnoses.
+6. Emergency Care: Prompt attention for urgent medical situations.
+7. Nutrition Counseling: Expert advice on dietary needs for optimal pet health.
+8. Senior Pet Care: Specialized attention for aging companions.
+9. Behavioral Consultations: Addressing pet behavioral issues.
+10. Parasite Prevention and Control: Protecting pets from harmful parasites.
+
+The dedicated team of veterinarians and support staff at Barriere Veterinary Clinic are committed to providing compassionate, high-quality care for every patient that walks through their doors.
+
+Location and Accessibility
+
+Strategically located in Barrière, the clinic enjoys a central position that's easily accessible to residents across the town and surrounding areas. The facility is situated in a peaceful area, surrounded by the natural beauty of British Columbia's interior.
+
+For those relying on public transportation, Barrière is served by the Thompson Valley Transit System. While there may not be a direct bus stop at the clinic, the town's compact size makes it relatively easy to reach from various parts of Barrière.
+
+Drivers will find the clinic easily accessible from major routes. It's just a short drive from Highway 5 (the Yellowhead Highway), making it a breeze to reach from various parts of Barrière and neighboring communities.
+
+Local Attractions
+
+While in the area for your pet's appointment, take advantage of nearby attractions. The beautiful North Thompson River Provincial Park is just a short drive away, offering a perfect spot for a relaxing walk or picnic after your visit. For those seeking outdoor activities, the Barrière Forks Regional Park provides scenic hiking trails and opportunities for wildlife viewing.
+
+Visitors can explore the charming downtown area of Barrière, which offers a variety of local shops and services. And if you're in the mood for a bite to eat, the town boasts several charming cafes and restaurants that showcase the local flavors of the region.
+
+Why Choose Barriere Veterinary Clinic?
+
+Selecting the right veterinary clinic is crucial for your pet's health and well-being. Barriere Veterinary Clinic stands out for several reasons:
+
+1. Experienced Team: The clinic boasts a team of highly skilled veterinarians and support staff.
+2. Comprehensive Care: From routine check-ups to complex surgeries, they offer a full spectrum of services.
+3. State-of-the-Art Facility: The clinic is equipped with modern technology for accurate diagnoses and effective treatments.
+4. Patient-Centric Approach: Each pet receives individualized attention and care.
+5. Community Focus: The clinic is deeply rooted in the local community, understanding the unique needs of Barrière's pet owners.
+
+Prioritizing Pet Health
+
+Regular veterinary care is essential for maintaining your pet's health and catching potential issues early. Barriere Veterinary Clinic encourages pet owners to schedule routine check-ups, even when their furry friends seem healthy. This proactive approach can lead to earlier detection of health issues, potentially saving both lives and medical costs in the long run.
+
+The clinic also emphasizes the importance of preventive care, including vaccinations, parasite control, and dental hygiene. These services play a crucial role in ensuring your pet leads a long, healthy, and happy life.
+
+Education and Empowerment
+
+Barriere Veterinary Clinic believes in empowering pet owners with knowledge. They provide valuable resources and information on proper pet care, nutrition, and early signs of health issues. This educational approach helps pet owners make informed decisions about their pets' health and well-being.
+
+Community Involvement
+
+As an integral part of the Barrière community, the clinic actively participates in local events and initiatives related to animal welfare. They understand the importance of giving back to the community that has supported them over the years.
+
+For pet owners in Barrière and surrounding areas seeking top-notch veterinary care, Barriere Veterinary Clinic offers a perfect blend of expertise, compassion, and modern facilities. Don't wait until your pet is unwell - schedule a visit today and give your furry friend the care they deserve. Your pet's health is their priority, and they're ready to welcome you with open arms and wagging tails.
+
+Experience the difference that professional, personalized veterinary care can make in your pet's life. Trust Barriere Veterinary Clinic to be your partner in ensuring the health and happiness of your beloved companions.`,
+    hoursOfOperation: "Wed-Sun: 8AM-6PM, Mon: Closed, Tue: 8AM-6PM",
+    specialization: ["Pet wellness exams", "Dogs", "Flea and tick prevention", "Pet teeth cleaning", "Cat-friendly clinic", "Exotic pet care", "Large animal care", "Pet nutrition advice"],
+    picture: "https://images.unsplash.com/photo-1525970099798-c20710257d6e?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80",
+    location: "Barrière, British Columbia",
+    phoneNumber: "+1 236-597-0402",
+    emailAddress: null,
+    address: "4643 Barriere Town Rd, Barrière, British Columbia V0E 1E0, Canada",
+    website: null,
+    socialMedia: {
+      instagram: null,
+      twitter: null,
+      facebook: null
+    },
+    mapCoordinates: {
+      lat: 51.1844549,
+      lon: -120.1239167
+    },
+    isVerified: true,
+    profileWeight: 150
+},
 ];
