@@ -1,7 +1,5 @@
-// src/components/DentistProfile.tsx
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Clock,
   MapPin,
@@ -15,17 +13,17 @@ import {
   Globe,
   ChevronRight,
 } from 'lucide-react';
-import { Dentist, SearchFilters } from '../types'; // Ensure SearchFilters is imported
+import { Dentist, SearchFilters } from '../types';
 import { dentists } from '../data/dentists';
 import DentistCard from './DentistCard';
 import FAQ from './FAQ';
-import SearchBar from './SearchBar'; // Import SearchBar
-import { tagDescriptions } from '../data/tags'; // Ensure tagDescriptions is imported
-import { locationDescriptions } from '../data/locations'; // Ensure locationDescriptions is imported
+import SearchBar from './SearchBar';
+import { tagDescriptions } from '../data/tags';
+import { locationDescriptions } from '../data/locations';
 
 const DentistProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
   const dentist = dentists.find((d) => d.id === Number(id));
   const [filters, setFilters] = useState<SearchFilters>({ specialization: '', location: '' });
 
@@ -33,23 +31,15 @@ const DentistProfile: React.FC = () => {
     return <div className="text-center text-gray-600">Vet not found</div>;
   }
 
-  // Split the location into city and province
   const locationParts = dentist.location.split(', ');
   const city = locationParts[0]?.trim() || '';
   const province = locationParts[1]?.trim() || '';
-
-  // Create a combined city and province string with space after comma
   const cityWithProvince = `${city}, ${province}`;
-
-  // Construct cityProvinceURL using full province name
   const cityProvinceURL = `/location/${encodeURIComponent(cityWithProvince)}`;
-
-  // Normalize specialization strings for case-insensitive comparison
   const dentistSpecializationsLower = dentist.specialization.map(spec =>
     spec.toLowerCase().trim()
   );
 
-  // Define allSpecializations and allLocations using useMemo
   const allSpecializations = useMemo(() => {
     return [...new Set([...dentists.flatMap(d => d.specialization), ...Object.keys(tagDescriptions)])];
   }, []);
@@ -58,24 +48,21 @@ const DentistProfile: React.FC = () => {
     return [...new Set([...dentists.map(d => d.location), ...Object.keys(locationDescriptions)])];
   }, []);
 
-  // Enhance related dentists by filtering and sorting
   const relatedDentists = useMemo(() => {
     const related = dentists
       .filter(
         (d) =>
           d.id !== dentist.id &&
-          // Include vets who share at least one specialization
           d.specialization.some((spec) =>
             dentistSpecializationsLower.includes(spec.toLowerCase().trim())
           )
       )
       .map((d) => {
-        // Determine proximity priority
-        let proximityPriority = 3; // Default: Different province
+        let proximityPriority = 3; 
         if (d.location === dentist.location) {
-          proximityPriority = 1; // Same city
+          proximityPriority = 1; 
         } else if (d.location.split(', ')[1]?.trim() === province) {
-          proximityPriority = 2; // Same province
+          proximityPriority = 2; 
         }
 
         return {
@@ -84,45 +71,32 @@ const DentistProfile: React.FC = () => {
         };
       })
       .sort((a, b) => {
-        // Primary sort: Proximity Priority (ascending)
         if (a.proximityPriority < b.proximityPriority) return -1;
         if (a.proximityPriority > b.proximityPriority) return 1;
-
-        // Secondary sort: isVerified (true first)
         if (a.isVerified && !b.isVerified) return -1;
         if (!a.isVerified && b.isVerified) return 1;
-
-        // Tertiary sort: profileWeight (higher first)
         if (a.profileWeight > b.profileWeight) return -1;
         if (a.profileWeight < b.profileWeight) return 1;
-
-        // Quaternary sort: random
         return Math.random() - 0.5;
       })
-      .slice(0, 5); // Show top 5 related veterinarians
+      .slice(0, 5); 
 
-    // Debugging: Log related vets after filtering and sorting
     console.log('Related vets after filtering and sorting:', related);
-
     return related;
   }, [dentist, dentists, province, dentistSpecializationsLower]);
 
   const mapUrl = `https://static-maps.yandex.ru/1.x/?lang=en_US&ll=${dentist.mapCoordinates.lon},${dentist.mapCoordinates.lat}&z=15&l=map&size=600,400&pt=${dentist.mapCoordinates.lon},${dentist.mapCoordinates.lat},pm2rdm`;
 
-  // Handle selection from SearchBar
   const handleSearchSelect = (suggestion: string) => {
-    // Check if the suggestion matches a dentist's name
     const selectedDentist = dentists.find(
       (d) => d.name.toLowerCase() === suggestion.toLowerCase()
     );
 
     if (selectedDentist) {
-      // Navigate to the selected dentist's profile
       navigate(`/dentist/${selectedDentist.id}`);
       return;
     }
 
-    // Check if the suggestion matches a specialization
     const specializationMatch = allSpecializations.find(
       (s) => s.toLowerCase() === suggestion.toLowerCase()
     );
@@ -132,7 +106,6 @@ const DentistProfile: React.FC = () => {
       return;
     }
 
-    // Check if the suggestion matches a location
     const locationMatch = allLocations.find(
       (l) => l.toLowerCase() === suggestion.toLowerCase()
     );
@@ -140,9 +113,6 @@ const DentistProfile: React.FC = () => {
       navigate(`/location/${encodeURIComponent(locationMatch)}`);
       return;
     }
-
-    // If no match found, optionally navigate to a generic search page or show a message
-    // For now, we'll do nothing
   };
 
   return (
@@ -152,7 +122,7 @@ const DentistProfile: React.FC = () => {
         <SearchBar
           filters={filters}
           setFilters={setFilters}
-          onSelect={handleSearchSelect} // Pass the handler
+          onSelect={handleSearchSelect} 
         />
       </div>
 
@@ -246,32 +216,35 @@ const DentistProfile: React.FC = () => {
           <div>
             <h2 className="text-xl font-semibold mb-2">Contact Information</h2>
             <div className="space-y-2">
-              <p className="flex items-center">
-                <Phone className="mr-2 text-gray-500" size={18} />
-                {dentist.phoneNumber}
-              </p>
-              {dentist.website && (
-                <p className="flex items-center">
-                  <Globe className="mr-2 text-gray-500" size={18} />
-                  <a
-                    href={dentist.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    {new URL(dentist.website).hostname}
-                  </a>
-                </p>
-              )}
-              <p className="flex items-center">
-                <Mail className="mr-2 text-gray-500" size={18} />
-                {dentist.emailAddress || 'N/A'}
-              </p>
-              <p className="flex items-center">
-                <Clock className="mr-2 text-gray-500" size={18} />
-                {dentist.hoursOfOperation}
-              </p>
-            </div>
+  <p className="flex items-center">
+    <Phone className="mr-2 text-gray-500" size={18} />
+    {dentist.phoneNumber}
+  </p>
+  {dentist.website && (
+    <p className="flex items-center">
+      <Globe className="mr-2 text-gray-500" size={18} />
+      <a
+        href={dentist.website}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 hover:text-blue-800"
+      >
+        {new URL(dentist.website).hostname}
+      </a>
+    </p>
+  )}
+  {dentist.emailAddress && (  // Conditionally render the email field
+    <p className="flex items-center">
+      <Mail className="mr-2 text-gray-500" size={18} />
+      {dentist.emailAddress}
+    </p>
+  )}
+  <p className="flex items-center">
+    <Clock className="mr-2 text-gray-500" size={18} />
+    {dentist.hoursOfOperation}
+  </p>
+</div>
+
             <div className="mt-4 flex space-x-4">
               {dentist.socialMedia.instagram && (
                 <a
@@ -329,9 +302,9 @@ const DentistProfile: React.FC = () => {
         {/* About Section */}
         <div>
           <h2 className="text-xl font-semibold mb-2">About {dentist.name}</h2>
-          <>
-            {dentist.detailedDescription}
-          </>
+          <div className="h-40 overflow-y-auto border rounded p-2">
+            <p>{dentist.detailedDescription}</p>
+          </div>
         </div>
       </div>
 
