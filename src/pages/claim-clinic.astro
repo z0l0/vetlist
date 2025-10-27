@@ -1,0 +1,1350 @@
+---
+import Layout from "../layouts/Layout.astro";
+import UnifiedVetSearch from "../components/UnifiedVetSearch.astro";
+
+const title = "Claim Your Veterinary Practice | VetList.org";
+const description =
+    "Claim and verify your veterinary practice profile to increase visibility and attract more pet owners.";
+---
+
+<Layout title={title} description={description}>
+    <div class="max-w-4xl mx-auto pt-8">
+        <!-- Search Section -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-900 mb-3">
+                Find Your Clinic First
+            </h2>
+            <p class="text-gray-600 mb-4">
+                Use the search below to find your clinic and click "Claim" if you see it. If you don't find your clinic, then click "Add Your Clinic" to create a new listing.
+            </p>
+            <UnifiedVetSearch />
+            <div class="mt-4 text-center">
+                <a 
+                    href="/add-vet" 
+                    class="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-lg hover:from-orange-600 hover:to-red-700 transition-all font-medium"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    Don't see your clinic? Add it here
+                </a>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4 pt-4">
+                Claim Your Veterinary Practice
+            </h1>
+            <p class="text-lg text-gray-600">
+                Update your information and boost your online presence
+            </p>
+        </div>
+
+        <!-- Claim Form -->
+        <div class="bg-white rounded-xl shadow-card p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-3">
+                Update Your Practice Information
+            </h2>
+            <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg
+                            class="h-5 w-5 text-blue-400"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                        >
+                            <path
+                                fill-rule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-blue-700">
+                            Please review and update any incorrect information
+                            below. Our team will process your request and update
+                            your profile as soon as possible, typically within
+                            24-48 hours.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <form id="claim-form" class="space-y-6">
+                <!-- Basic Information -->
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 mb-2"
+                            >Practice Name *</label
+                        >
+                        <input
+                            type="text"
+                            id="practice-name"
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 mb-2"
+                            >Phone Number *</label
+                        >
+                        <input
+                            type="tel"
+                            id="phone"
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                    </div>
+                </div>
+
+                <!-- Address -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2"
+                        >Full Address *</label
+                    >
+                    <input
+                        type="text"
+                        id="address"
+                        required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    />
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 mb-2"
+                            >City *</label
+                        >
+                        <input
+                            type="text"
+                            id="city"
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 mb-2"
+                            >Province/State *</label
+                        >
+                        <input
+                            type="text"
+                            id="province"
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 mb-2"
+                            >Country *</label
+                        >
+                        <input
+                            type="text"
+                            id="country"
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 mb-2"
+                            >Email Address *</label
+                        >
+                        <input
+                            type="email"
+                            id="email"
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-gray-700 mb-2"
+                            >Website</label
+                        >
+                        <input
+                            type="url"
+                            id="website"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                    </div>
+                </div>
+
+                <!-- Services -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-3"
+                        >Services & Specializations Offered</label
+                    >
+                    <div
+                        class="grid md:grid-cols-3 gap-3 mb-4"
+                        id="services-grid"
+                    >
+                        <!-- Most Common Veterinary Services -->
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="General Veterinary Care"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >General Veterinary Care</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Emergency Care"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Emergency Care</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Surgery"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Surgery</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Preventive Care"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Preventive Care</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Vaccinations"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Vaccinations</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Spay/Neuter"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Spay/Neuter</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Dental Care"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Dental Care</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Dermatology"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Dermatology</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Cardiology"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Cardiology</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Oncology"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Oncology</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Orthopedics"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Orthopedics</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Internal Medicine"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Internal Medicine</span
+                            >
+                        </label>
+
+                        <!-- Specific Treatments -->
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="X-Ray/Imaging"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >X-Ray/Imaging</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Laboratory Services"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Laboratory Services</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Microchipping"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Microchipping</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Grooming"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Grooming</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Boarding"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Boarding</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Exotic Pet Care"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Exotic Pet Care</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Large Animal Care"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Large Animal Care</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Equine Care"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Equine Care</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Behavioral Consultation"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Behavioral Consultation</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Nutrition Counseling"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Nutrition Counseling</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Pain Management"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Pain Management</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Rehabilitation"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Rehabilitation</span
+                            >
+                        </label>
+
+                        <!-- Additional Services -->
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="House Calls"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >House Calls</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Euthanasia Services"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Euthanasia Services</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Pet Insurance"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Pet Insurance</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Wellness Plans"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Wellness Plans</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Telemedicine"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Telemedicine</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Ultrasound"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Ultrasound</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Laser Therapy"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Laser Therapy</span
+                            >
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="Acupuncture"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700"
+                                >Acupuncture</span
+                            >
+                        </label>
+                    </div>
+
+                    <!-- Custom Services Input -->
+                    <div class="border-t pt-4">
+                        <label
+                            class="block text-sm font-medium text-gray-700 mb-2"
+                            >Additional Services (if not listed above)</label
+                        >
+                        <input
+                            type="text"
+                            id="custom-services"
+                            placeholder="Enter additional services separated by commas"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                        <p class="text-xs text-gray-500 mt-1">
+                            Example: Holistic treatments, Alternative medicine,
+                            etc.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Hours -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-4"
+                        >Hours of Operation</label
+                    >
+                    <div class="space-y-3" id="hours-container">
+                        {
+                            [
+                                "Monday",
+                                "Tuesday",
+                                "Wednesday",
+                                "Thursday",
+                                "Friday",
+                                "Saturday",
+                                "Sunday",
+                            ].map((day) => (
+                                <div class="flex items-center gap-4">
+                                    <div class="w-24 text-sm font-medium text-gray-700">
+                                        {day}
+                                    </div>
+                                    <label class="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            class="day-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                            data-day={day.toLowerCase()}
+                                        />
+                                        <span class="ml-2 text-sm text-gray-600">
+                                            Open
+                                        </span>
+                                    </label>
+                                    <input
+                                        type="time"
+                                        class="day-open px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                        data-day={day.toLowerCase()}
+                                        disabled
+                                    />
+                                    <span class="text-gray-500">to</span>
+                                    <input
+                                        type="time"
+                                        class="day-close px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                        data-day={day.toLowerCase()}
+                                        disabled
+                                    />
+                                </div>
+                            ))
+                        }
+                    </div>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div
+                    class="flex flex-col sm:flex-row gap-4 justify-center items-center"
+                >
+                    <button
+                        type="submit"
+                        class="bg-primary-600 hover:bg-primary-700 text-white px-8 py-4 rounded-full font-medium text-lg transition-colors duration-200"
+                    >
+                        Generate Claim Email
+                    </button>
+
+                    <button
+                        type="button"
+                        id="reveal-premium"
+                        class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-4 rounded-full font-medium text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    >
+                        <span class="flex items-center gap-2">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="2"
+                                stroke="currentColor"
+                                class="w-5 h-5"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
+                                ></path>
+                            </svg>
+                            Rank Higher in ChatGPT
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Hidden Premium Sales Pitch -->
+        <div
+            id="premium-section"
+            class="hidden mb-8 opacity-0 transform translate-y-4 transition-all duration-500 ease-out"
+        >
+            <!-- AI Explanation Header -->
+            <div
+                class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-8 mb-6 text-white relative overflow-hidden"
+            >
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10"
+                >
+                </div>
+                <div class="relative z-10">
+                    <div class="text-center mb-6">
+                        <div
+                            class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-4"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="2"
+                                stroke="currentColor"
+                                class="w-8 h-8"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
+                                ></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-3xl font-bold mb-3">
+                            The AI Revolution is Here
+                        </h2>
+                        <p
+                            class="text-slate-300 text-lg leading-relaxed max-w-3xl mx-auto"
+                        >
+                            <strong
+                                >ChatGPT, Claude, Perplexity, and Grok</strong
+                            > are changing how pet owners find veterinarians. These
+                            AI systems don't just search randomly - they <strong
+                                >prioritize businesses that rank higher on
+                                trusted directories</strong
+                            >. When someone asks "find me the best vet in
+                            [city]", AI looks at directory rankings as a key
+                            signal of quality and authority.
+                        </p>
+                    </div>
+
+                    <div class="bg-white/10 rounded-lg p-6 backdrop-blur-sm">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="bg-green-500 rounded-full p-2">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="2"
+                                    stroke="currentColor"
+                                    class="w-5 h-5"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    ></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-semibold">
+                                The Bottom Line:
+                            </h3>
+                        </div>
+                        <p class="text-slate-200 text-lg">
+                            <strong
+                                >Higher directory rankings = More AI
+                                recommendations = More pet owners finding you
+                                first</strong
+                            >
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Benefits Pills - Alternating Layout -->
+            <div class="space-y-6">
+                <!-- Benefit 1 - Left aligned -->
+                <div class="flex items-center gap-6">
+                    <div
+                        class="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full p-4 shadow-lg"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="2"
+                            stroke="currentColor"
+                            class="w-8 h-8 text-white"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12.001 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.228V2.721m-2.48 5.228a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"
+                            ></path>
+                        </svg>
+                    </div>
+                    <div
+                        class="bg-white rounded-2xl p-6 shadow-lg flex-1 border-l-4 border-emerald-500"
+                    >
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">
+                            #1 City Rankings
+                        </h3>
+                        <p class="text-gray-600">
+                            Rank highest in your city searches, beating all
+                            competitors. <strong>We limit premium spots</strong>
+                            to maintain exclusivity - only 3-5 practices per city
+                            get this advantage.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Benefit 2 - Right aligned -->
+                <div class="flex items-center gap-6 flex-row-reverse">
+                    <div
+                        class="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full p-4 shadow-lg"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="2"
+                            stroke="currentColor"
+                            class="w-8 h-8 text-white"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+                            ></path>
+                        </svg>
+                    </div>
+                    <div
+                        class="bg-white rounded-2xl p-6 shadow-lg flex-1 border-r-4 border-blue-500"
+                    >
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">
+                            Homepage Featured
+                        </h3>
+                        <p class="text-gray-600">
+                            Prominently displayed on our main page where
+                            thousands of pet owners search daily. <strong
+                                >Maximum exposure</strong
+                            > when people are actively looking for veterinary care.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Benefit 3 - Left aligned -->
+                <div class="flex items-center gap-6">
+                    <div
+                        class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-full p-4 shadow-lg"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="2"
+                            stroke="currentColor"
+                            class="w-8 h-8 text-white"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                            ></path>
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </div>
+                    <div
+                        class="bg-white rounded-2xl p-6 shadow-lg flex-1 border-l-4 border-purple-500"
+                    >
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">
+                            Competitor Steal Traffic
+                        </h3>
+                        <p class="text-gray-600">
+                            Appear as "related" on ALL nearby competitor pages. <strong
+                                >100%+ more visibility</strong
+                            > - when pet owners visit your competitors, they see
+                            YOU too.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing Section -->
+            <div class="mt-12 text-center">
+                <div
+                    class="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-8 shadow-2xl relative overflow-hidden"
+                >
+                    <div
+                        class="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-orange-500/20 animate-pulse"
+                    >
+                    </div>
+
+                    <div class="relative z-10">
+                        <div
+                            class="text-6xl font-black mb-4 text-white drop-shadow-lg"
+                        >
+                            $249/year
+                        </div>
+                        <div
+                            class="bg-red-600 text-white px-6 py-2 rounded-full text-lg font-bold mb-4 inline-block animate-bounce"
+                        >
+                            🔥 LIMITED TIME - 58% OFF
+                        </div>
+                        <div class="text-white mb-6">
+                            <span class="line-through text-2xl opacity-75"
+                                >$600/year</span
+                            >
+                            <span class="text-3xl font-bold ml-4"
+                                >Save $351!</span
+                            >
+                        </div>
+                        <p class="text-white/90 text-lg mb-8">
+                            Regular price: <strong>$50/month</strong> after first
+                            year
+                        </p>
+
+                        <div
+                            class="bg-white/20 rounded-xl p-6 backdrop-blur-sm"
+                        >
+                            <label
+                                class="flex items-start justify-center cursor-pointer"
+                            >
+                                <input
+                                    type="checkbox"
+                                    id="verification-interest"
+                                    class="mt-1 rounded border-white/30 text-yellow-400 focus:ring-yellow-400 bg-white/10 w-5 h-5"
+                                />
+                                <div class="ml-4 text-left">
+                                    <span
+                                        class="text-lg font-semibold text-white"
+                                        >Yes, I want to dominate my local market</span
+                                    >
+                                    <p class="text-white/80 mt-1">
+                                        We'll include this in your claim email
+                                        and follow up with details about getting
+                                        started.
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Submit Button -->
+            <div class="mt-8 text-center">
+                <button
+                    type="submit"
+                    form="claim-form"
+                    class="bg-primary-600 hover:bg-primary-700 text-white px-10 py-4 rounded-full font-medium text-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
+                >
+                    <span class="flex items-center gap-2 justify-center">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="2"
+                            stroke="currentColor"
+                            class="w-5 h-5"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+                            ></path>
+                        </svg>
+                        Generate Claim Email
+                    </span>
+                </button>
+                <p class="text-gray-500 text-sm mt-3">
+                    Your premium preferences will be included in the email
+                </p>
+            </div>
+        </div>
+
+        <!-- Email Modal -->
+        <div
+            id="email-modal"
+            class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4"
+        >
+            <div
+                class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            >
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-gray-900">
+                            Copy & Send This Email
+                        </h3>
+                        <button
+                            id="close-modal"
+                            class="text-gray-400 hover:text-gray-600"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="2"
+                                stroke="currentColor"
+                                class="w-6 h-6"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <p class="text-sm text-gray-600 mb-2">
+                            <strong>To:</strong> directorytraffic@gmail.com
+                        </p>
+                        <p class="text-sm text-gray-600 mb-4">
+                            <strong>Subject:</strong> Veterinary Practice Claim Request
+                        </p>
+                    </div>
+
+                    <textarea
+                        id="email-content"
+                        readonly
+                        class="w-full h-64 p-4 border border-gray-300 rounded-lg bg-gray-50 text-sm font-mono resize-none"
+                    ></textarea>
+
+                    <div class="flex gap-3 mt-4">
+                        <button
+                            id="copy-email"
+                            class="flex-1 bg-primary-600 hover:bg-primary-700 text-white py-3 rounded-lg font-medium transition-colors"
+                        >
+                            Copy Email Content
+                        </button>
+                        <a
+                            href="mailto:directorytraffic@gmail.com"
+                            class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-3 rounded-lg font-medium text-center transition-colors"
+                        >
+                            Open Email Client
+                        </a>
+                    </div>
+
+                    <p class="text-sm text-gray-600 mt-4 text-center">
+                        Copy the content above and send it from your practice's
+                        email address to directorytraffic@gmail.com
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</Layout>
+
+<script is:inline>
+    // Handle day checkboxes
+    document.querySelectorAll(".day-checkbox").forEach((checkbox) => {
+        checkbox.addEventListener("change", function () {
+            const day = this.dataset.day;
+            const openInput = document.querySelector(
+                `.day-open[data-day="${day}"]`,
+            );
+            const closeInput = document.querySelector(
+                `.day-close[data-day="${day}"]`,
+            );
+
+            if (this.checked) {
+                openInput.disabled = false;
+                closeInput.disabled = false;
+                openInput.value = "09:00";
+                closeInput.value = "17:00";
+            } else {
+                openInput.disabled = true;
+                closeInput.disabled = true;
+                openInput.value = "";
+                closeInput.value = "";
+            }
+        });
+    });
+
+    // Handle form submission
+    document
+        .getElementById("claim-form")
+        .addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            // Collect form data
+            const formData = {
+                practiceName: document.getElementById("practice-name").value,
+                phone: document.getElementById("phone").value,
+                address: document.getElementById("address").value,
+                city: document.getElementById("city").value,
+                province: document.getElementById("province").value,
+                country: document.getElementById("country").value,
+                email: document.getElementById("email").value,
+                website: document.getElementById("website").value,
+                verificationInterest: document.getElementById(
+                    "verification-interest",
+                ).checked,
+            };
+
+            // Collect services
+            const services = [];
+            document
+                .querySelectorAll('input[type="checkbox"][value]:checked')
+                .forEach((cb) => {
+                    if (cb.value && cb.id !== "verification-interest") {
+                        services.push(cb.value);
+                    }
+                });
+
+            // Add custom services
+            const customServices =
+                document.getElementById("custom-services").value;
+            if (customServices && customServices.trim()) {
+                const customList = customServices
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter((s) => s);
+                services.push(...customList);
+            }
+
+            // Collect hours
+            const hours = {};
+            [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+                "sunday",
+            ].forEach((day) => {
+                const checkbox = document.querySelector(
+                    `.day-checkbox[data-day="${day}"]`,
+                );
+                if (checkbox.checked) {
+                    const openTime = document.querySelector(
+                        `.day-open[data-day="${day}"]`,
+                    ).value;
+                    const closeTime = document.querySelector(
+                        `.day-close[data-day="${day}"]`,
+                    ).value;
+                    hours[day] = `${openTime} - ${closeTime}`;
+                } else {
+                    hours[day] = "Closed";
+                }
+            });
+
+            // Generate email content
+            const emailContent = `Dear VetList Team,
+
+I would like to claim my veterinary practice profile on VetList.org.
+
+PRACTICE INFORMATION:
+Practice Name: ${formData.practiceName}
+Phone: ${formData.phone}
+Email: ${formData.email}
+Website: ${formData.website || "Not provided"}
+
+ADDRESS:
+${formData.address}
+${formData.city}, ${formData.province}
+${formData.country}
+
+SERVICES OFFERED:
+${services.length > 0 ? services.join(", ") : "Not specified"}
+
+HOURS OF OPERATION:
+Monday: ${hours.monday}
+Tuesday: ${hours.tuesday}
+Wednesday: ${hours.wednesday}
+Thursday: ${hours.thursday}
+Friday: ${hours.friday}
+Saturday: ${hours.saturday}
+Sunday: ${hours.sunday}
+
+VERIFICATION INTEREST:
+${formData.verificationInterest ? "Yes, I am interested in the verification program ($249/year introductory offer)" : "No, just claiming the basic profile"}
+
+Please update my profile with this information. I confirm that I am authorized to make changes to this veterinary practice profile.
+
+Thank you,
+[Your Name]
+[Your Title]
+${formData.practiceName}`;
+
+            // Show modal with email content
+            document.getElementById("email-content").value = emailContent;
+            document.getElementById("email-modal").classList.remove("hidden");
+            document.getElementById("email-modal").classList.add("flex");
+        });
+
+    // Handle modal close
+    document
+        .getElementById("close-modal")
+        .addEventListener("click", function () {
+            document.getElementById("email-modal").classList.add("hidden");
+            document.getElementById("email-modal").classList.remove("flex");
+        });
+
+    // Handle copy email
+    document
+        .getElementById("copy-email")
+        .addEventListener("click", function () {
+            const emailContent = document.getElementById("email-content");
+            emailContent.select();
+            document.execCommand("copy");
+
+            // Show feedback
+            const button = this;
+            const originalText = button.textContent;
+            button.textContent = "Copied!";
+            button.classList.add("bg-green-600");
+            button.classList.remove("bg-primary-600");
+
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.classList.remove("bg-green-600");
+                button.classList.add("bg-primary-600");
+            }, 2000);
+        });
+
+    // Close modal when clicking outside
+    document
+        .getElementById("email-modal")
+        .addEventListener("click", function (e) {
+            if (e.target === this) {
+                this.classList.add("hidden");
+                this.classList.remove("flex");
+            }
+        });
+
+    // Handle URL parameter prefilling
+    function prefillFormFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // Basic information
+        const name = urlParams.get("name");
+        if (name) {
+            const nameEl = document.getElementById("practice-name");
+            if (nameEl) nameEl.value = name;
+        }
+
+        const phone = urlParams.get("phone");
+        if (phone) {
+            const phoneEl = document.getElementById("phone");
+            if (phoneEl) phoneEl.value = phone;
+        }
+
+        const address = urlParams.get("address");
+        if (address) {
+            const addressEl = document.getElementById("address");
+            if (addressEl) addressEl.value = address;
+        }
+
+        const city = urlParams.get("city");
+        if (city) {
+            const cityEl = document.getElementById("city");
+            if (cityEl) cityEl.value = city;
+        }
+
+        const province = urlParams.get("province");
+        if (province) {
+            const provinceEl = document.getElementById("province");
+            if (provinceEl) provinceEl.value = province;
+        }
+
+        const country = urlParams.get("country");
+        if (country) {
+            const countryEl = document.getElementById("country");
+            if (countryEl) countryEl.value = country;
+        }
+
+        const website = urlParams.get("website");
+        if (website) {
+            const websiteEl = document.getElementById("website");
+            if (websiteEl) websiteEl.value = website;
+        }
+
+        // Services
+        const servicesParam = urlParams.get("services");
+        if (servicesParam) {
+            try {
+                const services = JSON.parse(servicesParam);
+                services.forEach((service) => {
+                    const checkbox = document.querySelector(
+                        `input[type="checkbox"][value="${service}"]`,
+                    );
+                    if (checkbox) checkbox.checked = true;
+                });
+            } catch (e) {
+                console.error("Error parsing services:", e);
+            }
+        }
+
+        // Hours
+        const hoursParam = urlParams.get("hours");
+        if (hoursParam) {
+            try {
+                const hours = JSON.parse(decodeURIComponent(hoursParam));
+                const dayMapping = {
+                    "1": "monday",
+                    "2": "tuesday",
+                    "3": "wednesday",
+                    "4": "thursday",
+                    "5": "friday",
+                    "6": "saturday",
+                    "7": "sunday",
+                };
+
+                Object.entries(hours).forEach(([dayNum, dayHours]) => {
+                    const dayName = dayMapping[dayNum];
+                    if (
+                        dayName &&
+                        Array.isArray(dayHours) &&
+                        dayHours.length > 0
+                    ) {
+                        const timeRange = dayHours[0];
+                        if (timeRange && timeRange.includes("-")) {
+                            const [openTime, closeTime] = timeRange.split("-");
+                            const checkbox = document.querySelector(
+                                `.day-checkbox[data-day="${dayName}"]`,
+                            );
+                            const openInput = document.querySelector(
+                                `.day-open[data-day="${dayName}"]`,
+                            );
+                            const closeInput = document.querySelector(
+                                `.day-close[data-day="${dayName}"]`,
+                            );
+
+                            if (checkbox && openInput && closeInput) {
+                                checkbox.checked = true;
+                                openInput.disabled = false;
+                                closeInput.disabled = false;
+
+                                // Convert time format if needed (e.g., "9:00 AM" to "09:00")
+                                const convertTo24Hour = (time) => {
+                                    const timeStr = time.trim();
+                                    if (
+                                        timeStr.includes("AM") ||
+                                        timeStr.includes("PM")
+                                    ) {
+                                        const [timePart, period] =
+                                            timeStr.split(/\s+(AM|PM)/i);
+                                        let [hours, minutes] =
+                                            timePart.split(":");
+                                        hours = parseInt(hours, 10);
+                                        minutes = minutes || "00";
+
+                                        if (
+                                            period.toUpperCase() === "PM" &&
+                                            hours !== 12
+                                        ) {
+                                            hours += 12;
+                                        } else if (
+                                            period.toUpperCase() === "AM" &&
+                                            hours === 12
+                                        ) {
+                                            hours = 0;
+                                        }
+
+                                        return `${hours.toString().padStart(2, "0")}:${minutes}`;
+                                    }
+                                    return timeStr;
+                                };
+
+                                openInput.value = convertTo24Hour(openTime);
+                                closeInput.value = convertTo24Hour(closeTime);
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Error parsing hours:", e);
+            }
+        }
+    }
+
+    // Run prefilling when page loads
+    document.addEventListener("DOMContentLoaded", prefillFormFromURL);
+
+    // Handle premium section reveal
+    document
+        .getElementById("reveal-premium")
+        .addEventListener("click", function () {
+            const premiumSection = document.getElementById("premium-section");
+            const button = this;
+
+            // Show the section
+            premiumSection.classList.remove("hidden");
+
+            // Trigger animation after a brief delay
+            setTimeout(() => {
+                premiumSection.classList.remove("opacity-0", "translate-y-4");
+                premiumSection.classList.add("opacity-100", "translate-y-0");
+            }, 50);
+
+            // Smooth scroll to the premium section
+            setTimeout(() => {
+                premiumSection.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                });
+            }, 100);
+
+            // Update button text and disable it
+            button.innerHTML = `
+      <span class="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Premium Options Revealed
+      </span>
+    `;
+            button.disabled = true;
+            button.classList.add("opacity-75", "cursor-not-allowed");
+        });
+</script>

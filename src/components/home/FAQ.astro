@@ -1,0 +1,88 @@
+---
+const faqItems = [
+  {
+    question: "How often should I take my pet to the veterinarian?",
+    answer: "Most healthy adult pets should visit a licensed veterinarian once a year for a comprehensive check-up. Puppies, kittens, senior pets, and pets with chronic conditions may need more frequent visits to the vet clinic. Your local veterinarian can recommend the best schedule based on your pet's specific healthcare needs."
+  },
+  {
+    question: "How do I find the right veterinary clinic near me?",
+    answer: "Look for a local veterinary clinic with veterinarians who are experienced with your type of pet, has a convenient location and hours, and with whom you feel comfortable discussing your pet's health. You can use our veterinarian directory to find vet clinics in your area, read about their veterinary specialties, and contact them directly to schedule an appointment."
+  },
+  {
+    question: "What should I bring to my pet's first veterinary appointment?",
+    answer: "For your pet's first appointment at a new veterinary clinic, bring any previous medical records, current medications, a list of questions or concerns, and a stool sample if requested by the vet. Also, be prepared to discuss your pet's diet, behavior, and activity level with the veterinarian."
+  }
+];
+---
+
+<section class="py-16 bg-white">
+  <div class="container mx-auto px-4 max-w-4xl">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-bold text-gray-900 mb-4">Frequently Asked Questions About Veterinary Care</h2>
+    </div>
+    
+    <div class="space-y-4">
+      {faqItems.map((item, index) => (
+        <div class="border border-gray-200 rounded-lg overflow-hidden" itemscope itemtype="https://schema.org/Question">
+          <button 
+            class="faq-question w-full flex justify-between items-center p-6 text-left bg-white hover:bg-gray-50 transition-colors duration-200"
+            aria-expanded="false" 
+            aria-controls={`faq-answer-${index}`}
+          >
+            <h3 class="text-lg font-semibold text-gray-900 pr-4" itemprop="name">{item.question}</h3>
+            <svg class="faq-icon w-5 h-5 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div 
+            class="faq-answer hidden px-6 pb-6" 
+            id={`faq-answer-${index}`}
+            itemscope 
+            itemtype="https://schema.org/Answer"
+          >
+            <p class="text-gray-700 leading-relaxed" itemprop="text">{item.answer}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const faqButtons = document.querySelectorAll('.faq-question');
+    
+    faqButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const expanded = button.getAttribute('aria-expanded') === 'true';
+        const answerId = button.getAttribute('aria-controls');
+        const answer = document.getElementById(answerId);
+        const icon = button.querySelector('.faq-icon');
+        
+        // Close all other FAQs
+        faqButtons.forEach(otherButton => {
+          if (otherButton !== button) {
+            otherButton.setAttribute('aria-expanded', 'false');
+            const otherAnswerId = otherButton.getAttribute('aria-controls');
+            const otherAnswer = document.getElementById(otherAnswerId);
+            const otherIcon = otherButton.querySelector('.faq-icon');
+            
+            otherAnswer.classList.add('hidden');
+            otherIcon.style.transform = 'rotate(0deg)';
+          }
+        });
+        
+        // Toggle current FAQ
+        if (expanded) {
+          button.setAttribute('aria-expanded', 'false');
+          answer.classList.add('hidden');
+          icon.style.transform = 'rotate(0deg)';
+        } else {
+          button.setAttribute('aria-expanded', 'true');
+          answer.classList.remove('hidden');
+          icon.style.transform = 'rotate(180deg)';
+        }
+      });
+    });
+  });
+</script>

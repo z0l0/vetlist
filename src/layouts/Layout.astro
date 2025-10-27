@@ -1,0 +1,120 @@
+---
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  openGraph?: any;
+  twitterCard?: any;
+}
+
+const {
+  title,
+  description = "Find the best veterinarians in your area with VetList.org",
+  openGraph,
+  twitterCard,
+} = Astro.props;
+const canonicalURL = new URL(
+  Astro.url.pathname,
+  "https://vetlist.org",
+).toString();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title} | VetList.org</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Open Graph / Facebook -->
+    {
+      openGraph && (
+        <>
+          <meta property="og:type" content={openGraph.type || "website"} />
+          <meta property="og:url" content={openGraph.url || canonicalURL} />
+          <meta property="og:title" content={openGraph.title || title} />
+          <meta
+            property="og:description"
+            content={openGraph.description || description}
+          />
+          <meta
+            property="og:site_name"
+            content={openGraph.siteName || "VetList.org"}
+          />
+          {openGraph.image && (
+            <meta property="og:image" content={openGraph.image} />
+          )}
+          {openGraph.locale && (
+            <meta property="og:locale" content={openGraph.locale} />
+          )}
+        </>
+      )
+    }
+
+    <!-- Twitter -->
+    {
+      twitterCard && (
+        <>
+          <meta
+            name="twitter:card"
+            content={twitterCard.card || "summary_large_image"}
+          />
+          <meta name="twitter:title" content={twitterCard.title || title} />
+          <meta
+            name="twitter:description"
+            content={twitterCard.description || description}
+          />
+          {twitterCard.image && (
+            <meta name="twitter:image" content={twitterCard.image} />
+          )}
+        </>
+      )
+    }
+
+    <!-- Google tag (gtag.js) -->
+    <script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-B7JEVQP8LT"
+    ></script>
+    <script is:inline>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-B7JEVQP8LT");
+    </script>
+    <!-- Umami Analytics -->
+    <script
+      is:inline
+      defer
+      src="https://cloud.umami.is/script.js"
+      data-website-id="e903c81c-e76f-4af1-9b51-8f919c421666"></script>
+
+    <link rel="stylesheet" href="/styles/main.css" />
+    <slot name="head" />
+  </head>
+  <body class="bg-light font-sans flex flex-col min-h-screen">
+    <Header />
+    <main class="flex-1 container mx-auto px-4 pb-16 max-w-none -mt-2">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style>
+  html {
+    scroll-behavior: smooth;
+  }
+</style>

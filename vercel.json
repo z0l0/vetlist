@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "astro",
+  "routes": [
+    { "handle": "filesystem" },
+
+    { "src": "/(.*)", "status": 404, "dest": "/" }
+  ]
+} 

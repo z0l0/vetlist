@@ -1,0 +1,61 @@
+---
+// Features section for veterinary services
+const features = [
+  {
+    title: "Preventive Veterinary Care",
+    description: "Regular check-ups and vaccinations from licensed veterinarians to keep your pet healthy and happy",
+    icon: "shield-check"
+  },
+  {
+    title: "Emergency Vet Services", 
+    description: "24/7 veterinary emergency care when your pet needs immediate professional attention",
+    icon: "alert-circle"
+  },
+  {
+    title: "Veterinary Dental Care",
+    description: "Professional dental cleanings and oral health assessments by trained veterinary specialists",
+    icon: "smile"
+  },
+  {
+    title: "Veterinary Surgery",
+    description: "From routine spay/neuter to complex surgical procedures by experienced vet surgeons",
+    icon: "scissors"
+  }
+];
+---
+
+<section class="py-16 bg-white">
+  <div class="container mx-auto px-4 max-w-6xl">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-bold text-gray-900 mb-4">Comprehensive Vet Services Near You</h2>
+      <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+        Discover local veterinarians offering a wide range of professional pet care services to keep your furry family members healthy and happy.
+      </p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      {features.map((feature) => (
+        <div class="text-center">
+          <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-primary-600">
+              {feature.icon === 'shield-check' && (
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.623 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+              )}
+              {feature.icon === 'alert-circle' && (
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              )}
+              {feature.icon === 'smile' && (
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z" />
+              )}
+              {feature.icon === 'scissors' && (
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.848 8.25l1.536.887M7.848 8.25a3 3 0 11-5.196-3 3 3 0 015.196 3zm1.536.887a2.165 2.165 0 011.083 1.839c.005.351.054.695.14 1.024M9.384 9.137l2.077 1.199M7.848 15.75l1.536-.887m-1.536.887a3 3 0 11-5.196 3 3 3 0 015.196-3zm1.536-.887a2.165 2.165 0 001.083-1.838c.005-.352.054-.695.14-1.025m-1.223 2.863l2.077-1.199m0-3.328a4.323 4.323 0 012.068-1.379l5.325-1.628a4.5 4.5 0 012.48-.044l.803.215-7.794 4.5m-2.882-1.664A4.331 4.331 0 0010.607 6.5l1.803-.496a4.5 4.5 0 012.48-.044l.803.215L8.9 9.5l.484-.363z" />
+              )}
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
+          <p class="text-gray-600">{feature.description}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

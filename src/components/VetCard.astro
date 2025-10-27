@@ -1,0 +1,52 @@
+---
+const { 
+  name,
+  image,
+  description,
+  location: { city, region },
+  specializations,
+  slug
+} = Astro.props;
+---
+<div class="vet-card">
+  <div class="relative">
+    <div class="w-full h-[200px] bg-primary-100 flex items-center justify-center">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-600">
+        <path d="M12 6v4"/>
+        <path d="M14 14h-4"/>
+        <path d="M14 18h-4"/>
+        <path d="M14 8h-4"/>
+        <path d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2"/>
+        <path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
+      </svg>
+    </div>
+    <a href={slug} class="absolute inset-0">
+      {image && (
+        <img 
+          src={image} 
+          alt={name} 
+          class="vet-card-image absolute inset-0 w-full h-full object-cover"
+          onerror="this.style.display='none'"
+        />
+      )}
+    </a>
+  </div>
+  <div class="vet-card-content">
+    <div>
+      <h3>
+        <a href={slug}>{name}</a>
+      </h3>
+      <p>{description}</p>
+    </div>
+    <div>
+      <p class="location">{city}, {region}</p>
+      <div class="tags">
+        {specializations.slice(0, 2).map(spec => (
+          <span class="tag">
+            {spec}
+          </span>
+        ))}
+      </div>
+    </div>
+  </div>
+</div>

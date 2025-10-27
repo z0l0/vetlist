@@ -1,0 +1,222 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+
+const title = 'Contact Us';
+const path = Astro.url.pathname.replace(/\/$/, '');
+---
+
+<Layout title={title}>
+  <Breadcrumbs path={path} />
+
+  <div class="container">
+    <h1>Contact Us</h1>
+    <p>Have questions or feedback? We'd love to hear from you. Complete the form below and we'll get back to you as soon as possible.</p>
+    
+    <div class="contact-content">
+      <div class="contact-form-container">
+        <!-- Direct FormSubmit integration - no API needed -->
+        <form id="contact-form" class="contact-form" action="https://formsubmit.co/directorytraffic@gmail.com" method="POST">
+          <!-- FormSubmit configuration -->
+          <input type="hidden" name="_subject" value="New Contact Form Submission">
+          <input type="hidden" name="_captcha" value="false">
+          <input type="hidden" name="_template" value="table">
+          <input type="hidden" name="_next" value="https://vetlist.org/thank-you">
+          
+          <div class="form-group">
+            <label for="name">Your Name</label>
+            <input type="text" id="name" name="name" required />
+          </div>
+          
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" required />
+          </div>
+          
+          <div class="form-group">
+            <label for="subject">Subject</label>
+            <input type="text" id="subject" name="subject" required />
+          </div>
+          
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" name="message" rows="6" required></textarea>
+          </div>
+          
+          <div class="form-group">
+            <button type="submit" class="inline-block bg-primary text-white font-semibold px-6 py-3 rounded-full border-0 cursor-pointer transition-all duration-300 shadow-lg hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-xl min-w-[150px]">Send Message</button>
+          </div>
+        </form>
+      </div>
+      
+      <div class="contact-info">
+        <h2>Other Ways to Reach Us</h2>
+        
+        <div class="contact-item">
+          <img src="/images/email-icon.svg" alt="Email" width="24" height="24" />
+          <a href="mailto:directorytraffic@gmail.com">directorytraffic@gmail.com</a>
+        </div>
+        
+        <div class="contact-item">
+          <img src="/images/map-pin.svg" alt="Location" width="24" height="24" />
+          <address>240 Richmond St W, Toronto, ON</address>
+        </div>
+        
+        <div class="contact-info-box">
+          <h3>Looking to add your clinic?</h3>
+          <p>If you're a veterinarian or clinic owner and would like to be featured on VetList, email us</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    
+    h1 + p {
+      max-width: 700px;
+      margin-bottom: 2rem;
+      color: var(--text-light);
+    }
+    
+    .contact-content {
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: 2rem;
+      margin: 2rem 0;
+    }
+    
+    .contact-form-container {
+      background: white;
+      padding: 2rem;
+      border-radius: var(--radius);
+      box-shadow: 0 2px 10px var(--shadow);
+    }
+    
+    .contact-form .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .contact-form label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+    
+    .contact-form input,
+    .contact-form textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+    
+    .contact-form input:focus,
+    .contact-form textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+    }
+    
+    .contact-form button {
+      width: auto;
+      min-width: 150px;
+    }
+    
+    .contact-info {
+      background: white;
+      padding: 2rem;
+      border-radius: var(--radius);
+      box-shadow: 0 2px 10px var(--shadow);
+      height: fit-content;
+    }
+    
+    .contact-info h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .contact-item img {
+      background-color: #f1f5fe;
+      border-radius: 8px;
+      padding: 12px;
+      width: 24px;
+      height: 24px;
+      box-sizing: content-box;
+    }
+    
+    .contact-item a,
+    .contact-item address {
+      color: var(--text);
+      font-style: normal;
+      text-decoration: none;
+    }
+    
+    .contact-item a:hover {
+      color: var(--primary);
+      text-decoration: underline;
+    }
+    
+    .contact-info-box {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background-color: var(--hero-bg);
+      border-radius: var(--radius);
+      border-left: 4px solid var(--primary);
+    }
+    
+    .contact-info-box h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+      color: var(--text);
+    }
+    
+    .contact-info-box p {
+      color: var(--text-light);
+      font-size: 0.95rem;
+    }
+    
+    .contact-info-box a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .contact-info-box a:hover {
+      text-decoration: underline;
+    }
+    
+    @media (max-width: 768px) {
+      .contact-content {
+        grid-template-columns: 1fr;
+      }
+      
+      .contact-form-container,
+      .contact-info {
+        padding: 1.5rem;
+      }
+      
+      .contact-info {
+        margin-top: 1rem;
+      }
+    }
+  </style>
+</Layout> 

@@ -1,0 +1,168 @@
+---
+// Algolia Location Search Component
+---
+
+<div class="relative">
+  <input 
+    type="text" 
+    id="algolia-city-search"
+    placeholder="Search for your city (e.g., Miami, Chicago, Toronto)..."
+    class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-800 placeholder-gray-500"
+    autocomplete="off"
+  />
+  <div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-600">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+    </svg>
+  </div>
+  
+  <!-- Search Results Dropdown -->
+  <div id="algolia-search-results" class="hidden absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50">
+    <!-- Results will be populated by Algolia -->
+  </div>
+  
+  <!-- Loading indicator -->
+  <div id="algolia-loading" class="hidden absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50">
+    <div class="flex items-center gap-2 text-gray-500 text-sm">
+      <div class="animate-spin w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full"></div>
+      Searching locations...
+    </div>
+  </div>
+  
+  <!-- No results message -->
+  <div id="algolia-no-results" class="hidden absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50">
+    <div class="text-gray-500 text-sm">
+      <div class="flex items-center gap-2 mb-2">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        No locations found
+      </div>
+      <p>Try searching for a different city or check the spelling.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { algoliaClient } from '../lib/algolia.js';
+  
+  // Initialize search
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('algolia-city-search') as HTMLInputElement;
+    const resultsContainer = document.getElementById('algolia-search-results');
+    const loadingIndicator = document.getElementById('algolia-loading');
+    const noResultsMessage = document.getElementById('algolia-no-results');
+    
+    if (!searchInput || !resultsContainer) return;
+    
+    // Initialize Algolia index
+    const index = algoliaClient.initIndex('vetlist_locations');
+    let searchTimeout: NodeJS.Timeout;
+    
+    // Hide all dropdowns
+    function hideAllDropdowns() {
+      resultsContainer?.classList.add('hidden');
+      loadingIndicator?.classList.add('hidden');
+      noResultsMessage?.classList.add('hidden');
+    }
+    
+    // Show loading
+    function showLoading() {
+      hideAllDropdowns();
+      loadingIndicator?.classList.remove('hidden');
+    }
+    
+    // Show results
+    function showResults(hits: any[]) {
+      hideAllDropdowns();
+      
+      if (hits.length === 0) {
+        noResultsMessage?.classList.remove('hidden');
+        return;
+      }
+      
+      if (resultsContainer) {
+        resultsContainer.innerHTML = hits.map(hit => `
+          <a href="${hit.url}" class="block px-4 py-3 hover:bg-gray-50 text-gray-800 border-b border-gray-100 last:border-b-0 transition-colors">
+            <div class="flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-gray-400 flex-shrink-0">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+              </svg>
+              <div class="flex-1">
+                <div class="font-medium text-sm">${hit._highlightResult?.name?.value || hit.name}</div>
+                <div class="text-xs text-gray-500">${hit.country}</div>
+              </div>
+            </div>
+          </a>
+        `).join('');
+        resultsContainer.classList.remove('hidden');
+      }
+    }
+    
+    // Search function
+    async function performSearch(query: string) {
+      if (query.length < 2) {
+        hideAllDropdowns();
+        return;
+      }
+      
+      try {
+        showLoading();
+        
+        const { hits } = await index.search(query, {
+          hitsPerPage: 8,
+          attributesToRetrieve: ['name', 'city', 'region', 'country', 'url'],
+          attributesToHighlight: ['name', 'city'],
+          typoTolerance: true,
+          minWordSizefor1Typo: 4,
+          minWordSizefor2Typos: 8,
+        });
+        
+        showResults(hits);
+      } catch (error) {
+        console.error('Algolia search error:', error);
+        hideAllDropdowns();
+      }
+    }
+    
+    // Handle input events
+    searchInput.addEventListener('input', function() {
+      const query = this.value.trim();
+      
+      // Clear previous timeout
+      clearTimeout(searchTimeout);
+      
+      // Debounce search
+      searchTimeout = setTimeout(() => {
+        performSearch(query);
+      }, 300);
+    });
+    
+    // Handle keyboard navigation
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        hideAllDropdowns();
+        this.blur();
+      }
+    });
+    
+    // Handle focus
+    searchInput.addEventListener('focus', function() {
+      const query = this.value.trim();
+      if (query.length >= 2) {
+        performSearch(query);
+      }
+    });
+    
+    // Hide results when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target as Node) && 
+          !resultsContainer?.contains(e.target as Node) &&
+          !loadingIndicator?.contains(e.target as Node) &&
+          !noResultsMessage?.contains(e.target as Node)) {
+        hideAllDropdowns();
+      }
+    });
+  });
+</script>

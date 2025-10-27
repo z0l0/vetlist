@@ -1,0 +1,41 @@
+---
+const { name, name_slug, description, picture, city, country_slug, province_slug, city_slug } = Astro.props;
+const url = /${country_slug}/${province_slug}/${city_slug}/${name_slug};
+---
+<div class="vet-card related-vet-card">
+  <div class="relative">
+    <div class="w-full h-[150px] bg-primary-100 flex items-center justify-center">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-600">
+        <path d="M12 6v4"/>
+        <path d="M14 14h-4"/>
+        <path d="M14 18h-4"/>
+        <path d="M14 8h-4"/>
+        <path d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2"/>
+        <path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
+      </svg>
+    </div>
+    {picture && (
+      <a href={url} rel="prefetch" class="absolute inset-0">
+        <img
+          src={picture.startsWith('https://lh') ? `${picture}=w240-h180-k-no` : picture}
+          alt={`${name} image`}
+          class="vet-card-image absolute inset-0 w-full h-full object-cover"
+          width="200"
+          height="150"
+          loading="lazy"
+          onerror="this.style.display='none'"
+        />
+      </a>
+    )}
+    {!picture && (
+      <a href={url} rel="prefetch" class="absolute inset-0"></a>
+    )}
+  </div>
+  <div class="vet-card-content">
+    <h3 class="vet-name">
+      <a href={url} rel="prefetch">{name}</a>
+    </h3>
+    <p class="vet-description">{description || 'No description available'}</p>
+    <p class="vet-location">{city}</p>
+  </div>
+</div>

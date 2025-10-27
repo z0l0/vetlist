@@ -1,0 +1,160 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+
+const title = 'Terms of Service';
+const path = Astro.url.pathname.replace(/\/$/, '');
+---
+
+<Layout title={title}>
+  <Breadcrumbs path={path} />
+
+  <div class="container">
+    <h1>Terms of Service</h1>
+    <p class="last-updated">Last updated: March 26, 2025</p>
+    
+    <div class="terms-content">
+      <section class="terms-section">
+        <h2>1. Acceptance of Terms</h2>
+        <p>By accessing or using VetList.org ("the Service"), you agree to be bound by these Terms of Service. If you disagree with any part of these terms, you may not access the Service.</p>
+      </section>
+      
+      <section class="terms-section">
+        <h2>2. Use of Service</h2>
+        <p>VetList.org provides a platform for users to search and find veterinary services. You agree to use the Service only for lawful purposes and in accordance with these Terms.</p>
+        
+        <h3>2.1 User Accounts</h3>
+        <p>When creating an account with us, you must provide accurate and complete information. You are responsible for safeguarding the password for your account and for any activities or actions under your password.</p>
+        
+        <h3>2.2 Prohibited Activities</h3>
+        <p>You agree not to:</p>
+        <ul>
+          <li>Use the Service for any illegal purpose or in violation of any local, state, national, or international law</li>
+          <li>Attempt to access data not intended for you</li>
+          <li>Interfere with or disrupt the Service or servers or networks connected to the Service</li>
+          <li>Use automated means to access or collect data from the Service</li>
+          <li>Impersonate another person or entity</li>
+        </ul>
+      </section>
+      
+      <section class="terms-section">
+        <h2>3. Veterinary Information</h2>
+        <p>The information provided on VetList.org about veterinary clinics, services, and related content is for general informational purposes only. We strive to provide accurate and up-to-date information, but we make no representations or warranties about the completeness, reliability, or accuracy of this information.</p>
+        <p>Any reliance you place on such information is strictly at your own risk. We recommend contacting clinics directly to verify information before making any decisions or appointments.</p>
+      </section>
+      
+      <section class="terms-section">
+        <h2>4. Intellectual Property</h2>
+        <p>The Service and its original content, features, and functionality are and will remain the exclusive property of VetList.org and its licensors. The Service is protected by copyright, trademark, and other laws of both the United States and foreign countries.</p>
+        <p>Our trademarks and trade dress may not be used in connection with any product or service without the prior written consent of VetList.org.</p>
+      </section>
+      
+      <section class="terms-section">
+        <h2>5. Third-Party Links</h2>
+        <p>Our Service may contain links to third-party websites or services that are not owned or controlled by VetList.org. We have no control over, and assume no responsibility for, the content, privacy policies, or practices of any third-party websites or services.</p>
+        <p>You acknowledge and agree that VetList.org shall not be responsible or liable, directly or indirectly, for any damage or loss caused or alleged to be caused by or in connection with the use of or reliance on any such content, goods or services available on or through any such websites or services.</p>
+      </section>
+      
+      <section class="terms-section">
+        <h2>6. Limitation of Liability</h2>
+        <p>In no event shall VetList.org, its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from:</p>
+        <ul>
+          <li>Your access to or use of or inability to access or use the Service</li>
+          <li>Any conduct or content of any third party on the Service</li>
+          <li>Any content obtained from the Service</li>
+          <li>Unauthorized access, use or alteration of your transmissions or content</li>
+        </ul>
+      </section>
+      
+      <section class="terms-section">
+        <h2>7. Changes to Terms</h2>
+        <p>We reserve the right to modify or replace these Terms at any time. If a revision is material, we will try to provide at least 30 days' notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion.</p>
+        <p>By continuing to access or use our Service after those revisions become effective, you agree to be bound by the revised terms. If you do not agree to the new terms, please stop using the Service.</p>
+      </section>
+      
+      <section class="terms-section">
+        <h2>8. Contact Us</h2>
+        <p>If you have any questions about these Terms, please <a href="/contact">contact us</a>.</p>
+      </section>
+    </div>
+  </div>
+
+  <style>
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+    
+    .last-updated {
+      color: var(--text-light);
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+    
+    .terms-content {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .terms-section {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+    }
+    
+    .terms-section:not(:last-child) {
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .terms-section h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    
+    .terms-section h3 {
+      font-size: 1.2rem;
+      margin: 1.5rem 0 0.75rem;
+      color: var(--text);
+    }
+    
+    .terms-section p {
+      margin-bottom: 1rem;
+      line-height: 1.6;
+      color: var(--text-light);
+    }
+    
+    .terms-section ul {
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .terms-section li {
+      margin-bottom: 0.5rem;
+      color: var(--text-light);
+    }
+    
+    .terms-section a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    
+    .terms-section a:hover {
+      text-decoration: underline;
+    }
+    
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.75rem;
+      }
+      
+      .terms-section h2 {
+        font-size: 1.3rem;
+      }
+      
+      .terms-section h3 {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</Layout>

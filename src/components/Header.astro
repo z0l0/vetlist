@@ -1,0 +1,805 @@
+---
+// Check page type based on URL pattern
+const pathname = Astro.url.pathname;
+const isHomepage = pathname === '/';
+
+// Parse URL to determine page type and context
+let pageType = 'homepage';
+let searchContext: {
+  country?: string;
+  region?: string;
+  city?: string;
+  placeholder?: string;
+  searchType?: string;
+} = {};
+
+const pathSegments = pathname.split('/').filter(Boolean);
+
+if (pathSegments.length === 1) {
+  // Country page: /canada
+  pageType = 'country';
+  searchContext = {
+    country: pathSegments[0],
+    placeholder: 'Search regions...',
+    searchType: 'regions'
+  };
+} else if (pathSegments.length === 2) {
+  // Region page: /canada/ontario
+  pageType = 'region';
+  const regionName = pathSegments[1].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  searchContext = {
+    country: pathSegments[0],
+    region: pathSegments[1],
+    placeholder: `Search cities in ${regionName}`,
+    searchType: 'cities'
+  };
+} else if (pathSegments.length === 3) {
+  // City page: /canada/ontario/toronto
+  pageType = 'city';
+  const cityName = pathSegments[2].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  searchContext = {
+    country: pathSegments[0],
+    region: pathSegments[1],
+    city: pathSegments[2],
+    placeholder: `Search veterinarians in ${cityName}`,
+    searchType: 'profiles'
+  };
+}
+
+// Default to homepage search if not a location page
+if (!['country', 'region', 'city'].includes(pageType)) {
+  pageType = 'homepage';
+  searchContext = {
+    placeholder: 'Search vets, specialties, locations...',
+    searchType: 'general'
+  };
+}
+
+// Force Algolia search for add-vet and claim-clinic pages
+if (pathname === '/add-vet' || pathname === '/claim-clinic') {
+  pageType = 'homepage';
+  searchContext = {
+    placeholder: 'Search vets, specialties, locations...',
+    searchType: 'general'
+  };
+}
+---
+
+<header class="sticky top-0 z-50 w-full bg-white shadow-sm">
+  <div class="container mx-auto max-w-none px-4 md:px-8 lg:px-12">
+    <div class="flex items-center gap-4 py-3">
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-2 flex-shrink-0">
+        <div class="text-primary-600">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="lucide lucide-paw-print">
+            <circle cx="11" cy="4" r="2"/>
+            <circle cx="18" cy="8" r="2"/>
+            <circle cx="20" cy="16" r="2"/>
+            <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/>
+          </svg>
+        </div>
+        <span class="text-xl font-bold text-primary-700 hidden sm:block">VetList</span>
+        <span class="text-lg font-bold text-primary-700 sm:hidden">VL</span>
+      </a>
+      
+      <!-- Veterinary Search - Takes up most of the space -->
+      <div class="flex-1 mx-4 relative">
+        <div class="relative">
+          <!-- NEW Search Badge - Animated Flash -->
+          <div id="search-flash-badge" class="absolute -top-2 left-3 inline-flex items-center gap-2 px-2.5 py-1 bg-primary-500/95 backdrop-blur-sm rounded-full border-2 border-primary-400 shadow-lg z-10 transition-all duration-500 opacity-0 scale-90">
+            <div class="w-1.5 h-1.5 bg-primary-200 rounded-full"></div>
+            <span class="text-white text-xs font-semibold">Try the NEW search!</span>
+          </div>
+          
+          <input 
+            type="text" 
+            id="header-vet-search"
+            placeholder={searchContext.placeholder || "Search vets, specialties, locations..."}
+            class="w-full px-4 py-2.5 pr-12 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-800 placeholder-gray-500 text-sm sm:text-base bg-gray-50 focus:bg-white transition-all duration-300 hover:border-primary-300"
+            autocomplete="off"
+            data-page-type={pageType}
+            data-search-type={searchContext.searchType}
+            data-country={searchContext.country || ''}
+            data-region={searchContext.region || ''}
+            data-city={searchContext.city || ''}
+          />
+          
+          <!-- Search Icon -->
+          <div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Hamburger Menu Button -->
+      <button 
+        id="menu-toggle"
+        class="flex flex-col justify-center items-center w-8 h-8 space-y-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-md transition-all duration-300 flex-shrink-0"
+        aria-label="Toggle menu"
+      >
+        <span class="hamburger-line w-6 h-0.5 bg-gray-700 transition-all duration-300"></span>
+        <span class="hamburger-line w-6 h-0.5 bg-gray-700 transition-all duration-300"></span>
+        <span class="hamburger-line w-6 h-0.5 bg-gray-700 transition-all duration-300"></span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Slide-in Menu -->
+  <div 
+    id="mobile-menu" 
+    class="fixed inset-0 z-50 hidden"
+  >
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black bg-opacity-50 transition-opacity duration-300"></div>
+    
+    <!-- Menu Panel -->
+    <div class="absolute right-0 top-0 h-full w-80 bg-white shadow-xl transform translate-x-full transition-transform duration-300 ease-in-out" id="menu-panel">
+      <!-- Menu Header -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Menu</h2>
+        <button 
+          id="menu-close"
+          class="p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
+          aria-label="Close menu"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 text-gray-600">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Menu Items -->
+      <nav class="p-6 space-y-4">
+        <!-- Add Your Clinic - Highlighted -->
+        <a 
+          href="/add-vet"
+          class="flex items-center gap-4 p-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-xl hover:from-orange-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          <span class="font-semibold text-lg">Add Your Clinic</span>
+        </a>
+        
+        <!-- Claim Your Clinic -->
+        <a 
+          href="/claim-clinic"
+          class="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="font-semibold text-lg">Claim Your Clinic</span>
+        </a>
+        
+        <!-- Browse Canadian Vets -->
+        <a 
+          href="/canada"
+          class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+        >
+          <span class="text-2xl">🇨🇦</span>
+          <span class="text-gray-800 font-medium">Browse Canadian Vets</span>
+        </a>
+        
+        <!-- Browse American Vets -->
+        <a 
+          href="/united-states"
+          class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+        >
+          <span class="text-2xl">🇺🇸</span>
+          <span class="text-gray-800 font-medium">Browse American Vets</span>
+        </a>
+        
+        <!-- Vets in Popular Cities -->
+        <a 
+          href="/#popular-cities"
+          class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 text-gray-600">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+          </svg>
+          <span class="text-gray-800 font-medium">Vets in Popular Cities</span>
+        </a>
+        
+        <!-- Most Popular Vets -->
+        <a 
+          href="/#popular-vets"
+          class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 text-gray-600">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+          </svg>
+          <span class="text-gray-800 font-medium" id="popular-vets-text">Most Popular Vets</span>
+        </a>
+        
+        <!-- Contact Us -->
+        <a 
+          href="/contact"
+          class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 text-gray-600">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+          </svg>
+          <span class="text-gray-800 font-medium">Contact Us</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<script>
+  // Header Vet Search functionality
+  async function initializeHeaderVetSearch() {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      // Get DOM elements
+      const searchInput = document.getElementById('header-vet-search') as HTMLInputElement;
+      
+      if (!searchInput) return;
+      
+      // Get page context from data attributes
+      const pageType = searchInput.dataset.pageType;
+      const searchType = searchInput.dataset.searchType;
+      const country = searchInput.dataset.country;
+      const region = searchInput.dataset.region;
+      const city = searchInput.dataset.city;
+      
+      console.log('Header search initialized for:', { pageType, searchType, country, region, city });
+      
+      // For location pages, use local search instead of Algolia
+      if (['country', 'region', 'city'].includes(pageType)) {
+        initializeLocationSearch(searchInput, pageType, { country, region, city });
+        return;
+      }
+      
+      // For homepage, use Algolia search
+      const { default: algoliasearch } = await import('algoliasearch/lite');
+      console.log('Algolia loaded for header search');
+      
+      // Initialize Algolia client and index
+      const appId = 'G13RPGTX1B';
+      const apiKey = '3733aa7e0b81cfc61dc8e4122fe93c6a';
+      const indexName = 'vetlist_locations';
+      
+      const algoliaClient = algoliasearch(appId, apiKey);
+      const index = algoliaClient.initIndex(indexName);
+      
+      // Create dropdown containers with higher z-index for header
+      const dropdownContainer = document.createElement('div');
+      dropdownContainer.className = 'fixed inset-0 pointer-events-none z-[9999]';
+      dropdownContainer.innerHTML = `
+        <!-- Search Results Dropdown -->
+        <div id="header-search-results" class="hidden absolute bg-white border border-gray-200 rounded-lg shadow-2xl max-h-80 overflow-y-auto pointer-events-auto">
+        </div>
+        
+        <!-- Loading indicator -->
+        <div id="header-loading" class="hidden absolute bg-white border border-gray-200 rounded-lg shadow-2xl p-4 pointer-events-auto">
+          <div class="flex items-center gap-2 text-gray-500 text-sm">
+            <div class="animate-spin w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full"></div>
+            <span id="header-loading-text">Searching...</span>
+          </div>
+        </div>
+        
+        <!-- No results message -->
+        <div id="header-no-results" class="hidden absolute bg-white border border-gray-200 rounded-lg shadow-2xl p-4 pointer-events-auto">
+          <div class="text-gray-500 text-sm">
+            <div class="flex items-center gap-2 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              No results found
+            </div>
+            <p>Try a different search term or check spelling.</p>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(dropdownContainer);
+      
+      const resultsContainer = document.getElementById('header-search-results');
+      const loadingIndicator = document.getElementById('header-loading');
+      const noResultsMessage = document.getElementById('header-no-results');
+      const loadingText = document.getElementById('header-loading-text');
+      
+      // Position dropdown relative to input
+      function positionDropdown(element: HTMLElement) {
+        if (!element || !searchInput) return;
+        
+        const inputRect = searchInput.getBoundingClientRect();
+        element.style.left = inputRect.left + 'px';
+        element.style.top = (inputRect.bottom + 8) + 'px';
+        element.style.width = inputRect.width + 'px';
+      }
+      
+      // Hide all dropdowns
+      function hideAllDropdowns() {
+        resultsContainer?.classList.add('hidden');
+        loadingIndicator?.classList.add('hidden');
+        noResultsMessage?.classList.add('hidden');
+      }
+      
+      // Show loading with custom message
+      function showLoading(message = 'Searching...') {
+        hideAllDropdowns();
+        if (loadingIndicator && loadingText) {
+          loadingText.textContent = message;
+          positionDropdown(loadingIndicator);
+          loadingIndicator.classList.remove('hidden');
+        }
+      }
+      
+      // Show search results
+      function showResults(hits: any[]) {
+        hideAllDropdowns();
+        
+        if (hits.length === 0) {
+          if (noResultsMessage) {
+            positionDropdown(noResultsMessage);
+            noResultsMessage.classList.remove('hidden');
+          }
+          return;
+        }
+        
+        if (resultsContainer) {
+          resultsContainer.innerHTML = hits.map((hit: any) => {
+            // Format specializations
+            const specializations = hit.specializations || [];
+            const displaySpecializations = specializations.slice(0, 2).join(', ');
+            const moreCount = specializations.length > 2 ? ` +${specializations.length - 2} more` : '';
+            
+            // Rating display
+            const rating = hit.rating ? `${hit.rating}⭐` : '';
+            
+            return `
+              <a href="${hit.url || '#'}" class="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors">
+                <div class="flex items-start gap-3">
+                  <div class="flex-shrink-0 w-10 h-10 relative">
+                    <div class="w-full h-full rounded-lg bg-primary-100 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-600">
+                        <path d="M12 6v4"/>
+                        <path d="M14 14h-4"/>
+                        <path d="M14 18h-4"/>
+                        <path d="M14 8h-4"/>
+                        <path d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2"/>
+                        <path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
+                      </svg>
+                    </div>
+                    ${hit.picture ? 
+                      `<img src="${hit.picture}" alt="${hit.name}" class="absolute inset-0 w-full h-full rounded-lg object-cover" onerror="this.style.display='none'" />` :
+                      ''
+                    }
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                      <h3 class="font-medium text-sm text-gray-900 truncate">${hit._highlightResult?.name?.value || hit.name}</h3>
+                      ${rating ? `<span class="text-xs text-yellow-600">${rating}</span>` : ''}
+                    </div>
+                    <p class="text-xs text-gray-600 mb-1">${hit._highlightResult?.location?.value || hit.location}</p>
+                    ${displaySpecializations ? 
+                      `<p class="text-xs text-gray-500 truncate">${displaySpecializations}${moreCount}</p>` : ''
+                    }
+                  </div>
+                </div>
+              </a>
+            `;
+          }).join('');
+          
+          positionDropdown(resultsContainer);
+          resultsContainer.classList.remove('hidden');
+        }
+      }
+      
+      // Perform search
+      async function performSearch(query: string) {
+        if (query.length < 2) {
+          hideAllDropdowns();
+          return;
+        }
+        
+        try {
+          const searchOptions: any = {
+            hitsPerPage: 12,
+            attributesToRetrieve: [
+              'name', 'location', 'specializations', 'rating', 
+              'picture', 'city', 'province', 'country', 'url'
+            ],
+            attributesToHighlight: ['name', 'location', 'specializations'],
+            typoTolerance: true,
+            minWordSizefor1Typo: 4,
+            minWordSizefor2Typos: 8,
+          };
+          
+          showLoading('Searching vets...');
+          
+          console.log('Header search query:', query);
+          
+          const searchResult = await index.search(query, searchOptions);
+          const hits = searchResult.hits || [];
+          
+          console.log('Header search results:', hits.length, 'hits');
+          showResults(hits);
+          
+        } catch (error) {
+          console.error('Header search error:', error);
+          hideAllDropdowns();
+        }
+      }
+      
+      // Handle input events
+      let searchTimeout: NodeJS.Timeout;
+      searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        clearTimeout(searchTimeout);
+        
+        searchTimeout = setTimeout(() => {
+          performSearch(query);
+        }, 300);
+      });
+      
+      // Handle keyboard events
+      searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          hideAllDropdowns();
+          this.blur();
+        }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const query = this.value.trim();
+          if (query) {
+            // Navigate to search results page or perform action
+            window.location.href = `/?search=${encodeURIComponent(query)}`;
+          }
+        }
+      });
+      
+      // Handle focus
+      searchInput.addEventListener('focus', function() {
+        const query = this.value.trim();
+        if (query.length >= 2) {
+          performSearch(query);
+        }
+      });
+      
+      // Hide results when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target as Node) && 
+            !resultsContainer?.contains(e.target as Node) &&
+            !loadingIndicator?.contains(e.target as Node) &&
+            !noResultsMessage?.contains(e.target as Node)) {
+          hideAllDropdowns();
+        }
+      });
+      
+      // Reposition on scroll/resize
+      function repositionVisibleDropdown() {
+        if (resultsContainer && !resultsContainer.classList.contains('hidden')) {
+          positionDropdown(resultsContainer);
+        }
+        if (loadingIndicator && !loadingIndicator.classList.contains('hidden')) {
+          positionDropdown(loadingIndicator);
+        }
+        if (noResultsMessage && !noResultsMessage.classList.contains('hidden')) {
+          positionDropdown(noResultsMessage);
+        }
+      }
+      
+      window.addEventListener('scroll', repositionVisibleDropdown);
+      window.addEventListener('resize', repositionVisibleDropdown);
+      
+    } catch (error) {
+      console.error('Failed to initialize header search:', error);
+    }
+  }
+
+  // Location-specific search functionality
+  function initializeLocationSearch(searchInput: HTMLInputElement, pageType: string, context: any) {
+    console.log('Initializing location search for:', pageType, context);
+    
+    // Get the appropriate search elements from the page
+    let targetElements: HTMLElement[] = [];
+    let searchFunction: (query: string) => void;
+    
+    if (pageType === 'country') {
+      // Search regions
+      targetElements = Array.from(document.querySelectorAll('.region-card')) as HTMLElement[];
+      searchFunction = (query: string) => {
+        const filtered = targetElements.filter(card => {
+          const regionName = card.dataset.regionName || '';
+          return regionName.includes(query.toLowerCase());
+        });
+        updateLocationResults(targetElements, filtered, 'regions', query);
+      };
+    } else if (pageType === 'region') {
+      // Search cities
+      targetElements = Array.from(document.querySelectorAll('.city-card')) as HTMLElement[];
+      searchFunction = (query: string) => {
+        const filtered = targetElements.filter(card => {
+          const cityName = card.dataset.cityName || '';
+          return cityName.includes(query.toLowerCase());
+        });
+        updateLocationResults(targetElements, filtered, 'cities', query);
+      };
+    } else if (pageType === 'city') {
+      // Search profiles
+      const profileCards = Array.from(document.querySelectorAll('.profile-card')) as HTMLElement[];
+      const searchableItems = Array.from(document.querySelectorAll('.searchable-item')) as HTMLElement[];
+      targetElements = [...profileCards, ...searchableItems];
+      
+      searchFunction = (query: string) => {
+        const filteredProfiles = profileCards.filter(card => {
+          const profileName = card.dataset.searchName || '';
+          const profileDescription = card.dataset.searchDescription || '';
+          return profileName.includes(query.toLowerCase()) || profileDescription.includes(query.toLowerCase());
+        });
+        
+        const filteredItems = searchableItems.filter(item => {
+          const profileName = item.dataset.searchName || '';
+          const profileDescription = item.dataset.searchDescription || '';
+          return profileName.includes(query.toLowerCase()) || profileDescription.includes(query.toLowerCase());
+        });
+        
+        updateProfileResults(profileCards, searchableItems, filteredProfiles, filteredItems, query);
+      };
+    }
+    
+    // Handle input events
+    let searchTimeout: NodeJS.Timeout;
+    searchInput.addEventListener('input', function() {
+      const query = this.value.trim();
+      
+      clearTimeout(searchTimeout);
+      
+      searchTimeout = setTimeout(() => {
+        if (query.length === 0) {
+          // Reset to show all items
+          if (pageType === 'city') {
+            updateProfileResults(
+              Array.from(document.querySelectorAll('.profile-card')) as HTMLElement[],
+              Array.from(document.querySelectorAll('.searchable-item')) as HTMLElement[],
+              Array.from(document.querySelectorAll('.profile-card')) as HTMLElement[],
+              Array.from(document.querySelectorAll('.searchable-item')) as HTMLElement[],
+              ''
+            );
+          } else {
+            updateLocationResults(targetElements, targetElements, pageType === 'country' ? 'regions' : 'cities', '');
+          }
+        } else {
+          searchFunction(query);
+        }
+      }, 300);
+    });
+    
+    // Handle keyboard events
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        this.blur();
+        this.value = '';
+        // Reset results
+        if (pageType === 'city') {
+          updateProfileResults(
+            Array.from(document.querySelectorAll('.profile-card')) as HTMLElement[],
+            Array.from(document.querySelectorAll('.searchable-item')) as HTMLElement[],
+            Array.from(document.querySelectorAll('.profile-card')) as HTMLElement[],
+            Array.from(document.querySelectorAll('.searchable-item')) as HTMLElement[],
+            ''
+          );
+        } else {
+          updateLocationResults(targetElements, targetElements, pageType === 'country' ? 'regions' : 'cities', '');
+        }
+      }
+    });
+  }
+  
+  // Update location results (regions/cities)
+  function updateLocationResults(allElements: HTMLElement[], filteredElements: HTMLElement[], type: string, query: string) {
+    const grid = document.getElementById(type === 'regions' ? 'regions-grid' : 'cities-grid');
+    if (!grid) return;
+    
+    // Hide all elements
+    allElements.forEach(element => {
+      element.style.display = 'none';
+    });
+    
+    // Clear grid
+    grid.innerHTML = '';
+    
+    if (filteredElements.length === 0 && query) {
+      grid.innerHTML = `
+        <div class="col-span-full text-center py-8 text-gray-500">
+          <p>No ${type} found matching "${query}"</p>
+        </div>
+      `;
+    } else {
+      filteredElements.forEach(element => {
+        element.style.display = 'flex';
+        grid.appendChild(element);
+      });
+    }
+  }
+  
+  // Update profile results
+  function updateProfileResults(
+    allProfileCards: HTMLElement[], 
+    allSearchableItems: HTMLElement[], 
+    filteredProfileCards: HTMLElement[], 
+    filteredSearchableItems: HTMLElement[], 
+    query: string
+  ) {
+    const profilesGrid = document.getElementById('profiles-grid');
+    if (!profilesGrid) return;
+    
+    // Hide all elements
+    allProfileCards.forEach(card => {
+      card.style.display = 'none';
+    });
+    allSearchableItems.forEach(item => {
+      item.style.display = 'none';
+    });
+    
+    // Clear grid
+    profilesGrid.innerHTML = '';
+    
+    if (filteredProfileCards.length === 0 && filteredSearchableItems.length === 0 && query) {
+      profilesGrid.innerHTML = `
+        <div class="col-span-full text-center py-8 text-gray-500">
+          <p>No veterinarians found matching "${query}"</p>
+        </div>
+      `;
+    } else {
+      filteredProfileCards.forEach(card => {
+        card.style.display = 'block';
+        profilesGrid.appendChild(card);
+      });
+      
+      // Show filtered additional items
+      filteredSearchableItems.forEach(item => {
+        item.style.display = 'flex';
+      });
+    }
+  }
+
+  // Menu functionality
+  const menuToggle = document.getElementById('menu-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  const menuPanel = document.getElementById('menu-panel');
+  const menuClose = document.getElementById('menu-close');
+  const hamburgerLines = document.querySelectorAll('.hamburger-line');
+  
+  // Set dynamic date for popular vets
+  const popularVetsText = document.getElementById('popular-vets-text');
+  if (popularVetsText) {
+    const currentDate = new Date();
+    const monthName = currentDate.toLocaleDateString('en-US', { month: 'long' });
+    const year = currentDate.getFullYear();
+    popularVetsText.textContent = `Most Popular Vets in ${monthName} ${year}`;
+  }
+  
+  function openMenu() {
+    if (!mobileMenu || !menuPanel) return;
+    
+    mobileMenu.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Animate hamburger to X
+    if (hamburgerLines[0]) (hamburgerLines[0] as HTMLElement).style.transform = 'rotate(45deg) translate(6px, 6px)';
+    if (hamburgerLines[1]) (hamburgerLines[1] as HTMLElement).style.opacity = '0';
+    if (hamburgerLines[2]) (hamburgerLines[2] as HTMLElement).style.transform = 'rotate(-45deg) translate(6px, -6px)';
+    
+    // Slide in menu
+    setTimeout(() => {
+      if (menuPanel) (menuPanel as HTMLElement).style.transform = 'translateX(0)';
+    }, 10);
+  }
+  
+  function closeMenu() {
+    if (!mobileMenu || !menuPanel) return;
+    
+    (menuPanel as HTMLElement).style.transform = 'translateX(100%)';
+    document.body.style.overflow = '';
+    
+    // Animate X back to hamburger
+    if (hamburgerLines[0]) (hamburgerLines[0] as HTMLElement).style.transform = '';
+    if (hamburgerLines[1]) (hamburgerLines[1] as HTMLElement).style.opacity = '';
+    if (hamburgerLines[2]) (hamburgerLines[2] as HTMLElement).style.transform = '';
+    
+    setTimeout(() => {
+      if (mobileMenu) mobileMenu.classList.add('hidden');
+    }, 300);
+  }
+  
+  // Event listeners
+  menuToggle?.addEventListener('click', openMenu);
+  menuClose?.addEventListener('click', closeMenu);
+  
+  // Close menu when clicking backdrop
+  mobileMenu?.addEventListener('click', (e) => {
+    if (e.target === mobileMenu) {
+      closeMenu();
+    }
+  });
+  
+  // Close menu when clicking any nav link
+  const navLinks = mobileMenu?.querySelectorAll('a');
+  navLinks?.forEach(link => {
+    link.addEventListener('click', closeMenu);
+  });
+  
+  // Close menu with Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !mobileMenu?.classList.contains('hidden')) {
+      closeMenu();
+    }
+  });
+
+  // Handle search flash badge animation
+  function initializeSearchFlashBadge() {
+    const searchInput = document.getElementById('header-vet-search');
+    const flashBadge = document.getElementById('search-flash-badge');
+    
+    if (searchInput && flashBadge) {
+      let hasInteracted = false;
+      
+      // Flash animation sequence
+      function flashBadgeAnimation() {
+        if (hasInteracted || !flashBadge) return;
+        
+        // Show with flash effect
+        flashBadge.style.opacity = '1';
+        flashBadge.style.transform = 'scale(1)';
+        flashBadge.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.6)';
+        
+        // Flash sequence: 3 flashes
+        const flashTimes = [800, 1600, 2400];
+        flashTimes.forEach(function(time, index) {
+          setTimeout(function() {
+            if (hasInteracted || !flashBadge) return;
+            flashBadge.style.opacity = '0.3';
+            flashBadge.style.transform = 'scale(0.95)';
+            setTimeout(function() {
+              if (hasInteracted || !flashBadge) return;
+              flashBadge.style.opacity = '1';
+              flashBadge.style.transform = 'scale(1)';
+            }, 150);
+          }, time);
+        });
+        
+        // Auto-hide after 4 seconds if no interaction
+        setTimeout(function() {
+          if (!hasInteracted) {
+            hideBadge();
+          }
+        }, 4000);
+      }
+      
+      // Function to hide badge
+      function hideBadge() {
+        hasInteracted = true;
+        if (flashBadge) {
+          flashBadge.style.opacity = '0';
+          flashBadge.style.transform = 'scale(0.8)';
+          flashBadge.style.boxShadow = 'none';
+        }
+      }
+      
+      // Hide badge on any interaction
+      searchInput.addEventListener('focus', hideBadge);
+      searchInput.addEventListener('input', hideBadge);
+      searchInput.addEventListener('click', hideBadge);
+      
+      // Start flash sequence after page load
+      setTimeout(flashBadgeAnimation, 1000);
+    }
+  }
+
+  // Initialize header search when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    initializeSearchFlashBadge();
+    setTimeout(() => {
+      initializeHeaderVetSearch();
+    }, 100);
+  });
+</script>

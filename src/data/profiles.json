@@ -1,0 +1,429 @@
+[
+  {
+    "id": 1,
+    "slug": "annex-animal-hospital",
+    "name": "Annex Animal Hospital",
+    "description": "Quality veterinary care in a modern facility",
+    "longDescription": "This friendly veterinary clinic is dedicated to providing high-quality care for all your furry friends. The experienced staff consists of passionate professionals who treat every pet with love and compassion.",
+    "image": "https://lh5.googleusercontent.com/p/AF1QipNNP_xN5xcCB2YFAaZmS-QMUzEl_kxsCxjm_BwU",
+    "location": {
+      "address": "716 Bathurst St",
+      "city": "Toronto",
+      "region": "Ontario",
+      "country": "Canada"
+    },
+    "contact": {
+      "phone": "+1 416-537-3128",
+      "website": "https://www.annexvet.com/",
+      "email": "info@annexvet.com"
+    },
+    "specializations": [
+      "Small Animal Care",
+      "Emergency Services",
+      "Dental Care"
+    ],
+    "faqs": [
+      {
+        "question": "Do you accept walk-in appointments?",
+        "answer": "We accept walk-ins for emergencies, but recommend scheduling appointments for routine care."
+      },
+      {
+        "question": "What are your hours?",
+        "answer": "We are open Monday-Friday 8am-6pm, and Saturday 9am-2pm."
+      }
+    ]
+  },
+   {
+    "id": 7069,
+    "slug": "vo-vets-animal-hospital",
+    "name": "Vo Vets Animal Hospital",
+    "description": "Expert puppy care and behavior solutions near the Fort Worth Stockyard",
+    "longDescription": "Mobile Vet Services in Fort Worth offers convenient, compassionate care for pets right at home, specializing in Puppy and Kitten Care. The experienced team of veterinarians brings expertise and personalized attention to every visit. Their mobile clinic features state-of-the-art equipment, ensuring p",
+    "image": "https://lh5.googleusercontent.com/p/AF1QipPZzK8sdjvFKvoBeLyHYhmLSgztEuBdJYvDSOOj=w542-h240-k-no",
+    "location": {
+      "address": "12650 N Beach St Suite 148",
+      "city": "Fort Worth",
+      "region": "Texas",
+      "country": "United States"
+    },
+    "contact": {
+      "phone": "+1 682-350-8890",
+      "website": "https://vovets.com/"
+    },
+    "specializations": [
+      "Mobile Vet Services",
+      "Puppy and Kitten Care",
+      "Senior Pet Care",
+      "Pet Behavior Counseling"
+    ],
+    "faqs": [
+      {
+        "question": "Does Vo Vets Animal Hospital accept walk-in appointments?",
+        "answer": "Appointments are required at Vo Vets Animal Hospital; walk-ins are not typically accommodated."
+      },
+      {
+        "question": "Does Vo Vets Animal Hospital offer house calls for pets?",
+        "answer": "Vo Vets Animal Hospital provides mobile veterinary services for home visits."
+      },
+      {
+        "question": "Does Vo Vets Animal Hospital treat exotic animals (e.g., birds, reptiles)?",
+        "answer": "Vo Vets Animal Hospital primarily provides care for cats and dogs."
+      },
+      {
+        "question": "Does Vo Vets Animal Hospital perform surgical procedures?",
+        "answer": "Surgical procedures are not performed at Vo Vets Animal Hospital."
+      },
+      {
+        "question": "Does Vo Vets Animal Hospital offer dental care for pets?",
+        "answer": "Dental care services are not currently offered at Vo Vets Animal Hospital."
+      },
+      {
+        "question": "Does Vo Vets Animal Hospital have diagnostic imaging capabilities (e.g., X-rays, ultrasound)?",
+        "answer": "Diagnostic imaging services are not available at Vo Vets Animal Hospital."
+      },
+      {
+        "question": "Does Vo Vets Animal Hospital accept pet insurance plans?",
+        "answer": "Vo Vets Animal Hospital does not directly bill pet insurance providers."
+      },
+      {
+        "question": "Is Vo Vets Animal Hospital accredited by any veterinary associations?",
+        "answer": "No specific accreditations are currently listed for Vo Vets Animal Hospital."
+      },
+      {
+        "question": "Does Vo Vets Animal Hospital provide vaccination services?",
+        "answer": "Vaccination services are not currently offered at Vo Vets Animal Hospital."
+      },
+      {
+        "question": "Does Vo Vets Animal Hospital offer spaying and neutering services?",
+        "answer": "Spaying and neutering services are not available at Vo Vets Animal Hospital."
+      },
+      {
+        "question": "Does Vo Vets Animal Hospital have an in-house laboratory for tests?",
+        "answer": "Laboratory testing is not available on-site at Vo Vets Animal Hospital."
+      },
+      {
+        "question": "Does Vo Vets Animal Hospital provide microchipping services?",
+        "answer": "Microchipping services are not currently offered at Vo Vets Animal Hospital."
+      },
+      {
+        "question": "Does Vo Vets Animal Hospital offer prescription diets or pet foods?",
+        "answer": "Prescription diets are not available at Vo Vets Animal Hospital."
+      },
+      {
+        "question": "Does Vo Vets Animal Hospital have multiple veterinarians on staff?",
+        "answer": "Information about veterinary staff is not specified."
+      },
+      {
+        "question": "Does Vo Vets Animal Hospital offer online appointment scheduling?",
+        "answer": "Online scheduling is not currently available at Vo Vets Animal Hospital."
+      },
+      {
+        "question": "Is Vo Vets Animal Hospital open on weekends?",
+        "answer": "Vo Vets Animal Hospital is open on weekends."
+      },
+      {
+        "question": "Is Vo Vets Animal Hospital open on evenings?",
+        "answer": "Vo Vets Animal Hospital offers evening hours (after 7 PM)."
+      }
+    ]
+  },
+  {
+    "id": 7068,
+    "slug": "veterinary-specialists-of-north-texas",
+    "name": "Veterinary Specialists Of North Texas",
+    "description": "Expert care for exotics and critical cases by Sundance Square.",
+    "longDescription": "Specializing in spay and neuter services and advanced pain management, the Pet Wellness Center in Fort Worth prides itself on its team of board-certified veterinarians and skilled veterinary technicians. Just steps from historic downtown, the clinic features a state-of-the-art recovery area that ens",
+    "image": "https://lh5.googleusercontent.com/p/AF1QipPZzBolX0ujsTlVuDLWT4Ub7j1hB4xXWzDeI5RV",
+    "location": {
+      "address": "4631 Citylake Blvd W",
+      "city": "Fort Worth",
+      "region": "Texas",
+      "country": "United States"
+    },
+    "contact": {
+      "phone": "+1 817-263-4300",
+      "website": "https://www.vsnt.com/",
+      "email": "fortworth@vsnt.com"
+    },
+    "specializations": [
+      "Pet Wellness Center",
+      "Spay and Neuter Services",
+      "Critical Care",
+      "Pet Loss Support",
+      "Large Animal Care",
+      "Pain Management",
+      "Exotic Pet Care",
+      "Endoscopy"
+    ],
+    "faqs": [
+      {
+        "question": "Does Veterinary Specialists Of North Texas accept walk-in appointments?",
+        "answer": "Appointments are required at Veterinary Specialists Of North Texas; walk-ins are not typically accommodated."
+      },
+      {
+        "question": "Does Veterinary Specialists Of North Texas offer house calls for pets?",
+        "answer": "House call services are not currently available at Veterinary Specialists Of North Texas."
+      },
+      {
+        "question": "Does Veterinary Specialists Of North Texas treat exotic animals (e.g., birds, reptiles)?",
+        "answer": "Veterinary Specialists Of North Texas specializes in care for exotic animals including birds and reptiles."
+      },
+      {
+        "question": "Does Veterinary Specialists Of North Texas perform surgical procedures?",
+        "answer": "Surgical procedures are not performed at Veterinary Specialists Of North Texas."
+      },
+      {
+        "question": "Does Veterinary Specialists Of North Texas offer dental care for pets?",
+        "answer": "Dental care services are not currently offered at Veterinary Specialists Of North Texas."
+      },
+      {
+        "question": "Does Veterinary Specialists Of North Texas have diagnostic imaging capabilities (e.g., X-rays, ultrasound)?",
+        "answer": "Diagnostic imaging services are not available at Veterinary Specialists Of North Texas."
+      },
+      {
+        "question": "Does Veterinary Specialists Of North Texas accept pet insurance plans?",
+        "answer": "Veterinary Specialists Of North Texas does not directly bill pet insurance providers."
+      },
+      {
+        "question": "Is Veterinary Specialists Of North Texas accredited by any veterinary associations?",
+        "answer": "No specific accreditations are currently listed for Veterinary Specialists Of North Texas."
+      },
+      {
+        "question": "Does Veterinary Specialists Of North Texas provide vaccination services?",
+        "answer": "Vaccination services are not currently offered at Veterinary Specialists Of North Texas."
+      },
+      {
+        "question": "Does Veterinary Specialists Of North Texas offer spaying and neutering services?",
+        "answer": "Routine spay and neuter procedures are performed at Veterinary Specialists Of North Texas."
+      },
+      {
+        "question": "Does Veterinary Specialists Of North Texas have an in-house laboratory for tests?",
+        "answer": "Laboratory testing is not available on-site at Veterinary Specialists Of North Texas."
+      },
+      {
+        "question": "Does Veterinary Specialists Of North Texas provide microchipping services?",
+        "answer": "Microchipping services are not currently offered at Veterinary Specialists Of North Texas."
+      },
+      {
+        "question": "Does Veterinary Specialists Of North Texas offer prescription diets or pet foods?",
+        "answer": "Prescription diets are not available at Veterinary Specialists Of North Texas."
+      },
+      {
+        "question": "Does Veterinary Specialists Of North Texas have multiple veterinarians on staff?",
+        "answer": "Information about veterinary staff is not specified."
+      },
+      {
+        "question": "Does Veterinary Specialists Of North Texas offer online appointment scheduling?",
+        "answer": "Online scheduling is not currently available at Veterinary Specialists Of North Texas."
+      },
+      {
+        "question": "Is Veterinary Specialists Of North Texas open on weekends?",
+        "answer": "Veterinary Specialists Of North Texas is open on weekends."
+      },
+      {
+        "question": "Is Veterinary Specialists Of North Texas open on evenings?",
+        "answer": "Veterinary Specialists Of North Texas does not have evening hours."
+      }
+    ]
+  },
+  {
+    "id": 7067,
+    "slug": "sealy-veterinary-clinic",
+    "name": "Sealy Veterinary Clinic",
+    "description": "Bridging modern care and affordability near Sealy's historic square",
+    "longDescription": "Sealy's trusted Pet Surgery Center specializes in Reproductive Services and General Veterinary Care, ensuring pets receive top-notch treatment. With a team of board-certified veterinarians, their state-of-the-art surgical suites provide peace of mind for pet owners. Just a short walk from the popula",
+    "image": "https://lh5.googleusercontent.com/p/AF1QipPzyfxGwPIQ2-9Q8OW4ol4uGsDy0XBOHDO7-d2w",
+    "location": {
+      "address": "1430 Texas 36 N",
+      "city": "Sealy",
+      "region": "Texas",
+      "country": "United States"
+    },
+    "contact": {
+      "phone": "+1 979-885-4811",
+      "website": "https://sealyvet.com/",
+      "email": "sealyvetclinic@yahoo.com"
+    },
+    "specializations": [
+      "Large Animal Care",
+      "Affordable Veterinary Care",
+      "Reproductive Services",
+      "General Veterinary Care",
+      "Holistic Pet Care",
+      "Veterinary Nutritionist",
+      "Pet Surgery Center",
+      "Cardiology",
+      "Modern Veterinary Facility"
+    ],
+    "faqs": [
+      {
+        "question": "Does Sealy Veterinary Clinic accept walk-in appointments?",
+        "answer": "Appointments are required at Sealy Veterinary Clinic; walk-ins are not typically accommodated."
+      },
+      {
+        "question": "Does Sealy Veterinary Clinic offer house calls for pets?",
+        "answer": "House call services are not currently available at Sealy Veterinary Clinic."
+      },
+      {
+        "question": "Does Sealy Veterinary Clinic treat exotic animals (e.g., birds, reptiles)?",
+        "answer": "Sealy Veterinary Clinic primarily provides care for cats and dogs."
+      },
+      {
+        "question": "Does Sealy Veterinary Clinic perform surgical procedures?",
+        "answer": "Surgical procedures are not performed at Sealy Veterinary Clinic."
+      },
+      {
+        "question": "Does Sealy Veterinary Clinic offer dental care for pets?",
+        "answer": "Dental care services are not currently offered at Sealy Veterinary Clinic."
+      },
+      {
+        "question": "Does Sealy Veterinary Clinic have diagnostic imaging capabilities (e.g., X-rays, ultrasound)?",
+        "answer": "Diagnostic imaging services are not available at Sealy Veterinary Clinic."
+      },
+      {
+        "question": "Does Sealy Veterinary Clinic accept pet insurance plans?",
+        "answer": "Sealy Veterinary Clinic does not directly bill pet insurance providers."
+      },
+      {
+        "question": "Is Sealy Veterinary Clinic accredited by any veterinary associations?",
+        "answer": "No specific accreditations are currently listed for Sealy Veterinary Clinic."
+      },
+      {
+        "question": "Does Sealy Veterinary Clinic provide vaccination services?",
+        "answer": "Vaccination services are not currently offered at Sealy Veterinary Clinic."
+      },
+      {
+        "question": "Does Sealy Veterinary Clinic offer spaying and neutering services?",
+        "answer": "Spaying and neutering services are not available at Sealy Veterinary Clinic."
+      },
+      {
+        "question": "Does Sealy Veterinary Clinic have an in-house laboratory for tests?",
+        "answer": "Laboratory testing is not available on-site at Sealy Veterinary Clinic."
+      },
+      {
+        "question": "Does Sealy Veterinary Clinic provide microchipping services?",
+        "answer": "Microchipping services are not currently offered at Sealy Veterinary Clinic."
+      },
+      {
+        "question": "Does Sealy Veterinary Clinic offer prescription diets or pet foods?",
+        "answer": "Prescription diets are not available at Sealy Veterinary Clinic."
+      },
+      {
+        "question": "Does Sealy Veterinary Clinic have multiple veterinarians on staff?",
+        "answer": "Information about veterinary staff is not specified."
+      },
+      {
+        "question": "Does Sealy Veterinary Clinic offer online appointment scheduling?",
+        "answer": "Online scheduling is not currently available at Sealy Veterinary Clinic."
+      },
+      {
+        "question": "Is Sealy Veterinary Clinic open on weekends?",
+        "answer": "Sealy Veterinary Clinic is closed on weekends."
+      },
+      {
+        "question": "Is Sealy Veterinary Clinic open on evenings?",
+        "answer": "Sealy Veterinary Clinic does not have evening hours."
+      }
+    ]
+  },
+  {
+    "id": 7066,
+    "slug": "brookdale-animal-hospital",
+    "name": "Brookdale Animal Hospital",
+    "description": "Transforming pet health by Lake Houston through education and surgery.",
+    "longDescription": "With a focus on Emergency Vet services and comprehensive Pet Health Education, this Houston clinic stands out near the serene Buffalo Bayou Nature Preserve. Staffed by experienced veterinarians and certified technicians, the facility boasts an advanced lab for rapid diagnostic testing, ensuring pets",
+    "image": "https://lh5.googleusercontent.com/p/AF1QipPZWP_hXqUpdcXEOQ-1KmNaAG2iMcaNoN2TctCa",
+    "location": {
+      "address": "11120 Scarsdale Blvd",
+      "city": "Houston",
+      "region": "Texas",
+      "country": "United States"
+    },
+    "contact": {
+      "phone": "+1 281-484-4733",
+      "website": "http://www.brookdaleanimalhospital.org/"
+    },
+    "specializations": [
+      "General Veterinary Care",
+      "Spay and Neuter Services",
+      "Dog-friendly Clinic",
+      "Emergency Vet",
+      "Pain Management",
+      "Animal Rehabilitation",
+      "Pet Parasite Prevention",
+      "Lab Testing",
+      "Pet Health Education",
+      "Pet Oral Surgery"
+    ],
+    "faqs": [
+      {
+        "question": "Does Brookdale Animal Hospital accept walk-in appointments?",
+        "answer": "Appointments are required at Brookdale Animal Hospital; walk-ins are not typically accommodated."
+      },
+      {
+        "question": "Does Brookdale Animal Hospital offer house calls for pets?",
+        "answer": "House call services are not currently available at Brookdale Animal Hospital."
+      },
+      {
+        "question": "Does Brookdale Animal Hospital treat exotic animals (e.g., birds, reptiles)?",
+        "answer": "Brookdale Animal Hospital primarily provides care for cats and dogs."
+      },
+      {
+        "question": "Does Brookdale Animal Hospital perform surgical procedures?",
+        "answer": "Surgical procedures are not performed at Brookdale Animal Hospital."
+      },
+      {
+        "question": "Does Brookdale Animal Hospital offer dental care for pets?",
+        "answer": "Dental care services are not currently offered at Brookdale Animal Hospital."
+      },
+      {
+        "question": "Does Brookdale Animal Hospital have diagnostic imaging capabilities (e.g., X-rays, ultrasound)?",
+        "answer": "Diagnostic imaging services are not available at Brookdale Animal Hospital."
+      },
+      {
+        "question": "Does Brookdale Animal Hospital accept pet insurance plans?",
+        "answer": "Brookdale Animal Hospital does not directly bill pet insurance providers."
+      },
+      {
+        "question": "Is Brookdale Animal Hospital accredited by any veterinary associations?",
+        "answer": "No specific accreditations are currently listed for Brookdale Animal Hospital."
+      },
+      {
+        "question": "Does Brookdale Animal Hospital provide vaccination services?",
+        "answer": "Vaccination services are not currently offered at Brookdale Animal Hospital."
+      },
+      {
+        "question": "Does Brookdale Animal Hospital offer spaying and neutering services?",
+        "answer": "Routine spay and neuter procedures are performed at Brookdale Animal Hospital."
+      },
+      {
+        "question": "Does Brookdale Animal Hospital have an in-house laboratory for tests?",
+        "answer": "Brookdale Animal Hospital features an in-house laboratory for diagnostic testing."
+      },
+      {
+        "question": "Does Brookdale Animal Hospital provide microchipping services?",
+        "answer": "Microchipping services are not currently offered at Brookdale Animal Hospital."
+      },
+      {
+        "question": "Does Brookdale Animal Hospital offer prescription diets or pet foods?",
+        "answer": "Prescription diets are not available at Brookdale Animal Hospital."
+      },
+      {
+        "question": "Does Brookdale Animal Hospital have multiple veterinarians on staff?",
+        "answer": "Information about veterinary staff is not specified."
+      },
+      {
+        "question": "Does Brookdale Animal Hospital offer online appointment scheduling?",
+        "answer": "Online scheduling is not currently available at Brookdale Animal Hospital."
+      },
+      {
+        "question": "Is Brookdale Animal Hospital open on weekends?",
+        "answer": "Brookdale Animal Hospital is open on weekends."
+      },
+      {
+        "question": "Is Brookdale Animal Hospital open on evenings?",
+        "answer": "Brookdale Animal Hospital does not have evening hours."
+      }
+    ]
+  }
+]

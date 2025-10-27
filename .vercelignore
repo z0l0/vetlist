@@ -1,0 +1,15 @@
+# Prevent these files from being uploaded to Vercel
+/node_modules
+/.git
+.env
+.env.local
+.DS_Store
+.vscode
+
+# Don't exclude the data directory, we need it for the search index
+# /data 
+
+# Debug files
+npm-debug.log
+yarn-debug.log
+yarn-error.log 

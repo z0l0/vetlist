@@ -1,0 +1,22 @@
+<div class="search-wrapper">
+  <input 
+    type="text" 
+    id="search" 
+    placeholder="Search by name, city, province or country..." 
+    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+  >
+  <div id="search-results" class="hidden"></div>
+</div>
+
+<script src="/scripts/main.js"></script>
+
+<style>
+  input {
+    width: 100%;
+    transition: all 0.2s;
+  }
+  
+  input:focus {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+</style> 

@@ -1,0 +1,526 @@
+---
+interface Props {
+  cities?: any[];
+  popularVets?: any[];
+  totalVets?: number;
+  totalCities?: number;
+}
+
+const {
+  cities = [],
+  popularVets = [],
+  totalVets = 0,
+  totalCities = 0,
+} = Astro.props;
+
+// Top USA cities
+const topUSACities = [
+  {
+    name: "Los Angeles",
+    state: "California",
+    slug: "/united-states/california/los-angeles",
+  },
+  {
+    name: "Chicago",
+    state: "Illinois",
+    slug: "/united-states/illinois/chicago",
+  },
+  { name: "Houston", state: "Texas", slug: "/united-states/texas/houston" },
+  { name: "Phoenix", state: "Arizona", slug: "/united-states/arizona/phoenix" },
+  {
+    name: "Philadelphia",
+    state: "Pennsylvania",
+    slug: "/united-states/pennsylvania/philadelphia",
+  },
+  {
+    name: "San Antonio",
+    state: "Texas",
+    slug: "/united-states/texas/san-antonio",
+  },
+  {
+    name: "San Diego",
+    state: "California",
+    slug: "/united-states/california/san-diego",
+  },
+  { name: "Dallas", state: "Texas", slug: "/united-states/texas/dallas" },
+  { name: "Austin", state: "Texas", slug: "/united-states/texas/austin" },
+  {
+    name: "Rochester",
+    state: "New York",
+    slug: "/united-states/new-york/rochester",
+  },
+];
+
+// Top Canadian cities
+const topCanadaCities = [
+  { name: "Toronto", province: "Ontario", slug: "/canada/ontario/toronto" },
+  { name: "Montreal", province: "Quebec", slug: "/canada/quebec/montreal" },
+  {
+    name: "Vancouver",
+    province: "British Columbia",
+    slug: "/canada/british-columbia/vancouver",
+  },
+  { name: "Calgary", province: "Alberta", slug: "/canada/alberta/calgary" },
+  { name: "Edmonton", province: "Alberta", slug: "/canada/alberta/edmonton" },
+  { name: "Ottawa", province: "Ontario", slug: "/canada/ontario/ottawa" },
+  { name: "Winnipeg", province: "Manitoba", slug: "/canada/manitoba/winnipeg" },
+  {
+    name: "Quebec City",
+    province: "Quebec",
+    slug: "/canada/quebec/quebec-city",
+  },
+  { name: "Hamilton", province: "Ontario", slug: "/canada/ontario/hamilton" },
+  { name: "Kitchener", province: "Ontario", slug: "/canada/ontario/kitchener" },
+];
+---
+
+<section
+  class="relative overflow-hidden bg-gradient-to-br from-primary-700 via-primary-800 to-primary-900 pt-4 pb-8 md:pt-6 md:pb-16"
+  style="margin-left: calc(-50vw + 50%); margin-right: calc(-50vw + 50%); width: 100vw;"
+>
+  <!-- Subtle background elements -->
+  <div class="absolute inset-0 overflow-hidden">
+    <!-- Toned down gradient orbs -->
+    <div
+      class="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"
+    >
+    </div>
+    <div
+      class="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"
+    >
+    </div>
+  </div>
+
+  <div class="container mx-auto px-4 md:px-8 lg:px-12 max-w-none relative">
+    <!-- Header Container with Dynamic Height -->
+    <div
+      id="hero-header-container"
+      class="text-center transition-all duration-500 ease-out overflow-hidden"
+      style="margin-bottom: 1.125rem;"
+    >
+      <!-- Main Header -->
+      <div id="hero-header" class="transition-all duration-500 ease-out">
+        <h1
+          class="text-xl md:text-2xl xl:text-3xl font-medium text-white/85 mb-1.5 leading-tight tracking-wide"
+        >
+          Find Trusted Veterinarians
+        </h1>
+        <p
+          class="text-base xl:text-lg text-primary-100/70 leading-relaxed max-w-xl mx-auto font-light"
+        >
+          Connect with top-rated veterinary professionals across North America.
+        </p>
+      </div>
+
+      <!-- Ultra-minimal Header State - Behind Content -->
+      <div
+        id="hero-header-mini"
+        class="transition-all duration-500 ease-out opacity-0 scale-90 pointer-events-none fixed inset-x-0 z-40"
+      >
+        <div class="container mx-auto px-4 md:px-8 lg:px-12 max-w-none">
+          <button
+            id="header-expand-btn"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-white/70 hover:text-white/90 hover:bg-white/20 transition-all text-xs font-light shadow-lg"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1"
+              stroke="currentColor"
+              class="w-3 h-3"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19.5 8.25l-7.5 7.5-7.5-7.5"></path>
+            </svg>
+            <span>Trusted Veterinarians</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Three-Column Layout -->
+    <div
+      id="hero-content"
+      class="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start transition-transform duration-500 ease-out"
+    >
+      <!-- Left Column: Popular US Cities -->
+      <div class="mb-8 lg:mb-0 relative">
+        <!-- USA Badge -->
+        <div
+          class="flex items-center gap-2 px-3 py-2 bg-blue-500/90 backdrop-blur-sm rounded-full border border-blue-400/50 shadow-lg mb-6"
+        >
+          <span class="text-lg">🇺🇸</span>
+          <span class="text-white font-medium text-base">Popular US Cities</span
+          >
+          <span class="text-blue-100 text-sm">• 500+ cities</span>
+        </div>
+
+        <!-- USA Cities -->
+        <div class="space-y-2 mb-4">
+          {
+            topUSACities.map((city) => (
+              <a
+                href={city.slug}
+                class="flex items-center gap-3 p-3 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white transition group shadow-sm"
+              >
+                <div class="text-primary-500 bg-primary-50 p-2 rounded-full group-hover:bg-white flex-shrink-0">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="w-5 h-5"
+                  >
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <span class="text-gray-700 group-hover:text-primary-700 transition font-medium text-base block">
+                    {city.name}
+                  </span>
+                  <span class="text-gray-500 text-sm">{city.state}</span>
+                </div>
+              </a>
+            ))
+          }
+
+          <!-- Browse All USA -->
+          <a
+            href="/united-states"
+            class="flex items-center gap-3 p-3 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white transition group shadow-sm border-2 border-blue-200"
+          >
+            <span class="text-lg">🇺🇸</span>
+            <span
+              class="text-gray-800 group-hover:text-blue-700 transition font-medium text-base"
+            >
+              Browse All US Cities
+            </span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Middle Column: Popular Canadian Cities -->
+      <div class="mb-8 lg:mb-0 relative">
+        <!-- Canada Badge -->
+        <div
+          class="flex items-center gap-2 px-3 py-2 bg-red-500/90 backdrop-blur-sm rounded-full border border-red-400/50 shadow-lg mb-6"
+        >
+          <span class="text-lg">🇨🇦</span>
+          <span class="text-white font-medium text-base"
+            >Popular Canadian Cities</span
+          >
+          <span class="text-red-100 text-sm">• 200+ cities</span>
+        </div>
+
+        <!-- Canadian Cities -->
+        <div class="space-y-2 mb-4">
+          {
+            topCanadaCities.map((city) => (
+              <a
+                href={city.slug}
+                class="flex items-center gap-3 p-3 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white transition group shadow-sm"
+              >
+                <div class="text-red-500 bg-red-50 p-2 rounded-full group-hover:bg-white flex-shrink-0">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="w-5 h-5"
+                  >
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <span class="text-gray-700 group-hover:text-primary-700 transition font-medium text-base block">
+                    {city.name}
+                  </span>
+                  <span class="text-gray-500 text-sm">{city.province}</span>
+                </div>
+              </a>
+            ))
+          }
+
+          <!-- Browse All Canada -->
+          <a
+            href="/canada"
+            class="flex items-center gap-3 p-3 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white transition group shadow-sm border-2 border-red-200"
+          >
+            <span class="text-lg">🇨🇦</span>
+            <span
+              class="text-gray-800 group-hover:text-red-700 transition font-medium text-base"
+            >
+              Browse All Canadian Cities
+            </span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Right Column: Popular Veterinarians -->
+      <div class="mb-8 lg:mb-0 relative">
+        <!-- Vets Badge -->
+        <div
+          class="flex items-center gap-2 px-3 py-2 bg-green-500/90 backdrop-blur-sm rounded-full border border-green-400/50 shadow-lg mb-6"
+        >
+          <span class="text-lg">⭐</span>
+          <span class="text-white font-medium text-base"
+            >Popular Veterinarians</span
+          >
+          <span class="text-green-100 text-sm">• 4.8★ avg rating</span>
+        </div>
+
+        <!-- Popular Vets -->
+        <div class="space-y-2 mb-4">
+          {
+            popularVets.slice(0, 10).map((vet) => (
+              <a
+                href={`/${vet.slug}`}
+                class="flex bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white transition group shadow-sm overflow-hidden"
+                style="height: 72px;"
+              >
+                <div
+                  class="relative bg-primary-100 flex-shrink-0"
+                  style="width: 72px; height: 72px;"
+                >
+                  <div class="w-full h-full flex items-center justify-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="text-primary-600"
+                    >
+                      <path d="M12 6v4" />
+                      <path d="M14 14h-4" />
+                      <path d="M14 18h-4" />
+                      <path d="M14 8h-4" />
+                      <path d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2" />
+                      <path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18" />
+                    </svg>
+                  </div>
+                  {vet.picture && (
+                    <img
+                      src={vet.picture}
+                      alt={vet.name}
+                      class="absolute inset-0 w-full h-full object-cover"
+                      onerror="this.style.display='none'"
+                    />
+                  )}
+                </div>
+                <div class="flex-1 flex items-center justify-between p-3 min-w-0">
+                  <div class="flex-1 min-w-0">
+                    <span class="text-gray-700 group-hover:text-primary-700 transition font-medium text-base block truncate">
+                      {vet.name}
+                    </span>
+                    <span class="text-gray-500 text-sm truncate block">
+                      {vet.city && (vet.state || vet.province)
+                        ? `${vet.city}, ${vet.state || vet.province}`
+                        : vet.city || "Location TBD"}
+                    </span>
+                  </div>
+                  <div class="flex-shrink-0 ml-2">
+                    <div class="w-8 h-8 bg-yellow-400 text-yellow-900 rounded-lg flex items-center justify-center text-xs font-bold">
+                      {vet.rating ? vet.rating.toFixed(1) : "5.0"}
+                    </div>
+                  </div>
+                </div>
+              </a>
+            ))
+          }
+
+          <!-- Add Your Clinic -->
+          <a
+            href="/claim-clinic"
+            class="flex items-center gap-3 p-3 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white transition group shadow-sm border-2 border-green-200"
+          >
+            <span class="text-lg">➕</span>
+            <span
+              class="text-gray-800 group-hover:text-green-700 transition font-medium text-base"
+            >
+              Add Your Clinic
+            </span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Hero header collapse/expand functionality
+  document.addEventListener("DOMContentLoaded", function () {
+    const heroHeaderContainer = document.getElementById(
+      "hero-header-container",
+    );
+    const heroHeader = document.getElementById("hero-header");
+    const heroHeaderMini = document.getElementById("hero-header-mini");
+    const expandBtn = document.getElementById("header-expand-btn");
+
+    let isCollapsed = false;
+    let autoCollapseTimeout;
+
+    // Auto-collapse after 3 seconds
+    function startAutoCollapse() {
+      autoCollapseTimeout = setTimeout(function () {
+        if (!isCollapsed) {
+          collapseHeader();
+        }
+      }, 3000);
+    }
+
+    // Cancel auto-collapse
+    function cancelAutoCollapse() {
+      if (autoCollapseTimeout) {
+        clearTimeout(autoCollapseTimeout);
+      }
+    }
+
+    // Collapse header
+    function collapseHeader() {
+      if (isCollapsed || !heroHeader || !heroHeaderMini || !heroHeaderContainer)
+        return;
+
+      isCollapsed = true;
+
+      // Get current height and set it explicitly for smooth transition
+      const currentHeight = heroHeaderContainer.offsetHeight;
+      heroHeaderContainer.style.height = currentHeight + "px";
+
+      // Animate out main header
+      heroHeader.style.opacity = "0";
+      heroHeader.style.transform = "translateY(-10px) scale(0.98)";
+      heroHeader.style.pointerEvents = "none";
+
+      // Animate in mini header and collapse container height
+      setTimeout(function () {
+        if (heroHeaderMini && heroHeaderContainer) {
+          // Position mini header between the collapsed header space and the badges
+          const heroSection = heroHeaderContainer.closest("section");
+          if (heroSection) {
+            const rect = heroSection.getBoundingClientRect();
+            heroHeaderMini.style.top = rect.top + window.scrollY + 10 + "px";
+          }
+
+          heroHeaderMini.style.opacity = "1";
+          heroHeaderMini.style.transform = "scale(1)";
+          heroHeaderMini.style.pointerEvents = "auto";
+
+          // Collapse to mini header height and move content up more
+          heroHeaderContainer.style.height = "0px";
+          heroHeaderContainer.style.marginBottom = "0rem";
+
+          // Keep content in original position to ensure badges are fully visible
+          const heroContent = document.getElementById("hero-content");
+          if (heroContent) {
+            heroContent.style.transform = "translateY(0px)";
+          }
+        }
+      }, 250);
+    }
+
+    // Expand header
+    function expandHeader() {
+      if (
+        !isCollapsed ||
+        !heroHeader ||
+        !heroHeaderMini ||
+        !heroHeaderContainer
+      )
+        return;
+
+      isCollapsed = false;
+
+      // Animate out mini header
+      heroHeaderMini.style.opacity = "0";
+      heroHeaderMini.style.transform = "scale(0.9)";
+      heroHeaderMini.style.pointerEvents = "none";
+
+      // Restore container height and margin
+      heroHeaderContainer.style.height = "auto";
+      heroHeaderContainer.style.marginBottom = "1.125rem";
+
+      // Move content back to normal position
+      const heroContent = document.getElementById("hero-content");
+      if (heroContent) {
+        heroContent.style.transform = "translateY(0)";
+      }
+
+      // Animate in main header
+      setTimeout(function () {
+        if (heroHeader) {
+          heroHeader.style.opacity = "1";
+          heroHeader.style.transform = "translateY(0) scale(1)";
+          heroHeader.style.pointerEvents = "auto";
+        }
+      }, 250);
+
+      // Restart auto-collapse timer
+      startAutoCollapse();
+    }
+
+    // Event listeners
+    if (expandBtn) {
+      expandBtn.addEventListener("click", expandHeader);
+    }
+
+    // Cancel auto-collapse on user interaction with header container
+    if (heroHeaderContainer) {
+      heroHeaderContainer.addEventListener("mouseenter", cancelAutoCollapse);
+      heroHeaderContainer.addEventListener("mouseleave", function () {
+        // Restart timer when mouse leaves, but with shorter delay
+        autoCollapseTimeout = setTimeout(function () {
+          if (!isCollapsed) {
+            collapseHeader();
+          }
+        }, 2000);
+      });
+    }
+
+    // Reposition mini header on scroll when collapsed
+    function repositionMiniHeader() {
+      if (isCollapsed && heroHeaderMini && heroHeaderContainer) {
+        const heroSection = heroHeaderContainer.closest("section");
+        if (heroSection) {
+          const rect = heroSection.getBoundingClientRect();
+
+          // Hide the mini header if we've scrolled past the hero header area
+          if (rect.top < -200) {
+            heroHeaderMini.style.opacity = "0";
+            heroHeaderMini.style.pointerEvents = "none";
+          } else {
+            heroHeaderMini.style.opacity = "1";
+            heroHeaderMini.style.pointerEvents = "auto";
+            heroHeaderMini.style.top =
+              Math.max(10, rect.top + window.scrollY + 10) + "px";
+          }
+        }
+      }
+    }
+
+    window.addEventListener("scroll", repositionMiniHeader);
+    window.addEventListener("resize", repositionMiniHeader);
+
+    // Start auto-collapse timer
+    startAutoCollapse();
+  });
+</script>

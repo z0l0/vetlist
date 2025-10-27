@@ -1,0 +1,34 @@
+---
+const { data } = Astro.props;
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+---
+
+<section class="profile-section">
+  <h2>Hours of Operation</h2>
+  <table class="hours-table">
+    <thead>
+      <tr>
+        <th>Day</th>
+        <th>Hours</th>
+      </tr>
+    </thead>
+    <tbody>
+      {data ? (
+        DAYS.map((day, index) => {
+          const dayKey = (index + 1).toString();
+          const hours = data[dayKey] ? data[dayKey][0] : "Closed";
+          return (
+            <tr>
+              <td>{day}</td>
+              <td>{hours}</td>
+            </tr>
+          );
+        })
+      ) : (
+        <tr>
+          <td colSpan="2">Hours information unavailable</td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</section>

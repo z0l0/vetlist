@@ -1,0 +1,205 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+
+const title = 'Privacy Policy';
+const path = Astro.url.pathname.replace(/\/$/, '');
+---
+
+<Layout title={title}>
+  <Breadcrumbs path={path} />
+
+  <div class="container">
+    <h1>Privacy Policy</h1>
+    <p class="last-updated">Last updated: March 26, 2025</p>
+    
+    <div class="privacy-content">
+      <section class="privacy-section">
+        <h2>1. Introduction</h2>
+        <p>At VetList.org, we respect your privacy and are committed to protecting your personal data. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website.</p>
+        <p>Please read this Privacy Policy carefully. If you do not agree with the terms of this Privacy Policy, please do not access the site.</p>
+      </section>
+      
+      <section class="privacy-section">
+        <h2>2. Information We Collect</h2>
+        
+        <h3>2.1 Personal Data</h3>
+        <p>We may collect personal information that you voluntarily provide to us when you:</p>
+        <ul>
+          <li>Fill out forms on our website</li>
+          <li>Contact us through our contact form</li>
+          <li>Subscribe to our newsletter</li>
+          <li>Register for an account (if applicable)</li>
+        </ul>
+        <p>This information may include:</p>
+        <ul>
+          <li>Name</li>
+          <li>Email address</li>
+          <li>Phone number</li>
+          <li>Message content</li>
+        </ul>
+        
+        <h3>2.2 Automatically Collected Data</h3>
+        <p>When you visit our website, we may automatically collect certain information about your device, including:</p>
+        <ul>
+          <li>IP address</li>
+          <li>Browser type</li>
+          <li>Operating system</li>
+          <li>Pages visited</li>
+          <li>Time and date of your visit</li>
+          <li>Time spent on pages</li>
+          <li>Referring website addresses</li>
+        </ul>
+        <p>This information helps us analyze trends, administer the site, track user movements around the site, and gather demographic information.</p>
+        
+        <h3>2.3 Cookies</h3>
+        <p>We use cookies and similar tracking technologies to track activity on our website and store certain information. Cookies are files with a small amount of data that may include an anonymous unique identifier.</p>
+        <p>You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent. However, if you do not accept cookies, you may not be able to use some portions of our website.</p>
+      </section>
+      
+      <section class="privacy-section">
+        <h2>3. How We Use Your Information</h2>
+        <p>We may use the information we collect for various purposes, including to:</p>
+        <ul>
+          <li>Provide, operate, and maintain our website</li>
+          <li>Improve, personalize, and expand our website</li>
+          <li>Understand and analyze how you use our website</li>
+          <li>Develop new products, services, features, and functionality</li>
+          <li>Communicate with you, either directly or through one of our partners, for customer service, updates, and other information relating to the website</li>
+          <li>Send you emails</li>
+          <li>Find and prevent fraud</li>
+        </ul>
+      </section>
+      
+      <section class="privacy-section">
+        <h2>4. Sharing Your Information</h2>
+        <p>We may share your information with:</p>
+        <ul>
+          <li><strong>Service Providers:</strong> We may share your information with third-party vendors, service providers, contractors, or agents who perform services for us.</li>
+          <li><strong>Business Transfers:</strong> If we are involved in a merger, acquisition, or sale of all or a portion of our assets, your information may be transferred as part of that transaction.</li>
+          <li><strong>Legal Requirements:</strong> We may disclose your information if required to do so by law or in response to valid requests by public authorities.</li>
+        </ul>
+      </section>
+      
+      <section class="privacy-section">
+        <h2>5. Data Security</h2>
+        <p>We have implemented appropriate technical and organizational security measures designed to protect the security of any personal information we process. However, please also remember that we cannot guarantee that the internet itself is 100% secure.</p>
+      </section>
+      
+      <section class="privacy-section">
+        <h2>6. Your Data Protection Rights</h2>
+        <p>Depending on your location, you may have the following data protection rights:</p>
+        <ul>
+          <li>The right to access, update, or delete the information we have on you</li>
+          <li>The right of rectification – the right to have your information corrected if it is inaccurate or incomplete</li>
+          <li>The right to object to our processing of your personal data</li>
+          <li>The right of restriction – the right to request that we restrict the processing of your personal information</li>
+          <li>The right to data portability – the right to be provided with a copy of your personal data in a structured, machine-readable format</li>
+          <li>The right to withdraw consent at any time where we relied on your consent to process your personal information</li>
+        </ul>
+        <p>If you wish to exercise any of these rights, please contact us using the information provided in the "Contact Us" section below.</p>
+      </section>
+      
+      <section class="privacy-section">
+        <h2>7. Children's Privacy</h2>
+        <p>Our website is not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and you are aware that your child has provided us with personal information, please contact us.</p>
+      </section>
+      
+      <section class="privacy-section">
+        <h2>8. Changes to This Privacy Policy</h2>
+        <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date at the top of this page.</p>
+        <p>You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy are effective when they are posted on this page.</p>
+      </section>
+      
+      <section class="privacy-section">
+        <h2>9. Contact Us</h2>
+        <p>If you have any questions about this Privacy Policy, please <a href="/contact">contact us</a>.</p>
+      </section>
+    </div>
+  </div>
+
+  <style>
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+    
+    .last-updated {
+      color: var(--text-light);
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+    
+    .privacy-content {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .privacy-section {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+    }
+    
+    .privacy-section:not(:last-child) {
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .privacy-section h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    
+    .privacy-section h3 {
+      font-size: 1.2rem;
+      margin: 1.5rem 0 0.75rem;
+      color: var(--text);
+    }
+    
+    .privacy-section p {
+      margin-bottom: 1rem;
+      line-height: 1.6;
+      color: var(--text-light);
+    }
+    
+    .privacy-section ul {
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .privacy-section li {
+      margin-bottom: 0.5rem;
+      color: var(--text-light);
+    }
+    
+    .privacy-section a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    
+    .privacy-section a:hover {
+      text-decoration: underline;
+    }
+    
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.75rem;
+      }
+      
+      .privacy-section h2 {
+        font-size: 1.3rem;
+      }
+      
+      .privacy-section h3 {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Any JavaScript you want to run on the privacy page
+    });
+  </script>
+</Layout>

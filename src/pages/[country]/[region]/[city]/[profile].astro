@@ -1,0 +1,538 @@
+---
+import Layout from '../../../../layouts/Layout.astro';
+import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
+import ProfileImage from '../../../../components/ProfileImage.astro';
+import ProfileContactIcons from '../../../../components/ProfileContactIcons.astro';
+import { getProfessionals, getProfessionalById, getRelatedVetsForProfile, getNearbyCitiesForCity } from '../../../../lib/dataCache.js';
+import { fetchAllProfessionals } from '../../../../lib/supabase.js';
+
+// Utility functions
+const toTitleCase = (str) => str.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+const normalizeHoursData = (rawData) => {
+  if (!rawData) return null;
+  try {
+    const hoursData = typeof rawData === 'object' ? rawData : JSON.parse(rawData);
+    return Object.values(hoursData).every(day => day === null) ? null : hoursData;
+  } catch (e) {
+    return null;
+  }
+};
+
+const formatHours = (ranges) => {
+  if (!ranges || ranges.length === 0) return "Closed";
+  if (ranges.length === 2 && ranges[1].startsWith('00:00')) {
+    const openingTime = ranges[0].split('-')[0];
+    const closingTime = ranges[1].split('-')[1];
+    return `${openingTime} - ${closingTime}`;
+  }
+  return ranges.join(', ');
+};
+
+const formatSchemaTime = (timeStr) => {
+  if (!timeStr) return null;
+  const timeParts = timeStr.trim().split(':');
+  const hours = parseInt(timeParts[0], 10);
+  const minutes = timeParts.length > 1 ? parseInt(timeParts[1], 10) : 0;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+};
+
+const formatDescription = (text) => {
+  if (!text) return '';
+  return text.split('\n\n').map((paragraph, index) => `<p key="${index}">${paragraph.trim()}</p>`).join('');
+};
+
+export async function getStaticPaths() {
+  console.log('[profile].astro getStaticPaths: Starting profile page generation');
+  try {
+    const profiles = await getProfessionals();
+    console.log(`[profile].astro getStaticPaths: Received ${profiles?.length || 0} profiles from cache.`);
+    
+    const allProfiles = profiles?.length ? profiles : await fetchAllProfessionals();
+    console.log(`[profile].astro getStaticPaths: Processing ${allProfiles.length} profiles for page generation`);
+    
+    const profilesByPath = new Map();
+    const profilesForPages = allProfiles.filter(profile => 
+      profile.include_in_pages !== false && 
+      profile.name_slug && 
+      profile.name_slug.trim() !== '' && 
+      profile.country_slug && 
+      profile.province_slug && 
+      profile.city_slug
+    );
+    
+    console.log(`[profile].astro getStaticPaths: ${profilesForPages.length} profiles are flagged for page generation`);
+    
+    profilesForPages.forEach(profile => {
+      const pathKey = `${profile.country_slug}/${profile.province_slug}/${profile.city_slug}/${profile.name_slug}`;
+      if (!profilesByPath.has(pathKey)) {
+        profilesByPath.set(pathKey, profile);
+      }
+    });
+
+    const paths = Array.from(profilesByPath.values()).map(profile => ({
+      params: {
+        country: profile.country_slug,
+        region: profile.province_slug,
+        city: profile.city_slug,
+        profile: profile.name_slug
+      },
+      props: { profileId: profile.id }
+    }));
+
+    console.log(`[profile].astro getStaticPaths: Generated ${paths.length} profile paths`);
+    return paths;
+  } catch (error) {
+    console.error("[profile].astro getStaticPaths ERROR:", error.message);
+    return [];
+  }
+}
+
+const { country, region, city, profile } = Astro.params;
+const { profileId } = Astro.props || {};
+
+let profileData = null;
+
+// Profile lookup logic
+if (profileId) {
+  profileData = await getProfessionalById(profileId);
+}
+
+if (!profileData) {
+  console.log(`[profile].astro: ${profileId ? `Couldn't find profile with ID ${profileId}` : 'No profileId provided'}, trying slug-based lookup...`);
+  const allProfiles = await getProfessionals();
+  
+  profileData = allProfiles.find(p => 
+    p.country_slug === country &&
+    p.province_slug === region &&
+    p.city_slug === city &&
+    p.name_slug === profile
+  );
+  
+  if (!profileData && profileId) {
+    profileData = allProfiles.find(p => 
+      p.id === profileId || 
+      p.id === parseInt(profileId) || 
+      p.id === String(profileId) ||
+      `${p.id}` === `${profileId}`
+    );
+  }
+  
+  if (!profileData) {
+    console.log(`[profile].astro: Profile not found in cache, trying direct fetch...`);
+    try {
+      const allProfilesDirect = await fetchAllProfessionals();
+      
+      profileData = allProfilesDirect.find(p => 
+        p.country_slug === country &&
+        p.province_slug === region &&
+        p.city_slug === city &&
+        p.name_slug === profile
+      );
+      
+      if (!profileData && profileId) {
+        profileData = allProfilesDirect.find(p => 
+          p.id === profileId || 
+          p.id === parseInt(profileId) || 
+          p.id === String(profileId) ||
+          `${p.id}` === `${profileId}`
+        );
+      }
+    } catch (e) {
+      console.error(`[profile].astro: Error with direct fetch:`, e.message);
+    }
+  }
+}
+
+// Fallback profile
+if (!profileData) {
+  console.error(`[profile].astro: Profile not found for ${country}/${region}/${city}/${profile}, creating placeholder`);
+  profileData = {
+    id: profileId || 'unknown',
+    name: 'Profile Not Found',
+    description: 'This profile could not be loaded.',
+    detailed_description: 'This profile could not be loaded.',
+    city: city.replace(/-/g, ' '),
+    province: region.replace(/-/g, ' '),
+    country: country.replace(/-/g, ' '),
+    country_slug: country,
+    province_slug: region,
+    city_slug: city,
+    name_slug: profile,
+    specialization: [],
+    faqs: [],
+    rating: null,
+    picture: null,
+    address: null,
+    phone_number: null,
+    website: null,
+    hours_of_operation: null
+  };
+}
+
+const ratingData = { rating: profileData.rating || null };
+const relatedVets = await getRelatedVetsForProfile(profileId);
+const nearbyCities = await getNearbyCitiesForCity(country, region, city);
+
+// Compute nearby cities if not in cache
+let finalNearbyCities = nearbyCities;
+if (!finalNearbyCities || finalNearbyCities.length === 0) {
+  console.log(`[profile].astro: No nearby cities found in cache, computing them...`);
+  
+  const allProfiles = await getProfessionals();
+  const nearbyData = allProfiles.filter(p => 
+    p.country_slug === country &&
+    p.province_slug === region &&
+    p.city_slug !== city
+  );
+  
+  const nearbyCityCounts = new Map();
+  nearbyData.forEach(item => {
+    const key = item.city_slug;
+    nearbyCityCounts.set(key, (nearbyCityCounts.get(key) || 0) + 1);
+  });
+  
+  const uniqueNearbyCities = [...new Set(nearbyData.map(item => item.city_slug))].map(citySlug => {
+    const cityData = nearbyData.find(item => item.city_slug === citySlug);
+    return { city_slug: citySlug, city: cityData.city, count: nearbyCityCounts.get(citySlug) || 0 };
+  });
+  
+  finalNearbyCities = uniqueNearbyCities.sort((a, b) => b.count - a.count).slice(0, 20);
+}
+
+// Meta data
+const shortDescription = profileData.description || `Veterinary services in ${profileData.city}, ${profileData.province || region}`;
+const pageTitle = `${profileData.name} - Veterinary Clinic in ${profileData.city}`;
+const metaDescription = `${profileData.name} - ${shortDescription}`.substring(0, 160);
+const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://vetlist.org');
+
+// Image URL
+let imageUrl = '';
+if (profileData.picture) {
+  imageUrl = profileData.picture.startsWith('http') ? profileData.picture : new URL(profileData.picture, Astro.site || 'https://vetlist.org').toString();
+}
+
+// Open Graph and Twitter Card data
+const openGraphData = {
+  title: pageTitle,
+  description: metaDescription,
+  type: "business.business",
+  url: canonicalURL.toString(),
+  image: imageUrl,
+  siteName: "VetList",
+  locale: profileData.country_code || "en_US"
+};
+
+const twitterCardData = {
+  card: "summary_large_image",
+  title: pageTitle,
+  description: metaDescription,
+  image: imageUrl
+};
+
+// Schema.org data
+const hoursData = normalizeHoursData(profileData.hours_of_operation);
+let addressComponents = {
+  streetAddress: '',
+  addressLocality: '',
+  addressRegion: '',
+  postalCode: '',
+  addressCountry: ''
+};
+
+if (profileData.address) {
+  const addressParts = profileData.address.split(',').map((part) => part.trim());
+  if (addressParts.length >= 3) {
+    addressComponents = {
+      streetAddress: addressParts[0],
+      addressLocality: addressParts[1],
+      addressRegion: profileData.province || region,
+      postalCode: addressParts[addressParts.length - 2].match(/[A-Z0-9\s]+$/)?.[0] || '',
+      addressCountry: profileData.country || country
+    };
+  }
+}
+
+const schemaData = {
+  "@context": "https://schema.org",
+  "@type": "VeterinaryCare",
+  "@id": canonicalURL.toString(),
+  "name": profileData.name,
+  "description": shortDescription,
+  "url": canonicalURL.toString(),
+  "telephone": profileData.phone_number || "",
+  "image": imageUrl,
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": addressComponents.streetAddress || profileData.address || "",
+    "addressLocality": addressComponents.addressLocality || profileData.city || "",
+    "addressRegion": addressComponents.addressRegion || "",
+    "postalCode": addressComponents.postalCode || "",
+    "addressCountry": addressComponents.addressCountry || ""
+  },
+  ...(profileData.latitude && profileData.longitude ? {
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": profileData.latitude,
+      "longitude": profileData.longitude
+    }
+  } : {}),
+  ...(hoursData ? {
+    "openingHoursSpecification": Object.entries(hoursData || {})
+      .filter(([_, hours]) => hours && Array.isArray(hours) && hours.length > 0)
+      .map(([day, hours]) => {
+        return Array.isArray(hours) ? hours.map((timeRange) => {
+          if (!timeRange || !timeRange.includes('-')) return null;
+          const [opens, closes] = timeRange.split('-').map((t) => t.trim());
+          return {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": `https://schema.org/${day}`,
+            "opens": formatSchemaTime(opens),
+            "closes": formatSchemaTime(closes)
+          };
+        }).filter(Boolean) : [];
+      }).flat()
+  } : {}),
+  "priceRange": "$",
+  ...(Array.isArray(profileData.specialization) && profileData.specialization.length > 0 ? {
+    "makesOffer": profileData.specialization.map((service: any) => ({
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": service
+      }
+    }))
+  } : {}),
+  ...(ratingData?.rating !== null ? {
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": ratingData.rating,
+      "bestRating": "5",
+      "worstRating": "1",
+      "ratingCount": profileData.rating_count || "1"
+    }
+  } : {})
+};
+---
+
+<Layout title={pageTitle} description={metaDescription} openGraph={openGraphData} twitterCard={twitterCardData}>
+  <script type="application/ld+json" set:html={JSON.stringify(schemaData)} />
+  <script is:inline src="/js/profile.js"></script>
+
+  <Breadcrumbs path={Astro.url.pathname} />
+
+  {profileData && (
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2">
+        <!-- Profile Header -->
+        <div class="bg-white rounded-xl shadow-card mb-6 overflow-hidden">
+          <!-- Desktop Layout -->
+          <div class="hidden md:flex">
+            <ProfileImage picture={profileData.picture} name={profileData.name} rating={ratingData?.rating} />
+            
+            <div class="flex-1 p-6 flex flex-col justify-center">
+              <h1 class="text-3xl font-bold text-gray-900 mb-3">{profileData.name}</h1>
+              <p class="text-gray-600 text-lg leading-relaxed">{profileData.description || 'Veterinary services in ' + profileData.city}</p>
+              
+              <ProfileContactIcons 
+                phone={profileData.phone_number} 
+                address={profileData.address} 
+                website={profileData.website} 
+              />
+            </div>
+          </div>
+          
+          <!-- Mobile Layout -->
+          <div class="md:hidden">
+            <ProfileImage 
+              picture={profileData.picture} 
+              name={profileData.name} 
+              rating={ratingData?.rating} 
+              class="w-full h-64"
+            />
+            
+            <div class="p-6">
+              <h1 class="text-2xl font-bold text-gray-900 mb-2">{profileData.name}</h1>
+              <p class="text-gray-600">{profileData.description || 'Veterinary services in ' + profileData.city}</p>
+              
+              <ProfileContactIcons 
+                phone={profileData.phone_number} 
+                address={profileData.address} 
+                website={profileData.website} 
+                isMobile={true}
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Description Section -->
+        {(profileData.detailed_description || profileData.description) && (
+          <div class="bg-white rounded-xl shadow-card p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">About {profileData.name}</h2>
+            <div class="description-wrapper">
+              <div class="prose max-w-none text-gray-700">
+                <div class="description clamped leading-relaxed" id="aboutDescription" set:html={formatDescription(profileData.detailed_description || profileData.description)}></div>
+              </div>
+              <button class="read-more text-primary-600 font-medium mt-2 hover:text-primary-700 transition" id="readMore">Read More</button>
+              <button class="hide text-primary-600 font-medium mt-2 hover:text-primary-700 transition" id="hide" style="display: none;">Read Less</button>
+            </div>
+          </div>
+        )}
+
+        <!-- Services Section -->
+        {Array.isArray(profileData.specialization) && profileData.specialization.length > 0 && (
+          <div class="bg-white rounded-xl shadow-card p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Vet Services and Specializations</h2>
+            <div class="flex flex-wrap gap-2">
+              {profileData.specialization.map((spec) => (
+                <div class="inline-flex items-center px-3 py-1.5 bg-primary-50 text-primary-700 rounded-full text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {spec}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <!-- Hours Section -->
+        {profileData.hours_of_operation && (
+          <div class="bg-white rounded-xl shadow-card p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Hours of Operation</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b border-gray-200">
+                    <th class="py-2 text-left text-gray-600 font-medium w-1/3">Day</th>
+                    <th class="py-2 text-left text-gray-600 font-medium">Hours</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+                    const hoursData = normalizeHoursData(profileData.hours_of_operation);
+                    
+                    return days.map((day, index) => {
+                      const dayKey = (index + 1).toString();
+                      const hours = hoursData && hoursData[dayKey] ? formatHours(hoursData[dayKey]) : "Hours information unavailable";
+                      return (
+                        <tr class="border-b border-gray-100 last:border-0">
+                          <td class="py-3 text-gray-800">{day}</td>
+                          <td class="py-3 text-gray-800">{hours}</td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        <!-- FAQ Section -->
+        {Array.isArray(profileData.faqs) && profileData.faqs.length > 0 && (
+          <div class="bg-white rounded-xl shadow-card p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Frequently Asked Questions</h2>
+            <div class="space-y-4">
+              {profileData.faqs.map((faq, index) => (
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                  <button 
+                    class="faq-question w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors duration-200"
+                    aria-expanded="false" 
+                    aria-controls={`faq-answer-${index}`}
+                  >
+                    <span class="font-semibold text-gray-900 pr-4">{faq.question}</span>
+                    <svg class="faq-icon w-5 h-5 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div class="faq-answer hidden px-4 pb-4" id={`faq-answer-${index}`}>
+                    <p class="text-gray-700 leading-relaxed">{faq.answer}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <!-- Sidebar -->
+      <div class="lg:col-span-1">
+        <!-- Nearby Vets -->
+        <div class="bg-white rounded-xl shadow-card p-6 mb-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Other Veterinary Clinics Nearby</h2>
+          
+          <div class="space-y-2">
+            {relatedVets.length > 0 ? (
+              relatedVets.slice(0, 10).map((vet) => (
+                <a 
+                  href={`/${vet.country_slug}/${vet.province_slug}/${vet.city_slug}/${vet.name_slug}`} 
+                  class="flex bg-white rounded-lg hover:bg-primary-50 transition group shadow-sm overflow-hidden h-18"
+                >
+                  <div class="relative bg-primary-100 flex-shrink-0 w-18 h-18">
+                    <div class="w-full h-full flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-600">
+                        <path d="M12 6v4" />
+                        <path d="M14 14h-4" />
+                        <path d="M14 18h-4" />
+                        <path d="M14 8h-4" />
+                        <path d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2" />
+                        <path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18" />
+                      </svg>
+                    </div>
+                    {vet.picture && (
+                      <img src={vet.picture} alt={vet.name} class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display='none'" />
+                    )}
+                  </div>
+                  <div class="flex-1 flex items-center p-3 min-w-0">
+                    <span class="text-gray-700 group-hover:text-primary-700 transition font-medium text-base block truncate">{vet.name}</span>
+                  </div>
+                </a>
+              ))
+            ) : (
+              <p class="text-gray-600 text-sm">No nearby veterinary clinics found.</p>
+            )}
+          </div>
+        </div>
+
+        <!-- Nearby Cities -->
+        <div class="bg-white rounded-xl shadow-card p-6 mb-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Veterinary Care in Nearby Cities</h2>
+          
+          <div class="grid grid-cols-1 gap-2">
+            {finalNearbyCities.length > 0 ? (
+              finalNearbyCities.slice(0, 5).map((nearby) => (
+                <a href={`/${country}/${region}/${nearby.city_slug}`} class="flex items-center gap-3 p-3 rounded-lg hover:bg-primary-50 transition group">
+                  <div class="text-primary-500 bg-primary-50 p-1.5 rounded-full group-hover:bg-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                    </svg>
+                  </div>
+                  <span class="text-gray-700 group-hover:text-primary-700 transition">{nearby.city}</span>
+                </a>
+              ))
+            ) : (
+              <p class="text-gray-600 text-sm">No nearby cities found.</p>
+            )}
+          </div>
+        </div>
+
+        <!-- Claim Profile -->
+        <div class="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl p-6 text-center">
+          <div class="text-primary-600 mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+            </svg>
+          </div>
+          <h3 class="font-semibold text-gray-900 mb-2">Is this your veterinary practice?</h3>
+          <p class="text-gray-600 text-sm mb-4">Claim your profile to update information, respond to reviews, and boost your visibility.</p>
+          <button id="claim-clinic-btn" class="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors duration-200 font-medium">
+            Claim This Clinic
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+</Layout>

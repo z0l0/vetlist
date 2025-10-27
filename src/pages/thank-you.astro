@@ -1,0 +1,20 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+
+const title = 'Thank You';
+const path = Astro.url.pathname.replace(/\/$/, '');
+---
+
+<Layout title={title}>
+  <Breadcrumbs path={path} />
+
+  <div class="container mx-auto px-4">
+    <div class="bg-white p-12 md:p-8 rounded-lg shadow-card text-center max-w-2xl mx-auto my-12 md:my-8 md:mx-4">
+      <img src="/images/paw-print.svg" alt="Success" class="w-20 h-20 md:w-15 md:h-15 mb-8 md:mb-6 bg-primary-50 rounded-xl p-5 md:p-4 mx-auto">
+      <h1 class="text-4xl md:text-3xl mb-4 text-primary-600 font-semibold">Thank You!</h1>
+      <p class="text-xl md:text-base mb-8 text-text-light">Your message has been sent successfully. We'll get back to you as soon as possible.</p>
+      <a href="/" class="inline-block bg-primary text-white font-semibold px-6 py-3 rounded-full no-underline transition-all duration-300 shadow-lg hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-xl">Return to Home</a>
+    </div>
+  </div>
+</Layout> 

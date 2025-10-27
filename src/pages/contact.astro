@@ -1,0 +1,281 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const title = 'Contact Us | VetList.org';
+const description = 'Get in touch with VetList.org for questions about adding your practice, claiming your listing, or improving your visibility in AI search results.';
+---
+
+<Layout title={title} description={description}>
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="text-center mb-12">
+      <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+        Contact Us
+      </h1>
+      <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+        Have questions about adding your practice, claiming your listing, or improving your visibility? We're here to help you connect with more pet owners.
+      </p>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid lg:grid-cols-3 gap-8">
+      <!-- Contact Form -->
+      <div class="lg:col-span-2">
+        <div class="bg-white rounded-xl shadow-lg p-8">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6">
+            Send Us a Message
+          </h2>
+          
+          <form id="contact-form" action="https://formsubmit.co/directorytraffic@gmail.com" method="POST" class="space-y-6">
+            <!-- FormSubmit configuration -->
+            <input type="hidden" name="_subject" value="New Contact Form Submission from VetList">
+            <input type="hidden" name="_captcha" value="false">
+            <input type="hidden" name="_template" value="table">
+            <input type="hidden" name="_next" value="/thank-you">
+            <input type="hidden" name="_honeypot" value="">
+            <input type="hidden" name="form_type" value="contact">
+
+            <div class="grid md:grid-cols-2 gap-6">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Your Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="Your full name"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="your.email@example.com"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Subject *
+              </label>
+              <select
+                name="subject"
+                required
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              >
+                <option value="">Select a topic</option>
+                <option value="Add My Practice">Add My Practice to VetList</option>
+                <option value="Claim My Practice">Claim My Existing Practice</option>
+                <option value="Update Practice Info">Update Practice Information</option>
+                <option value="Premium Services">Premium Services & AI Rankings</option>
+                <option value="Technical Support">Technical Support</option>
+                <option value="Partnership">Partnership Opportunities</option>
+                <option value="General Inquiry">General Inquiry</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Message *
+              </label>
+              <textarea
+                name="message"
+                rows="6"
+                required
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="Tell us how we can help you..."
+              ></textarea>
+            </div>
+
+            <div class="text-center">
+              <button
+                type="submit"
+                class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-12 py-4 rounded-full font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                Send Message
+              </button>
+              <p class="text-sm text-gray-500 mt-4">
+                We'll get back to you within 24 hours
+              </p>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Contact Info & Services -->
+      <div class="space-y-6">
+        <!-- Contact Information -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Get in Touch</h3>
+          
+          <div class="space-y-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <div>
+                <p class="font-medium text-gray-900">Email</p>
+                <a href="mailto:directorytraffic@gmail.com" class="text-blue-600 hover:text-blue-700">directorytraffic@gmail.com</a>
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+              </div>
+              <div>
+                <p class="font-medium text-gray-900">Location</p>
+                <address class="text-gray-600 not-italic">240 Richmond St W<br>Toronto, ON</address>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Quick Actions</h3>
+          
+          <div class="space-y-3">
+            <a 
+              href="/add-vet" 
+              class="flex items-center gap-3 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
+            >
+              <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+              </div>
+              <div>
+                <p class="font-medium text-gray-900">Add Your Practice</p>
+                <p class="text-sm text-gray-600">Join 30,000+ practices</p>
+              </div>
+            </a>
+            
+            <a 
+              href="/claim-clinic" 
+              class="flex items-center gap-3 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
+            >
+              <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+              <div>
+                <p class="font-medium text-gray-900">Claim Your Practice</p>
+                <p class="text-sm text-gray-600">Update existing listing</p>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <!-- AI Rankings Info -->
+        <div class="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl p-6 text-white">
+          <div class="flex items-center gap-2 mb-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
+            <h3 class="text-lg font-bold">Rank Higher in AI Search</h3>
+          </div>
+          <p class="text-purple-100 text-sm mb-4">
+            <strong>ChatGPT, Claude, and other AI systems</strong> prioritize businesses that rank higher on trusted directories. When pet owners ask AI to find veterinarians, higher directory rankings mean more recommendations.
+          </p>
+          <a 
+            href="/claim-clinic" 
+            class="inline-flex items-center gap-2 bg-white text-purple-600 px-4 py-2 rounded-full font-medium text-sm hover:bg-purple-50 transition-colors"
+          >
+            Learn More
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </a>
+        </div>
+
+        <!-- Stats -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">VetList by Numbers</h3>
+          
+          <div class="space-y-4">
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Listed Practices</span>
+              <span class="font-bold text-blue-600">30,000+</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Monthly Visitors</span>
+              <span class="font-bold text-indigo-600">10,000+</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Countries Covered</span>
+              <span class="font-bold text-purple-600">2</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Response Time</span>
+              <span class="font-bold text-green-600">24-48hrs</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="mt-16">
+      <h2 class="text-3xl font-bold text-gray-900 text-center mb-12">Frequently Asked Questions</h2>
+      
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-3">How do I add my practice to VetList?</h3>
+          <p class="text-gray-600">
+            Simply fill out our <a href="/add-vet" class="text-blue-600 hover:text-blue-700 font-medium">Add Your Practice</a> form with your clinic details, services, and hours. We'll review and add your practice within 24-48 hours.
+          </p>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-3">What if my practice is already listed?</h3>
+          <p class="text-gray-600">
+            You can <a href="/claim-clinic" class="text-blue-600 hover:text-blue-700 font-medium">claim your existing practice</a> to update information, add services, or explore premium options to improve your visibility.
+          </p>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-3">How does AI ranking work?</h3>
+          <p class="text-gray-600">
+            AI systems like ChatGPT prioritize businesses with higher directory rankings. Our premium services help boost your position, making you more likely to be recommended when pet owners search for veterinarians.
+          </p>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-3">Is there a cost to be listed?</h3>
+          <p class="text-gray-600">
+            Basic listings are completely free. We also offer premium services for practices wanting enhanced visibility, priority placement, and improved AI search rankings.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('contact-form');
+      const submitButton = form?.querySelector('button[type="submit"]');
+      
+      form?.addEventListener('submit', function() {
+        if (submitButton) {
+          submitButton.textContent = 'Sending Message...';
+          submitButton.disabled = true;
+        }
+      });
+    });
+  </script>
+</Layout>

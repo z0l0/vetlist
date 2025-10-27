@@ -1,0 +1,40 @@
+---
+const testimonials = [
+  {
+    content: "Finding a veterinarian who truly understands our anxious rescue dog was a game changer. This vet directory helped us connect with a specialist who transformed his vet visits into stress-free experiences.",
+    author: "Sarah T., Dog Owner in Calgary"
+  },
+  {
+    content: "When my cat needed emergency surgery, having already researched local vet clinics through this site saved precious time. The detailed veterinarian profiles helped us make a quick, informed decision for urgent pet care.",
+    author: "Michael R., Cat Owner in Toronto"
+  },
+  {
+    content: "As a first-time pet parent, I was overwhelmed by all the veterinary options. This directory made it simple to compare local veterinarians, read reviews, and find an affordable vet clinic that provides exceptional care for my puppy.",
+    author: "Jennifer K., Puppy Owner in Vancouver"
+  }
+];
+---
+
+<section class="py-16 bg-gray-50">
+  <div class="container mx-auto px-4 max-w-6xl">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-bold text-gray-900 mb-4">What Pet Owners Say About Our Veterinarian Directory</h2>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {testimonials.map((testimonial) => (
+        <div class="bg-white rounded-lg p-6 shadow-md">
+          <div class="mb-4">
+            <svg class="w-8 h-8 text-primary-600 mb-4" fill="currentColor" viewBox="0 0 32 32">
+              <path d="M10 8c-3.3 0-6 2.7-6 6v10h10V14h-4c0-2.2 1.8-4 4-4V8zm16 0c-3.3 0-6 2.7-6 6v10h10V14h-4c0-2.2 1.8-4 4-4V8z"/>
+            </svg>
+            <p class="text-gray-700 leading-relaxed">{testimonial.content}</p>
+          </div>
+          <div class="text-sm font-medium text-gray-900">
+            {testimonial.author}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

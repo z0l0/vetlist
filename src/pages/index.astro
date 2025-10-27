@@ -1,0 +1,198 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/home/Hero.astro';
+import Features from '../components/home/Features.astro';
+import FAQ from '../components/home/FAQ.astro';
+import Testimonials from '../components/home/Testimonials.astro';
+import { fetchAllProfessionals } from '../lib/supabase';
+
+// Fetch cities with vet data from CSV
+const allProfiles = await fetchAllProfessionals();
+
+// Aggregate cities by vet count and prepare the popularCities array
+const popularCities = allProfiles
+  ? (() => {
+      // Count vets per city
+      const cityCounts = allProfiles.reduce((acc, item) => {
+        const key = `${item.city}|${item.city_slug}|${item.province_slug}|${item.country_slug}`;
+        if (!acc[key]) {
+          acc[key] = {
+            name: item.city,
+            slug: `/${item.country_slug}/${item.province_slug}/${item.city_slug}`,
+            count: 0
+          };
+        }
+        acc[key].count += 1;
+        return acc;
+      }, {});
+      // Convert to array and sort by vet count (descending), then alphabetically
+      return Object.values(cityCounts)
+        .sort((a: any, b: any) => b.count - a.count || a.name.localeCompare(b.name))
+        .slice(0, 6); // Take top 6 for the hero section
+    })()
+  : [];
+
+// Fallback static list if no cities are fetched
+const fallbackCities = [
+  { name: 'Fort Worth', slug: '/united-states/texas/fort-worth' },
+  { name: 'Dallas', slug: '/united-states/texas/dallas' },
+  { name: 'Houston', slug: '/united-states/texas/houston' },
+  { name: 'Austin', slug: '/united-states/texas/austin' },
+  { name: 'San Antonio', slug: '/united-states/texas/san-antonio' },
+  { name: 'Arlington', slug: '/united-states/texas/arlington' }
+];
+
+// Use fetched cities if available, otherwise fallback
+const citiesToDisplay = popularCities.length > 0 ? popularCities : fallbackCities;
+
+// Top visited profiles based on analytics data (last 30 days)
+const topVisitedProfiles = [
+  {
+    name: "VCA Canada Tuscany Animal Hospital",
+    slug: "canada/alberta/calgary/vca-canada-tuscany-animal-hospital",
+    city: "Calgary",
+    province: "Alberta",
+    country: "Canada",
+    rating: 4.8,
+    picture: null
+  },
+  {
+    name: "Springbank Pet Hospital", 
+    slug: "canada/alberta/calgary/springbank-pet-hospital",
+    city: "Calgary",
+    province: "Alberta", 
+    country: "Canada",
+    rating: 4.9,
+    picture: null
+  },
+  {
+    name: "North Kipling Veterinary Hospital",
+    slug: "canada/ontario/toronto/north-kipling-veterinary-hospital",
+    city: "Toronto",
+    province: "Ontario",
+    country: "Canada", 
+    rating: 4.7,
+    picture: null
+  },
+  {
+    name: "Richardson Ranch",
+    slug: "canada/british-columbia/tlell/richardson-ranch",
+    city: "Tlell",
+    province: "British Columbia",
+    country: "Canada",
+    rating: 4.6,
+    picture: null
+  },
+  {
+    name: "Dr. Roberto J. Rojas, DVM",
+    slug: "united-states/arizona/nogales/rojas-roberto-j-dvm", 
+    city: "Nogales",
+    state: "Arizona",
+    country: "United States",
+    rating: 4.8,
+    picture: null
+  },
+  {
+    name: "North Island Veterinary Hospital",
+    slug: "canada/british-columbia/port-hardy/north-island-veterinary-hospital",
+    city: "Port Hardy",
+    province: "British Columbia", 
+    country: "Canada",
+    rating: 4.7,
+    picture: null
+  },
+  {
+    name: "Junction West Animal Hospital",
+    slug: "canada/ontario/toronto/junction-west-animal-hospital",
+    city: "Toronto",
+    province: "Ontario",
+    country: "Canada",
+    rating: 4.8,
+    picture: null
+  },
+  {
+    name: "Aloha Veterinary Care",
+    slug: "united-states/hawaii/kihei/aloha-veterinary-care",
+    city: "Kihei", 
+    state: "Hawaii",
+    country: "United States",
+    rating: 4.9,
+    picture: null
+  },
+  {
+    name: "Greenfield Animal Hospital",
+    slug: "united-states/florida/miami/greenfield-animal-hospital",
+    city: "Miami",
+    state: "Florida", 
+    country: "United States",
+    rating: 4.6,
+    picture: null
+  },
+  {
+    name: "Jane Animal Hospital",
+    slug: "canada/ontario/toronto/jane-animal-hospital",
+    city: "Toronto",
+    province: "Ontario",
+    country: "Canada",
+    rating: 4.7,
+    picture: null
+  },
+  {
+    name: "North Lanark Veterinary Services", 
+    slug: "canada/ontario/lanark/north-lanark-veterinary-services",
+    city: "Lanark",
+    province: "Ontario",
+    country: "Canada",
+    rating: 4.8,
+    picture: null
+  },
+  {
+    name: "VET-ER Emergency Clinic",
+    slug: "canada/alberta/edmonton/vet-er",
+    city: "Edmonton",
+    province: "Alberta",
+    country: "Canada", 
+    rating: 4.5,
+    picture: null
+  }
+];
+
+// Get popular vets - prioritize top visited profiles, then fill with data from CSV
+const popularVets = topVisitedProfiles.map(vet => ({
+  name: vet.name,
+  slug: vet.slug,
+  picture: vet.picture,
+  rating: vet.rating,
+  city: vet.city,
+  state: vet.state || vet.province,
+  province: vet.province,
+  country: vet.country
+}));
+
+// Get statistics for hero section
+const totalVets = allProfiles ? allProfiles.length : 0;
+const uniqueCities = allProfiles ? new Set(allProfiles.map(p => p.city)).size : 0;
+const allSpecializations = new Set();
+if (allProfiles) {
+  allProfiles.forEach(p => {
+    if (Array.isArray(p.specialization)) {
+      p.specialization.forEach(spec => allSpecializations.add(spec));
+    } else if (p.specialization) {
+      allSpecializations.add(p.specialization);
+    }
+  });
+}
+const topSpecializations = Array.from(allSpecializations).slice(0, 8) as string[];
+---
+
+<Layout title="Find Top Rated Veterinarians Near You | VetList.org">
+  <Hero 
+    cities={citiesToDisplay} 
+    popularVets={popularVets}
+    totalVets={totalVets}
+    totalCities={uniqueCities}
+  />
+  <Features />
+  <Testimonials />
+  <FAQ />
+</Layout>

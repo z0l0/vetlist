@@ -1,0 +1,659 @@
+---
+import Layout from '../../../../layouts/Layout.astro';
+import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
+import { getProfessionals, getProfilesForCity, getLocationDetails, getNearbyCitiesForCity } from '../../../../lib/dataCache.js';
+// Keep the direct import as fallback
+import { fetchAllProfessionals } from '../../../../lib/supabase';
+
+// Convert slug to title case
+function toTitleCase(str) {
+  return str
+    .replace(/-/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+export async function getStaticPaths() {
+  try {
+    // First try to get from cache
+    const profiles = await getProfessionals();
+    console.log(`[city].astro getStaticPaths: Received ${profiles?.length || 0} profiles from cache.`);
+    
+    // If cache failed or is empty, fall back to direct fetch
+    const allProfiles = profiles?.length ? profiles : await fetchAllProfessionals();
+    console.log('Generated static paths for cities from', allProfiles.length, 'profiles');
+
+    // Filter out profiles with missing or empty slugs
+    const validProfiles = allProfiles.filter(profile => 
+      profile.country_slug && 
+      profile.province_slug && 
+      profile.city_slug &&
+      profile.country_slug.trim() !== '' && 
+      profile.province_slug.trim() !== '' && 
+      profile.city_slug.trim() !== ''
+    );
+    
+    console.log(`[city].astro getStaticPaths: ${validProfiles.length} valid profiles after filtering`);
+
+    const cities = new Map();
+    validProfiles.forEach(profile => {
+      const key = `${profile.country_slug}/${profile.province_slug}/${profile.city_slug}`;
+      if (!cities.has(key)) {
+        cities.set(key, {
+          country: profile.country_slug,
+          region: profile.province_slug,
+          city: profile.city_slug
+        });
+      }
+    });
+
+    const paths = Array.from(cities.values()).map(({ country, region, city }) => ({
+      params: { country, region, city }
+    }));
+
+    console.log(`[city].astro getStaticPaths: Generated ${paths.length} city paths`);
+    return paths;
+  } catch (fetchError) {
+    console.error('Error fetching profiles for static paths:', fetchError);
+    return [];
+  }
+}
+
+const { country, region, city } = Astro.params;
+
+// Attempt to use the cached data first
+let profiles: any[] = [];
+let locations: any[] = [];
+let nearbyData: any[] = [];
+
+// Get profiles for this city first from cache
+profiles = await getProfilesForCity(country, region, city);
+
+// If no profiles found in cache, fetch all profiles and filter
+if (!profiles || profiles.length === 0) {
+  console.log(`[city].astro: No profiles found in cache for ${country}/${region}/${city}, trying direct fetch...`);
+  try {
+    const allProfiles = await getProfessionals();
+    profiles = allProfiles.filter(p => 
+      p.country_slug === country && 
+      p.province_slug === region && 
+      p.city_slug === city
+    );
+  } catch (e) {
+    console.error(`[city].astro: Error fetching profiles from cache:`, e.message);
+    
+    // Try direct fetch as last resort
+    try {
+      const allProfiles = await fetchAllProfessionals();
+      profiles = allProfiles.filter(p => 
+        p.country_slug === country && 
+        p.province_slug === region && 
+        p.city_slug === city
+      );
+    } catch (directFetchError) {
+      console.error(`[city].astro: Direct fetch also failed:`, directFetchError.message);
+      profiles = [];
+    }
+  }
+}
+
+console.log('Fetched', profiles.length, 'profiles for', `${country}/${region}/${city}`);
+
+// Fetch location details from cache
+let locationDetails = await getLocationDetails(country, region, city);
+const longDescription = locationDetails?.long_description || null;
+
+// Get nearby cities from cache
+const nearbyCities = await getNearbyCitiesForCity(country, region, city);
+
+// Apply smart limiting to cached cities too
+let limitedCachedCities = nearbyCities;
+if (nearbyCities && nearbyCities.length > 12) {
+  const sortedCached = nearbyCities.sort((a, b) => b.count - a.count);
+  const topCached = sortedCached.slice(0, 6);
+  const remainingCached = sortedCached.slice(6);
+  const shuffledRemainingCached = remainingCached.sort(() => Math.random() - 0.5).slice(0, 6);
+  limitedCachedCities = [...topCached, ...shuffledRemainingCached];
+}
+
+// If nearbyCities is empty, compute it on the fly
+let finalNearbyCities = limitedCachedCities;
+if (!finalNearbyCities || finalNearbyCities.length === 0) {
+  console.log(`[city].astro: No nearby cities found in cache for ${country}/${region}/${city}, computing on the fly...`);
+  
+  try {
+    // Get all profiles for this region
+    const allProfiles = await getProfessionals();
+    nearbyData = allProfiles.filter(p => 
+      p.country_slug === country && 
+      p.province_slug === region && 
+      p.city_slug !== city
+    );
+
+    const nearbyCityCounts = new Map();
+    nearbyData.forEach(item => {
+      const key = item.city_slug;
+      nearbyCityCounts.set(key, (nearbyCityCounts.get(key) || 0) + 1);
+    });
+
+    const uniqueNearbyCities = [...new Set(nearbyData.map(item => item.city_slug))].map(citySlug => {
+      const cityData = nearbyData.find(item => item.city_slug === citySlug);
+      return { city_slug: citySlug, city: cityData.city, count: nearbyCityCounts.get(citySlug) || 0 };
+    });
+
+    // Sort by count and limit to top cities + some random ones
+    const sortedCities = uniqueNearbyCities.sort((a, b) => b.count - a.count);
+    const topCities = sortedCities.slice(0, 6); // Top 6 by vet count
+    const remainingCities = sortedCities.slice(6);
+    
+    // Shuffle remaining cities and take up to 6 more
+    const shuffledRemaining = remainingCities.sort(() => Math.random() - 0.5).slice(0, 6);
+    
+    finalNearbyCities = [...topCities, ...shuffledRemaining];
+  } catch (e) {
+    console.error(`[city].astro: Error computing nearby cities:`, e.message);
+    finalNearbyCities = [];
+  }
+}
+
+const cityName = profiles?.[0]?.city || toTitleCase(city);
+const profileCount = profiles ? profiles.length : 0;
+const path = Astro.url.pathname.replace(/\/$/, '');
+---
+
+<Layout title={`${cityName} Veterinarians`}>
+  <Breadcrumbs path={path} />
+  
+  <!-- Hero Section with Disappearing Logic -->
+  <section class="relative overflow-hidden bg-gradient-to-br from-primary-700 via-primary-800 to-primary-900 pt-4 pb-4 md:pt-6 md:pb-6 mb-2" style="margin-left: calc(-50vw + 50%); margin-right: calc(-50vw + 50%); width: 100vw;">
+    <!-- Subtle background elements -->
+    <div class="absolute inset-0 overflow-hidden">
+      <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
+      <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="container mx-auto px-4 md:px-8 lg:px-12 max-w-6xl relative">
+      <!-- Header Container with Dynamic Height -->
+      <div
+        id="hero-header-container"
+        class="text-center transition-all duration-500 ease-out overflow-hidden"
+        style="margin-bottom: 0.5rem;"
+      >
+        <!-- Main Header -->
+        <div id="hero-header" class="transition-all duration-500 ease-out">
+          <h1 class="text-lg md:text-xl xl:text-2xl font-medium text-white/85 mb-1.5 leading-tight tracking-wide">
+            {cityName} Veterinarians
+          </h1>
+          <div class="text-sm xl:text-base text-primary-100/70 leading-relaxed max-w-5xl mx-auto font-light">
+            {longDescription ? (
+              <div class="description-wrapper">
+                <div class="description clamped" id="description" set:html={longDescription}></div>
+                <button class="read-more text-primary-200 hover:text-white underline mt-2" id="readMore">Read More</button>
+                <button class="hide text-primary-200 hover:text-white underline mt-2" id="hide" style="display: none;">Read Less</button>
+              </div>
+            ) : (
+              <p>Find the best veterinary clinics in {cityName}, {toTitleCase(region)}</p>
+            )}
+          </div>
+        </div>
+
+        <!-- Ultra-minimal Header State - Behind Content -->
+        <div
+          id="hero-header-mini"
+          class="transition-all duration-500 ease-out opacity-0 scale-90 pointer-events-none fixed inset-x-0 z-40"
+          style="top: -10px;"
+        >
+          <div class="container mx-auto px-4 md:px-8 lg:px-12 max-w-6xl">
+            <button
+              id="header-expand-btn"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-white/70 hover:text-white/90 hover:bg-white/20 transition-all text-xs font-light shadow-lg"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1"
+                stroke="currentColor"
+                class="w-3 h-3"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19.5 8.25l-7.5 7.5-7.5-7.5"></path>
+              </svg>
+              <span>{cityName} Veterinarians</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+    </div>
+  </section>
+
+    <div id="profiles-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {profiles && profiles.length > 0 ? (
+        profiles.slice(0, 36).map(profile => (
+          <div class="profile-card bg-white rounded-xl shadow-card hover:shadow-lg transition group overflow-hidden" data-search-name={profile.name.toLowerCase()} data-search-description={(profile.description || '').toLowerCase()}>
+            {profile.name_slug ? (
+              <a href={`${path}/${profile.name_slug}`} class="flex h-32">
+                <div class="relative w-32 h-32 bg-primary-50 group-hover:bg-primary-100 flex-shrink-0">
+                  {profile.picture ? (
+                    <img 
+                      src={profile.picture} 
+                      alt={`${profile.name} image`} 
+                      class="w-full h-full object-cover"
+                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                    />
+                  ) : null}
+                  <div class={`absolute inset-0 flex items-center justify-center text-primary-500 ${profile.picture ? 'hidden' : 'flex'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 14h-4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 18h-4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 8h-4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="flex-1 flex flex-col justify-between p-4 min-w-0">
+                  <div>
+                    <h3 class="text-gray-700 group-hover:text-primary-700 transition font-medium text-sm leading-tight mb-2 truncate">
+                      {profile.name.length > 45 ? profile.name.substring(0, 45) + '...' : profile.name}
+                    </h3>
+                    {profile.description && (
+                      <p class="text-gray-500 text-xs leading-relaxed line-clamp-2 mb-3">
+                        {profile.description.length > 80 ? profile.description.substring(0, 80) + '...' : profile.description}
+                      </p>
+                    )}
+                  </div>
+                  <div class="flex items-center justify-between">
+                    {/* Address - extract street address only */}
+                    {profile.address && (
+                      <div class="flex items-center text-xs text-gray-500 truncate flex-1 mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3 mr-1 flex-shrink-0">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                        </svg>
+                        <span class="truncate">
+                          {(() => {
+                            // Extract just the street address (first part before comma)
+                            const addressParts = profile.address.split(',');
+                            return addressParts[0].trim();
+                          })()}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Rating */}
+                    {profile.rating && profile.rating > 0 && (
+                      <div class="flex items-center text-xs text-gray-600 flex-shrink-0">
+                        <svg class="w-3 h-3 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                          <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="font-medium">{profile.rating.toFixed(1)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </a>
+            ) : (
+              <div class="flex h-32">
+                <div class="relative w-32 h-32 bg-primary-50 flex-shrink-0">
+                  {profile.picture ? (
+                    <img 
+                      src={profile.picture} 
+                      alt={`${profile.name} image`} 
+                      class="w-full h-full object-cover"
+                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                    />
+                  ) : null}
+                  <div class={`absolute inset-0 flex items-center justify-center text-primary-500 ${profile.picture ? 'hidden' : 'flex'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 14h-4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 18h-4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 8h-4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="flex-1 flex flex-col justify-between p-4 min-w-0">
+                  <div>
+                    <h3 class="text-gray-700 font-medium text-sm leading-tight mb-2 truncate">
+                      {profile.name.length > 45 ? profile.name.substring(0, 45) + '...' : profile.name}
+                    </h3>
+                    {profile.description && (
+                      <p class="text-gray-500 text-xs leading-relaxed line-clamp-2 mb-3">
+                        {profile.description.length > 80 ? profile.description.substring(0, 80) + '...' : profile.description}
+                      </p>
+                    )}
+                  </div>
+                  <div class="flex items-center justify-between">
+                    {/* Address - extract street address only */}
+                    {profile.address && (
+                      <div class="flex items-center text-xs text-gray-500 truncate flex-1 mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3 mr-1 flex-shrink-0">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                        </svg>
+                        <span class="truncate">
+                          {(() => {
+                            // Extract just the street address (first part before comma)
+                            const addressParts = profile.address.split(',');
+                            return addressParts[0].trim();
+                          })()}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Rating */}
+                    {profile.rating && profile.rating > 0 && (
+                      <div class="flex items-center text-xs text-gray-600 flex-shrink-0">
+                        <svg class="w-3 h-3 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                          <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="font-medium">{profile.rating.toFixed(1)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))
+      ) : (
+        <p class="text-gray-600 col-span-full text-center py-8">No veterinary clinics found in {cityName}.</p>
+      )}
+    </div>
+
+    {/* Additional profiles in simplified row format if more than 36 */}
+    {profiles && profiles.length > 36 && (
+      <div class="mt-12">
+        <div class="flex items-center mb-6">
+          <div class="flex-grow h-px bg-gray-300"></div>
+          <span class="px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">More Clinics</span>
+          <div class="flex-grow h-px bg-gray-300"></div>
+        </div>
+        <h2 class="text-lg font-semibold text-gray-900 mb-6">More Veterinary Clinics in {cityName}</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {profiles.slice(36).map(profile => (
+            profile.name_slug ? (
+              <a href={`${path}/${profile.name_slug}`} class="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition group searchable-item" data-search-name={profile.name.toLowerCase()} data-search-description={(profile.description || '').toLowerCase()}>
+                <div class="relative w-8 h-8 rounded-lg overflow-hidden bg-primary-50 group-hover:bg-primary-100 flex-shrink-0">
+                  {profile.picture ? (
+                    <img 
+                      src={profile.picture} 
+                      alt={`${profile.name} image`} 
+                      class="w-full h-full object-cover"
+                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                    />
+                  ) : null}
+                  <div class={`absolute inset-0 flex items-center justify-center text-primary-500 ${profile.picture ? 'hidden' : 'flex'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 14h-4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 18h-4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 8h-4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
+                    </svg>
+                  </div>
+                </div>
+                <span class="font-medium text-gray-900 hover:text-primary-600 transition-colors truncate text-sm">{profile.name.length > 40 ? profile.name.substring(0, 40) + '...' : profile.name}</span>
+              </a>
+            ) : (
+              <div class="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm searchable-item" data-search-name={profile.name.toLowerCase()} data-search-description={(profile.description || '').toLowerCase()}>
+                <div class="relative w-8 h-8 rounded-lg overflow-hidden bg-primary-50 flex-shrink-0">
+                  {profile.picture ? (
+                    <img 
+                      src={profile.picture} 
+                      alt={`${profile.name} image`} 
+                      class="w-full h-full object-cover"
+                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                    />
+                  ) : null}
+                  <div class={`absolute inset-0 flex items-center justify-center text-primary-500 ${profile.picture ? 'hidden' : 'flex'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 14h-4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 18h-4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 8h-4"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
+                    </svg>
+                  </div>
+                </div>
+                <span class="font-medium text-gray-900 truncate text-sm">{profile.name.length > 40 ? profile.name.substring(0, 40) + '...' : profile.name}</span>
+              </div>
+            )
+          ))}
+        </div>
+      </div>
+    )}
+
+    <div class="mt-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Veterinary care in nearby cities</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {finalNearbyCities.length > 0 ? (
+          finalNearbyCities.map(nearby => (
+            <a 
+              href={`/${country}/${region}/${nearby.city_slug}`}
+              class="city-card flex items-center gap-3 p-4 bg-white rounded-xl shadow-card hover:shadow-lg transition group"
+              data-city-name={nearby.city.toLowerCase()}
+              data-clinic-count={nearby.count}
+            > 
+              <div class="text-primary-500 bg-primary-50 p-2 rounded-full group-hover:bg-primary-100">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <span class="text-gray-700 group-hover:text-primary-700 transition font-medium">
+                  {toTitleCase(nearby.city)}
+                </span>
+                <span class="ml-2 text-sm text-gray-500">
+                  {nearby.count} {nearby.count === 1 ? 'Clinic' : 'Clinics'}
+                </span>
+              </div>
+            </a>
+          ))
+        ) : (
+          <p class="text-gray-600 col-span-full text-center py-8">No nearby cities with veterinary clinics found.</p>
+        )}
+      </div>
+    </div>
+
+  <style>
+    .description.clamped {
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.5em;
+    }
+    
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  </style>
+
+  <script>
+    // Hero header collapse/expand functionality
+    document.addEventListener("DOMContentLoaded", function () {
+      const heroHeaderContainer = document.getElementById("hero-header-container");
+      const heroHeader = document.getElementById("hero-header");
+      const heroHeaderMini = document.getElementById("hero-header-mini");
+      const expandBtn = document.getElementById("header-expand-btn");
+
+      let isCollapsed = false;
+      let autoCollapseTimeout: any;
+      let userHasExpanded = false;
+
+      // Auto-collapse after 3 seconds (only if user hasn't manually expanded)
+      function startAutoCollapse() {
+        autoCollapseTimeout = setTimeout(function () {
+          if (!isCollapsed && !userHasExpanded) {
+            collapseHeader();
+          }
+        }, 3000);
+      }
+
+      // Cancel auto-collapse
+      function cancelAutoCollapse() {
+        if (autoCollapseTimeout) {
+          clearTimeout(autoCollapseTimeout);
+        }
+      }
+
+      // Collapse header
+      function collapseHeader() {
+        if (isCollapsed || !heroHeader || !heroHeaderMini || !heroHeaderContainer)
+          return;
+
+        isCollapsed = true;
+
+        // Get current height and set it explicitly for smooth transition
+        const currentHeight = heroHeaderContainer.offsetHeight;
+        heroHeaderContainer.style.height = currentHeight + "px";
+
+        // Animate out main header
+        heroHeader.style.opacity = "0";
+        heroHeader.style.transform = "translateY(-10px) scale(0.98)";
+        heroHeader.style.pointerEvents = "none";
+
+        // Animate in mini header and collapse container height
+        setTimeout(function () {
+          if (heroHeaderMini && heroHeaderContainer) {
+            // Position mini header between the collapsed header space and the search bar
+            const heroSection = heroHeaderContainer.closest("section");
+            if (heroSection) {
+              const rect = heroSection.getBoundingClientRect();
+              heroHeaderMini.style.top = rect.top + window.scrollY + 10 + "px";
+            }
+
+            heroHeaderMini.style.opacity = "1";
+            heroHeaderMini.style.transform = "scale(1)";
+            heroHeaderMini.style.pointerEvents = "auto";
+
+            // Collapse to mini header height and move content up more
+            heroHeaderContainer.style.height = "0px";
+            heroHeaderContainer.style.marginBottom = "0rem";
+          }
+        }, 250);
+      }
+
+      // Expand header
+      function expandHeader() {
+        if (!isCollapsed || !heroHeader || !heroHeaderMini || !heroHeaderContainer)
+          return;
+
+        isCollapsed = false;
+        userHasExpanded = true; // Mark that user has manually expanded
+
+        // Animate out mini header
+        heroHeaderMini.style.opacity = "0";
+        heroHeaderMini.style.transform = "scale(0.9)";
+        heroHeaderMini.style.pointerEvents = "none";
+
+        // Restore container height and margin
+        heroHeaderContainer.style.height = "auto";
+        heroHeaderContainer.style.marginBottom = "0.5rem";
+
+        // Animate in main header
+        setTimeout(function () {
+          if (heroHeader) {
+            heroHeader.style.opacity = "1";
+            heroHeader.style.transform = "translateY(0) scale(1)";
+            heroHeader.style.pointerEvents = "auto";
+          }
+        }, 250);
+
+        // Don't restart auto-collapse timer since user manually expanded
+      }
+
+      // Event listeners
+      if (expandBtn) {
+        expandBtn.addEventListener("click", expandHeader);
+      }
+
+      // Cancel auto-collapse on user interaction with header container
+      if (heroHeaderContainer) {
+        heroHeaderContainer.addEventListener("mouseenter", cancelAutoCollapse);
+        heroHeaderContainer.addEventListener("mouseleave", function () {
+          // Only restart timer if user hasn't manually expanded
+          if (!userHasExpanded) {
+            autoCollapseTimeout = setTimeout(function () {
+              if (!isCollapsed) {
+                collapseHeader();
+              }
+            }, 2000);
+          }
+        });
+      }
+
+      // Reposition mini header on scroll when collapsed
+      function repositionMiniHeader() {
+        if (isCollapsed && heroHeaderMini && heroHeaderContainer) {
+          const heroSection = heroHeaderContainer.closest("section");
+          if (heroSection) {
+            const rect = heroSection.getBoundingClientRect();
+            
+            // Hide the mini header if the hero section is completely scrolled past
+            if (rect.bottom < 0) {
+              heroHeaderMini.style.opacity = "0";
+              heroHeaderMini.style.pointerEvents = "none";
+            } else {
+              heroHeaderMini.style.opacity = "1";
+              heroHeaderMini.style.pointerEvents = "auto";
+              heroHeaderMini.style.top =
+                Math.max(10, rect.top + window.scrollY + 10) + "px";
+            }
+          }
+        }
+      }
+
+      window.addEventListener("scroll", repositionMiniHeader);
+      window.addEventListener("resize", repositionMiniHeader);
+
+      // Start auto-collapse timer
+      startAutoCollapse();
+
+      // Description read more/less functionality
+      const description = document.getElementById('description');
+      const readMore = document.getElementById('readMore');
+      const hide = document.getElementById('hide');
+
+      if (description && readMore && hide) {
+        const lineHeight = parseFloat(window.getComputedStyle(description).lineHeight);
+        const maxHeight = lineHeight * 4;
+        const isOverflowing = description.scrollHeight > maxHeight;
+
+        if (!isOverflowing) {
+          readMore.style.display = 'none';
+        }
+
+        readMore.addEventListener('click', () => {
+          description.classList.remove('clamped');
+          readMore.style.display = 'none';
+          hide.style.display = 'inline-block';
+        });
+
+        hide.addEventListener('click', () => {
+          description.classList.add('clamped');
+          hide.style.display = 'none';
+          readMore.style.display = 'inline-block';
+        });
+      }
+    });
+    
+
+  </script>
+</Layout>
