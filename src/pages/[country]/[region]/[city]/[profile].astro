@@ -468,9 +468,10 @@ const schemaData = {
               relatedVets.slice(0, 10).map((vet) => (
                 <a 
                   href={`/${vet.country_slug}/${vet.province_slug}/${vet.city_slug}/${vet.name_slug}`} 
-                  class="flex bg-white rounded-lg hover:bg-primary-50 transition group shadow-sm overflow-hidden h-18"
+                  class="flex bg-white rounded-lg hover:bg-primary-50 transition group shadow-sm overflow-hidden"
+                  style="height: 72px;"
                 >
-                  <div class="relative bg-primary-100 flex-shrink-0 w-18 h-18 aspect-square">
+                  <div class="relative bg-primary-100 flex-shrink-0" style="width: 72px; height: 72px; min-width: 72px; min-height: 72px; max-width: 72px; max-height: 72px; aspect-ratio: 1/1;">
                     <div class="w-full h-full flex items-center justify-center">
                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-600">
                         <path d="M12 6v4" />
@@ -482,7 +483,7 @@ const schemaData = {
                       </svg>
                     </div>
                     {vet.picture && (
-                      <img src={vet.picture} alt={vet.name} class="absolute inset-0 w-full h-full object-cover aspect-square" onerror="this.style.display='none'" />
+                      <img src={vet.picture} alt={vet.name} class="absolute inset-0 object-cover" style="width: 72px; height: 72px; aspect-ratio: 1/1;" onerror="this.style.display='none'" />
                     )}
                   </div>
                   <div class="flex-1 flex items-center p-3 min-w-0">
