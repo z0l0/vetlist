@@ -12,8 +12,13 @@ const allProfiles = await fetchAllProfessionals();
 // Aggregate cities by vet count and prepare the popularCities array
 const popularCities = allProfiles
   ? (() => {
-      // Count vets per city
+      // Count vets per city (exclude invalid cities)
       const cityCounts = allProfiles.reduce((acc, item) => {
+        // Skip records with invalid or placeholder city names
+        if (!item.city || item.city.trim() === '' || item.city === 'N/A' || item.city === 'null') {
+          return acc;
+        }
+        
         const key = `${item.city}|${item.city_slug}|${item.province_slug}|${item.country_slug}`;
         if (!acc[key]) {
           acc[key] = {
@@ -27,7 +32,16 @@ const popularCities = allProfiles
       }, {});
       // Convert to array and sort by vet count (descending), then alphabetically
       return Object.values(cityCounts)
-        .sort((a: any, b: any) => b.count - a.count || a.name.localeCompare(b.name))
+        .sort((a: any, b: any) => {
+          // First sort by count (descending)
+          const countDiff = b.count - a.count;
+          if (countDiff !== 0) return countDiff;
+          
+          // Then sort alphabetically, handling null/undefined names
+          const nameA = a.name || '';
+          const nameB = b.name || '';
+          return nameA.localeCompare(nameB);
+        })
         .slice(0, 6); // Take top 6 for the hero section
     })()
   : [];
