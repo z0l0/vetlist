@@ -31,12 +31,26 @@ const canonicalURL = new URL(
     <title>{title} | VetList.org</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
+    <!-- Preconnect to external domains -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cloud.umami.is" />
+    <link rel="preconnect" href="https://api-gateway.umami.dev" />
+    <link rel="preconnect" href="https://g13rpgtx1b-dsn.algolia.net" />
+    
+    <!-- Preload critical font -->
     <link
+      rel="preload"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
+      as="style"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
 
     <!-- Open Graph / Facebook -->
     {
@@ -84,14 +98,80 @@ const canonicalURL = new URL(
     }
 
 
-    <!-- Umami Analytics -->
-    <script
-      is:inline
-      defer
-      src="https://cloud.umami.is/script.js"
-      data-website-id="e903c81c-e76f-4af1-9b51-8f919c421666"></script>
+    <!-- Umami Analytics - Load after page interaction -->
+    <script is:inline>
+      // Load analytics after user interaction or page load
+      function loadUmami() {
+        if (window.umami) return; // Already loaded
+        const script = document.createElement('script');
+        script.defer = true;
+        script.src = 'https://cloud.umami.is/script.js';
+        script.setAttribute('data-website-id', 'e903c81c-e76f-4af1-9b51-8f919c421666');
+        document.head.appendChild(script);
+      }
+      
+      // Load on first user interaction
+      ['mousedown', 'touchstart', 'keydown', 'scroll'].forEach(event => {
+        document.addEventListener(event, loadUmami, { once: true, passive: true });
+      });
+      
+      // Fallback: load after 3 seconds if no interaction
+      setTimeout(loadUmami, 3000);
+    </script>
 
-    <link rel="stylesheet" href="/styles/main.css" />
+    <!-- Inline critical CSS -->
+    <style is:inline>
+      /* Critical CSS - inlined for faster rendering */
+      html {
+        font-size: 17px;
+        scroll-behavior: smooth;
+      }
+      
+      body {
+        font-size: 17px;
+        -webkit-text-size-adjust: 100%;
+        -moz-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      /* Hero gradient text effect */
+      .hero-gradient-text {
+        background: linear-gradient(135deg, #0066cc, #4a90e2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      
+      /* Hero gradient text effect */
+      .hero-gradient-text {
+        background: linear-gradient(135deg, #0066cc, #4a90e2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      
+      #search-flash-badge {
+        will-change: opacity, transform;
+        contain: layout style;
+      }
+      
+      /* Optimize rendering performance */
+      .searchable-item {
+        contain: layout style;
+      }
+    </style>
+    
+    <!-- Load non-critical CSS asynchronously -->
+    <link
+      rel="preload"
+      href="/styles/main.css"
+      as="style"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript><link rel="stylesheet" href="/styles/main.css" /></noscript>
+    
     <slot name="head" />
   </head>
   <body class="bg-light font-sans flex flex-col min-h-screen">

@@ -96,7 +96,7 @@ const topCanadaCities = [
     <div
       id="hero-header-container"
       class="text-center transition-all duration-500 ease-out overflow-hidden"
-      style="margin-bottom: 1.125rem;"
+      style="margin-bottom: 1.125rem; min-height: 80px;"
     >
       <!-- Main Header -->
       <div id="hero-header" class="transition-all duration-500 ease-out">
@@ -429,10 +429,10 @@ const topCanadaCities = [
           heroHeaderContainer.style.height = "0px";
           heroHeaderContainer.style.marginBottom = "0rem";
 
-          // Keep content in original position to ensure badges are fully visible
+          // Move content up to fill the collapsed space
           const heroContent = document.getElementById("hero-content");
           if (heroContent) {
-            heroContent.style.transform = "translateY(0px)";
+            heroContent.style.transform = "translateY(-80px)";
           }
         }
       }, 250);

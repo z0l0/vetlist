@@ -7,7 +7,8 @@ export default defineConfig({
   site: 'https://vetlist.org', // Required for sitemap generation
   build: { 
     assets: 'assets',
-    inlineStylesheets: 'never' // Never inline CSS - keep as external files
+    inlineStylesheets: 'never', // Never inline CSS - keep as external files
+    assetsPrefix: '/' // Ensure proper asset paths
   },
   compressHTML: true, // Minifies HTML output
   devToolbar: { enabled: false },

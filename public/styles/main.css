@@ -1,11 +1,6 @@
-/* Essential CSS that can't be replaced with Tailwind */
+/* Non-critical CSS - loaded asynchronously */
 
-/* Font improvements for cross-browser consistency */
-html {
-  font-size: 17px;
-  scroll-behavior: smooth;
-}
-
+/* Firefox-specific font improvements */
 @-moz-document url-prefix() {
   body {
     font-size: 17px;
@@ -24,23 +19,6 @@ html {
   .font-medium {
     font-weight: 500;
   }
-}
-
-body {
-  font-size: 17px;
-  -webkit-text-size-adjust: 100%;
-  -moz-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Hero gradient text effect (can't be done with Tailwind) */
-.hero-gradient-text {
-  background: linear-gradient(135deg, #0066cc, #4a90e2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 /* Custom scrollbar hiding */

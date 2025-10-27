@@ -23,22 +23,22 @@ class ProfileInteractions {
     const { contactType, contactValue, displayId, contentId } = button.dataset;
     const display = document.getElementById(displayId);
     const content = document.getElementById(contentId);
-    
+
     if (this.currentActiveIcon === button && !display.classList.contains('hidden')) {
       display.classList.add('hidden');
       this.currentActiveIcon = null;
       this.currentActiveDisplay = null;
       return;
     }
-    
+
     if (this.currentActiveDisplay && !this.currentActiveDisplay.classList.contains('hidden')) {
       this.currentActiveDisplay.classList.add('hidden');
     }
-    
+
     const contactInfo = this.getContactInfo(contactType, contactValue);
     content.innerHTML = contactInfo;
     display.classList.remove('hidden');
-    
+
     this.currentActiveIcon = button;
     this.currentActiveDisplay = display;
   }
@@ -72,7 +72,7 @@ class ProfileInteractions {
 
     const lineHeight = parseFloat(window.getComputedStyle(description).lineHeight);
     const maxHeight = lineHeight * 6;
-    
+
     if (description.scrollHeight <= maxHeight) {
       readMore.style.display = 'none';
       return;
@@ -102,7 +102,7 @@ class ProfileInteractions {
     const answerId = button.getAttribute('aria-controls');
     const answer = document.getElementById(answerId);
     const icon = button.querySelector('.faq-icon');
-    
+
     // Close all other FAQs
     document.querySelectorAll('.faq-question').forEach(otherButton => {
       if (otherButton !== button) {
@@ -110,12 +110,12 @@ class ProfileInteractions {
         const otherAnswerId = otherButton.getAttribute('aria-controls');
         const otherAnswer = document.getElementById(otherAnswerId);
         const otherIcon = otherButton.querySelector('.faq-icon');
-        
+
         if (otherAnswer) otherAnswer.classList.add('hidden');
         if (otherIcon) otherIcon.style.transform = 'rotate(0deg)';
       }
     });
-    
+
     // Toggle current FAQ
     if (expanded) {
       button.setAttribute('aria-expanded', 'false');
@@ -140,11 +140,11 @@ class ProfileInteractions {
 
   buildClaimParams() {
     const params = new URLSearchParams();
-    
+
     // Basic info
     const name = document.querySelector('h1')?.textContent?.trim();
     if (name) params.set('name', name);
-    
+
     // Contact info
     ['phone', 'location', 'website'].forEach(type => {
       const button = document.querySelector(`[data-contact-type="${type}"]`);
@@ -153,7 +153,7 @@ class ProfileInteractions {
         params.set(key, button.dataset.contactValue);
       }
     });
-    
+
     // Location from URL
     const pathParts = window.location.pathname.split('/').filter(part => part);
     if (pathParts.length >= 3) {
@@ -162,19 +162,19 @@ class ProfileInteractions {
       params.set('province', toTitleCase(pathParts[1]));
       params.set('city', toTitleCase(pathParts[2]));
     }
-    
+
     // Services
     const services = Array.from(document.querySelectorAll('.bg-primary-50.text-primary-700'))
       .map(el => el.textContent?.trim())
       .filter(Boolean);
     if (services.length) params.set('services', JSON.stringify(services));
-    
+
     // Hours
     const hours = this.extractHours();
     if (Object.keys(hours).length) {
       params.set('hours', encodeURIComponent(JSON.stringify(hours)));
     }
-    
+
     return params;
   }
 
@@ -184,13 +184,13 @@ class ProfileInteractions {
       'Monday': '1', 'Tuesday': '2', 'Wednesday': '3', 'Thursday': '4',
       'Friday': '5', 'Saturday': '6', 'Sunday': '7'
     };
-    
+
     document.querySelectorAll('table tbody tr').forEach(row => {
       const cells = row.querySelectorAll('td');
       if (cells.length >= 2) {
         const dayName = cells[0].textContent?.trim();
         const hoursText = cells[1].textContent?.trim();
-        
+
         if (dayName && hoursText && dayMapping[dayName]) {
           const dayNum = dayMapping[dayName];
           if (hoursText.toLowerCase() !== 'closed' && hoursText !== 'Hours information unavailable') {
@@ -201,7 +201,7 @@ class ProfileInteractions {
         }
       }
     });
-    
+
     return hours;
   }
 }
