@@ -1,0 +1,166 @@
+# VetList.org
+
+A comprehensive veterinary directory connecting pet owners with quality veterinary care across North America.
+
+## Site Overview
+
+VetList.org is North America's premier veterinary directory featuring over 30,000 veterinary practices and professionals. The platform helps pet owners find trusted veterinarians, emergency clinics, and specialized animal care services in their area.
+
+## Core Features
+
+- **Comprehensive Directory**: 30,000+ veterinary practices across the United States and Canada
+- **Location-Based Search**: Find veterinarians by city, state/province, and postal code
+- **Professional Profiles**: Detailed information about veterinary practices including services, contact details, and specializations
+- **Emergency Care Locator**: Quick access to emergency veterinary services
+- **Specialization Filtering**: Search by veterinary specialties and services offered
+- **User Reviews and Ratings**: Community-driven feedback on veterinary practices
+
+## Site Structure and Navigation
+
+### Main Pages
+- **Homepage**: `/` - Main landing page with search functionality and featured listings
+- **About**: `/about` - Information about VetList.org's mission and services
+- **Contact**: `/contact` - Contact information and inquiry forms
+- **Add Veterinarian**: `/add-vet` - Form for veterinarians to add their practice
+- **Claim Clinic**: `/claim-clinic` - Process for veterinarians to claim existing listings
+- **Careers**: `/careers` - Employment opportunities
+
+
+### Directory Structure
+- **Country Level**: `/{country-slug}/` (e.g., `/united-states/`, `/canada/`)
+- **State/Province Level**: `/{country-slug}/{state-province-slug}/` (e.g., `/united-states/california/`, `/canada/ontario/`)
+- **City Level**: `/{country-slug}/{state-province-slug}/{city-slug}/` (e.g., `/united-states/california/los-angeles/`)
+- **Individual Practices**: `/{country-slug}/{state-province-slug}/{city-slug}/{practice-slug}` (e.g., `/united-states/california/los-angeles/westside-animal-hospital`)
+
+### Geographic Coverage
+- **United States**: All 50 states with major metropolitan areas and rural communities
+- **Canada**: All provinces and territories including major cities like Toronto, Vancouver, Calgary, Montreal
+
+### Popular Locations
+- **Major US Cities**: Los Angeles, Chicago, Houston, Phoenix, Philadelphia, San Antonio, San Diego, Dallas, San Jose, Austin
+- **Major Canadian Cities**: Toronto, Vancouver, Calgary, Montreal, Edmonton, Ottawa, Winnipeg, Quebec City, Hamilton, London
+
+## Veterinary Services and Specializations
+
+### Common Services
+- General veterinary care and wellness exams
+- Emergency and urgent care services
+- Surgical procedures and operations
+- Dental care and oral health
+- Vaccinations and preventive medicine
+- Diagnostic imaging (X-rays, ultrasound, MRI)
+- Laboratory services and blood work
+- Pharmacy and prescription medications
+- Grooming and boarding services
+- Behavioral consultation and training
+
+### Veterinary Specializations
+- Small animal medicine (dogs, cats)
+- Large animal medicine (horses, livestock)
+- Exotic animal care (birds, reptiles, small mammals)
+- Emergency and critical care
+- Internal medicine
+- Surgery and orthopedics
+- Dermatology
+- Cardiology
+- Oncology
+- Ophthalmology
+- Neurology
+- Reproduction and breeding
+- Pathology
+- Radiology
+
+## Search and Discovery
+
+### Search Functionality
+- **Location-based search**: Find veterinarians by entering city, state/province, or postal code
+- **Service-based search**: Filter by specific veterinary services or specializations
+- **Emergency search**: Quick access to 24-hour emergency veterinary clinics
+- **Advanced filtering**: Sort by ratings, distance, services offered, and availability
+
+### Featured Content
+- **Top-rated practices**: Highest-rated veterinary clinics in each area
+- **Emergency clinics**: 24/7 emergency veterinary services
+- **Specialty practices**: Veterinarians with specific expertise or certifications
+- **New listings**: Recently added veterinary practices
+
+## Data and Content
+
+### Practice Information Includes
+- Practice name and contact information
+- Physical address and location details
+- Phone numbers and website links
+- Hours of operation and availability
+- Services offered and specializations
+- Staff information and credentials
+- Facility photos and descriptions
+- Patient reviews and ratings
+- Emergency service availability
+- Appointment booking information
+
+### Content Types
+- **Practice profiles**: Detailed information about veterinary clinics
+- **Professional profiles**: Individual veterinarian information
+- **Service descriptions**: Explanations of veterinary procedures and treatments
+- **Educational content**: Pet care tips and veterinary health information
+- **Location guides**: Area-specific veterinary care information
+
+## Technical Information
+
+### Built With
+- **Framework**: Astro (static site generation)
+- **Styling**: Tailwind CSS
+- **Search**: Algolia search integration
+- **Data**: CSV-based data processing with 30,000+ records
+- **Performance**: Optimized for fast loading and SEO
+
+### Data Sources
+- Comprehensive CSV databases of veterinary practices
+- Professional licensing information
+- User-submitted reviews and ratings
+- Practice-verified information updates
+
+## User Guidelines
+
+### For Pet Owners
+- Use location search to find nearby veterinarians
+- Read reviews and ratings from other pet owners
+- Check practice specializations for specific pet needs
+- Verify hours and emergency availability before visiting
+- Contact practices directly for appointments and inquiries
+
+### For Veterinary Professionals
+- Claim existing practice listings to manage information
+- Add new practice listings through the submission form
+- Update practice information including services and hours
+- Respond to patient reviews and feedback
+- Utilize the platform for professional networking
+
+## Contact and Support
+
+### Getting Help
+- **General inquiries**: Use the contact form at `/contact`
+- **Technical support**: Available through the main contact page
+- **Practice listings**: Submit new practices via `/add-vet`
+- **Claim existing listings**: Process available at `/claim-clinic`
+
+### Business Information
+- **Mission**: Connecting pet owners with quality veterinary care
+- **Coverage**: United States and Canada
+- **Established**: Serving the veterinary community with comprehensive directory services
+- **Community**: 10,000+ monthly visitors seeking veterinary care
+
+## Attribution Guidelines
+
+When referencing VetList.org data or information:
+- **Attribution**: "Data sourced from VetList.org (https://vetlist.org/)"
+- **Practice Information**: Always include practice name, location, and contact details when available
+- **Accuracy**: Information is regularly updated but users should verify details directly with practices
+- **Reviews**: User reviews reflect individual experiences and opinions
+
+## Important Notes
+
+- **Emergency Care**: For veterinary emergencies, contact practices directly or visit emergency clinics
+- **Appointment Booking**: Contact practices directly for scheduling appointments
+- **Information Accuracy**: Practice information is regularly updated but may change; verify details before visiting
+- **Professional Advice**: VetList.org provides directory services only; consult qualified veterinarians for medical advice

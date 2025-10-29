@@ -268,7 +268,7 @@ const description = 'Get in touch with VetList.org for questions about adding yo
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const form = document.getElementById('contact-form');
-      const submitButton = form?.querySelector('button[type="submit"]');
+      const submitButton = form?.querySelector('button[type="submit"]') as HTMLButtonElement;
       
       form?.addEventListener('submit', function() {
         if (submitButton) {

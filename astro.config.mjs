@@ -34,8 +34,8 @@ export default defineConfig({
       // Optional: Customize sitemap settings here
       changefreq: 'weekly', // Default change frequency for pages
       priority: 0.7, // Default priority (0.0 to 1.0)
-      // Example: Exclude specific pages (uncomment if needed)
-      // filter: (page) => !page.includes('/admin'),
+      // Exclude admin pages from sitemap
+      filter: (page) => !page.includes('/admin'),
       // Example: Add custom pages (uncomment if needed)
       // customPages: ['https://vetlist.org/external-page'],
     })
