@@ -175,7 +175,67 @@ class ProfileInteractions {
       params.set('hours', encodeURIComponent(JSON.stringify(hours)));
     }
 
+    // FAQ codes - extract from existing FAQ data on the page
+    const faqCodes = this.extractFAQCodes();
+    if (faqCodes) params.set('faq', faqCodes);
+
     return params;
+  }
+
+  extractFAQCodes() {
+    // FAQ question mapping to codes
+    const questionToCodeMap = {
+      'Are walk-in appointments available?': 'A',
+      'Are prescription pet foods or diets available?': 'B',
+      'Is pet dental care available?': 'C',
+      'Is care provided for exotic animals like birds or reptiles?': 'D',
+      'Is pet insurance accepted?': 'E',
+      'Are spay and neuter services available?': 'F',
+      'Is the clinic open on weekends?': 'G',
+      'Are X-rays or ultrasounds offered?': 'H',
+      'Are house calls offered for pets?': 'I',
+      'Are surgical procedures performed?': 'J',
+      'Is emergency care provided?': 'K',
+      'Are evening appointments available?': 'L',
+      'Are vaccinations provided?': 'M',
+      'Can appointments be scheduled online?': 'N',
+      'Are payment plans or financing options available?': 'O'
+    };
+
+    const faqPairs = [];
+    
+    // Look for FAQ elements on the page
+    const faqQuestions = document.querySelectorAll('.faq-question');
+    faqQuestions.forEach(questionElement => {
+      const questionText = questionElement.textContent.trim();
+      const code = questionToCodeMap[questionText];
+      
+      if (code) {
+        // Get the answer text to determine Y/N
+        const answerId = questionElement.getAttribute('aria-controls');
+        const answerElement = document.getElementById(answerId);
+        
+        if (answerElement) {
+          const answerText = answerElement.textContent.toLowerCase();
+          
+          // Determine if it's a yes or no answer
+          let answerCode = 'N'; // Default to No
+          
+          if (answerText.includes('yes') || 
+              answerText.includes('available') || 
+              answerText.includes('offered') || 
+              answerText.includes('performed') ||
+              answerText.includes('open on weekends') ||
+              answerText.includes('evening hours')) {
+            answerCode = 'Y';
+          }
+          
+          faqPairs.push(`${code}${answerCode}`);
+        }
+      }
+    });
+
+    return faqPairs.length > 0 ? faqPairs.join(',') : null;
   }
 
   extractHours() {

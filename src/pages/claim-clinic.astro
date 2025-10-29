@@ -583,6 +583,32 @@ const description =
                     </div>
                 </div>
 
+                <!-- FAQ Section -->
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                    <div class="flex items-center gap-2 mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-blue-600">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                        </svg>
+                        <label class="text-lg font-semibold text-gray-900"
+                            >Common Questions Your Practice Handles</label
+                        >
+                    </div>
+                    <p class="text-sm text-gray-600 mb-4">
+                        Select the questions your practice commonly answers. This helps pet owners understand your expertise areas and improves your profile visibility.
+                    </p>
+                    <div class="grid md:grid-cols-1 gap-3 mb-4" id="faq-grid">
+                        <!-- FAQ checkboxes will be populated by JavaScript -->
+                    </div>
+                    <div class="flex justify-between items-center mt-2">
+                        <p class="text-xs text-blue-600">
+                            💡 We've pre-selected questions based on your services, but you can adjust these selections.
+                        </p>
+                        <span id="faq-counter" class="text-xs font-medium text-gray-600 bg-white px-2 py-1 rounded">
+                            0 selected
+                        </span>
+                    </div>
+                </div>
+
                 <!-- Submit Buttons -->
                 <div
                     class="flex flex-col sm:flex-row gap-4 justify-center items-center"
@@ -1035,10 +1061,23 @@ const description =
             document
                 .querySelectorAll('input[type="checkbox"][value]:checked')
                 .forEach((cb) => {
-                    if (cb.value && cb.id !== "verification-interest") {
+                    if (cb.value && cb.id !== "verification-interest" && !cb.classList.contains('faq-checkbox')) {
                         services.push(cb.value);
                     }
                 });
+
+            // Collect FAQ preferences (as encoded answers)
+            const faqAnswers = [];
+            document
+                .querySelectorAll('.faq-radio:checked')
+                .forEach((radio) => {
+                    if (!radio.value.endsWith('X')) { // Skip the "Skip" options
+                        faqAnswers.push(radio.value);
+                    }
+                });
+
+            // Update form data with FAQ count for display
+            formData.faqCount = faqAnswers.length;
 
             // Add custom services
             const customServices =
@@ -1096,6 +1135,9 @@ ${formData.country}
 
 SERVICES OFFERED:
 ${services.length > 0 ? services.join(", ") : "Not specified"}
+
+FREQUENTLY ASKED QUESTIONS:
+${faqAnswers.length > 0 ? generateFAQText(faqAnswers) : "Not specified"}
 
 HOURS OF OPERATION:
 Monday: ${hours.monday}
@@ -1162,6 +1204,128 @@ ${formData.practiceName}`;
             }
         });
 
+    // FAQ Encoding System for existing profile FAQs
+    // These are the common FAQ questions from the CSV data
+    const FAQ_QUESTIONS = {
+        'A': 'Are walk-in appointments available?',
+        'B': 'Are prescription pet foods or diets available?', 
+        'C': 'Is pet dental care available?',
+        'D': 'Is care provided for exotic animals like birds or reptiles?',
+        'E': 'Is pet insurance accepted?',
+        'F': 'Are spay and neuter services available?',
+        'G': 'Is the clinic open on weekends?',
+        'H': 'Are X-rays or ultrasounds offered?',
+        'I': 'Are house calls offered for pets?',
+        'J': 'Are surgical procedures performed?',
+        'K': 'Is emergency care provided?',
+        'L': 'Are evening appointments available?',
+        'M': 'Are vaccinations provided?',
+        'N': 'Can appointments be scheduled online?',
+        'O': 'Are payment plans or financing options available?'
+    };
+
+    // FAQ answers mapping (Y/N + code for common answers)
+    const FAQ_ANSWERS = {
+        'Y1': 'Yes, this service is available.',
+        'Y2': 'Yes, we offer this service.',
+        'Y3': 'Yes, we are open on weekends for your convenience.',
+        'Y4': 'Yes, evening hours (after 7 PM) are offered.',
+        'Y5': 'Yes, comprehensive surgical services are available on-site.',
+        'Y6': 'Yes, routine spay and neuter procedures are performed.',
+        'N1': 'No, appointments are required as walk-ins aren\'t typically accepted.',
+        'N2': 'Prescription diets aren\'t available.',
+        'N3': 'Pet dental care isn\'t currently available.',
+        'N4': 'Care is primarily focused on cats and dogs.',
+        'N5': 'Direct billing for pet insurance isn\'t available.',
+        'N6': 'Diagnostic imaging isn\'t offered on-site.',
+        'N7': 'House calls aren\'t currently offered.',
+        'N8': 'Emergency care isn\'t offered; referrals may be provided.',
+        'N9': 'Online booking isn\'t offered at this time.',
+        'N10': 'Payment plans aren\'t currently available.'
+    };
+
+    // Initialize FAQ checkboxes
+    function initializeFAQSection() {
+        const faqGrid = document.getElementById('faq-grid');
+        if (!faqGrid) return;
+
+        Object.entries(FAQ_QUESTIONS).forEach(([code, question]) => {
+            const container = document.createElement('div');
+            container.className = 'border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors';
+            container.innerHTML = `
+                <div class="mb-3">
+                    <div class="text-sm font-medium text-gray-900 mb-2">${question}</div>
+                    <div class="flex gap-4">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="faq-${code}" value="${code}Y" class="faq-radio rounded border-gray-300 text-green-600 focus:ring-green-500">
+                            <span class="ml-2 text-sm text-green-700">Yes</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="faq-${code}" value="${code}N" class="faq-radio rounded border-gray-300 text-red-600 focus:ring-red-500">
+                            <span class="ml-2 text-sm text-red-700">No</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="faq-${code}" value="${code}X" class="faq-radio rounded border-gray-300 text-gray-600 focus:ring-gray-500" checked>
+                            <span class="ml-2 text-sm text-gray-600">Skip</span>
+                        </label>
+                    </div>
+                </div>
+            `;
+            faqGrid.appendChild(container);
+        });
+
+        // Add event listeners to update counter
+        document.querySelectorAll('.faq-radio').forEach(radio => {
+            radio.addEventListener('change', updateFAQCounter);
+        });
+
+        updateFAQCounter();
+    }
+
+    // Update FAQ counter
+    function updateFAQCounter() {
+        const counter = document.getElementById('faq-counter');
+        const answeredCount = document.querySelectorAll('.faq-radio:checked').length - document.querySelectorAll('.faq-radio:checked[value$="X"]').length;
+        if (counter) {
+            counter.textContent = `${answeredCount} answered`;
+            counter.className = answeredCount > 0 
+                ? 'text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded'
+                : 'text-xs font-medium text-gray-600 bg-white px-2 py-1 rounded';
+        }
+    }
+
+    // Generate full FAQ text for email
+    function generateFAQText(faqAnswers) {
+        let faqText = `${faqAnswers.length} questions answered:\n\n`;
+        
+        faqAnswers.forEach((answer, index) => {
+            const questionCode = answer.charAt(0);
+            const answerType = answer.charAt(1);
+            const question = FAQ_QUESTIONS[questionCode];
+            
+            let answerText;
+            if (answerType === 'Y') {
+                // Find appropriate "Yes" answer
+                answerText = FAQ_ANSWERS['Y1']; // Default yes answer
+                if (questionCode === 'G') answerText = FAQ_ANSWERS['Y3']; // Weekend hours
+                if (questionCode === 'L') answerText = FAQ_ANSWERS['Y4']; // Evening hours
+                if (questionCode === 'J') answerText = FAQ_ANSWERS['Y5']; // Surgery
+                if (questionCode === 'F') answerText = FAQ_ANSWERS['Y6']; // Spay/neuter
+            } else {
+                // Find appropriate "No" answer based on question
+                const noAnswerMap = {
+                    'A': 'N1', 'B': 'N2', 'C': 'N3', 'D': 'N4', 'E': 'N5',
+                    'H': 'N6', 'I': 'N7', 'K': 'N8', 'N': 'N9', 'O': 'N10'
+                };
+                answerText = FAQ_ANSWERS[noAnswerMap[questionCode]] || FAQ_ANSWERS['N1'];
+            }
+            
+            faqText += `${index + 1}. ${question}\n   ${answerText}\n\n`;
+        });
+        
+        return faqText;
+    }
+
     // Handle URL parameter prefilling
     function prefillFormFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -1207,6 +1371,21 @@ ${formData.practiceName}`;
         if (website) {
             const websiteEl = document.getElementById("website");
             if (websiteEl) websiteEl.value = website;
+        }
+
+        // FAQ codes (encoded as pairs like "AY,BN,FY" for A=Yes, B=No, F=Yes)
+        const faqParam = urlParams.get("faq");
+        if (faqParam) {
+            const faqPairs = faqParam.split(',');
+            faqPairs.forEach(pair => {
+                if (pair.length === 2) {
+                    const questionCode = pair.charAt(0);
+                    const answerCode = pair.charAt(1);
+                    const radio = document.querySelector(`input[name="faq-${questionCode}"][value="${questionCode}${answerCode}"]`);
+                    if (radio) radio.checked = true;
+                }
+            });
+            updateFAQCounter();
         }
 
         // Services
@@ -1308,8 +1487,11 @@ ${formData.practiceName}`;
         }
     }
 
-    // Run prefilling when page loads
-    document.addEventListener("DOMContentLoaded", prefillFormFromURL);
+    // Run initialization when page loads
+    document.addEventListener("DOMContentLoaded", function() {
+        initializeFAQSection();
+        prefillFormFromURL();
+    });
 
     // Handle premium section reveal
     document
