@@ -279,7 +279,7 @@ const path = Astro.url.pathname.replace(/\/$/, '');
         profiles.slice(0, 36).map(profile => (
           <div class="profile-card bg-white rounded-xl shadow-card hover:shadow-lg transition group overflow-hidden" data-search-name={profile.name.toLowerCase()} data-search-description={(profile.description || '').toLowerCase()}>
             {profile.name_slug ? (
-              <a href={`${path}/${profile.name_slug}`} class="flex h-32">
+              <a href={`${path}/${profile.name_slug}/`} class="flex h-32">
                 <div class="relative w-32 h-32 bg-primary-50 group-hover:bg-primary-100 flex-shrink-0">
                   {profile.picture ? (
                     <img 
@@ -424,7 +424,7 @@ const path = Astro.url.pathname.replace(/\/$/, '');
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {profiles.slice(36).map(profile => (
             profile.name_slug ? (
-              <a href={`${path}/${profile.name_slug}`} class="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition group searchable-item" data-search-name={profile.name.toLowerCase()} data-search-description={(profile.description || '').toLowerCase()}>
+              <a href={`${path}/${profile.name_slug}/`} class="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition group searchable-item" data-search-name={profile.name.toLowerCase()} data-search-description={(profile.description || '').toLowerCase()}>
                 <div class="relative w-8 h-8 rounded-lg overflow-hidden bg-primary-50 group-hover:bg-primary-100 flex-shrink-0">
                   {profile.picture ? (
                     <img 
@@ -483,7 +483,7 @@ const path = Astro.url.pathname.replace(/\/$/, '');
         {finalNearbyCities.length > 0 ? (
           finalNearbyCities.map(nearby => (
             <a 
-              href={`/${country}/${region}/${nearby.city_slug}`}
+              href={`/${country}/${region}/${nearby.city_slug}/`}
               class="city-card flex items-center gap-3 p-4 bg-white rounded-xl shadow-card hover:shadow-lg transition group"
               data-city-name={nearby.city.toLowerCase()}
               data-clinic-count={nearby.count}
@@ -527,175 +527,6 @@ const path = Astro.url.pathname.replace(/\/$/, '');
     }
   </style>
 
-  <script>
-    // Hero header collapse/expand functionality
-    document.addEventListener("DOMContentLoaded", function () {
-      const heroHeaderContainer = document.getElementById("hero-header-container");
-      const heroHeader = document.getElementById("hero-header");
-      const heroHeaderMini = document.getElementById("hero-header-mini");
-      const expandBtn = document.getElementById("header-expand-btn");
-
-      let isCollapsed = false;
-      let autoCollapseTimeout: any;
-      let userHasExpanded = false;
-
-      // Auto-collapse after 3 seconds (only if user hasn't manually expanded)
-      function startAutoCollapse() {
-        autoCollapseTimeout = setTimeout(function () {
-          if (!isCollapsed && !userHasExpanded) {
-            collapseHeader();
-          }
-        }, 3000);
-      }
-
-      // Cancel auto-collapse
-      function cancelAutoCollapse() {
-        if (autoCollapseTimeout) {
-          clearTimeout(autoCollapseTimeout);
-        }
-      }
-
-      // Collapse header
-      function collapseHeader() {
-        if (isCollapsed || !heroHeader || !heroHeaderMini || !heroHeaderContainer)
-          return;
-
-        isCollapsed = true;
-
-        // Get current height and set it explicitly for smooth transition
-        const currentHeight = heroHeaderContainer.offsetHeight;
-        heroHeaderContainer.style.height = currentHeight + "px";
-
-        // Animate out main header
-        heroHeader.style.opacity = "0";
-        heroHeader.style.transform = "translateY(-10px) scale(0.98)";
-        heroHeader.style.pointerEvents = "none";
-
-        // Animate in mini header and collapse container height
-        setTimeout(function () {
-          if (heroHeaderMini && heroHeaderContainer) {
-            // Position mini header between the collapsed header space and the search bar
-            const heroSection = heroHeaderContainer.closest("section");
-            if (heroSection) {
-              const rect = heroSection.getBoundingClientRect();
-              heroHeaderMini.style.top = rect.top + window.scrollY + 10 + "px";
-            }
-
-            heroHeaderMini.style.opacity = "1";
-            heroHeaderMini.style.transform = "scale(1)";
-            heroHeaderMini.style.pointerEvents = "auto";
-
-            // Collapse to mini header height and move content up more
-            heroHeaderContainer.style.height = "0px";
-            heroHeaderContainer.style.marginBottom = "0rem";
-          }
-        }, 250);
-      }
-
-      // Expand header
-      function expandHeader() {
-        if (!isCollapsed || !heroHeader || !heroHeaderMini || !heroHeaderContainer)
-          return;
-
-        isCollapsed = false;
-        userHasExpanded = true; // Mark that user has manually expanded
-
-        // Animate out mini header
-        heroHeaderMini.style.opacity = "0";
-        heroHeaderMini.style.transform = "scale(0.9)";
-        heroHeaderMini.style.pointerEvents = "none";
-
-        // Restore container height and margin
-        heroHeaderContainer.style.height = "auto";
-        heroHeaderContainer.style.marginBottom = "0.5rem";
-
-        // Animate in main header
-        setTimeout(function () {
-          if (heroHeader) {
-            heroHeader.style.opacity = "1";
-            heroHeader.style.transform = "translateY(0) scale(1)";
-            heroHeader.style.pointerEvents = "auto";
-          }
-        }, 250);
-
-        // Don't restart auto-collapse timer since user manually expanded
-      }
-
-      // Event listeners
-      if (expandBtn) {
-        expandBtn.addEventListener("click", expandHeader);
-      }
-
-      // Cancel auto-collapse on user interaction with header container
-      if (heroHeaderContainer) {
-        heroHeaderContainer.addEventListener("mouseenter", cancelAutoCollapse);
-        heroHeaderContainer.addEventListener("mouseleave", function () {
-          // Only restart timer if user hasn't manually expanded
-          if (!userHasExpanded) {
-            autoCollapseTimeout = setTimeout(function () {
-              if (!isCollapsed) {
-                collapseHeader();
-              }
-            }, 2000);
-          }
-        });
-      }
-
-      // Reposition mini header on scroll when collapsed
-      function repositionMiniHeader() {
-        if (isCollapsed && heroHeaderMini && heroHeaderContainer) {
-          const heroSection = heroHeaderContainer.closest("section");
-          if (heroSection) {
-            const rect = heroSection.getBoundingClientRect();
-            
-            // Hide the mini header if the hero section is completely scrolled past
-            if (rect.bottom < 0) {
-              heroHeaderMini.style.opacity = "0";
-              heroHeaderMini.style.pointerEvents = "none";
-            } else {
-              heroHeaderMini.style.opacity = "1";
-              heroHeaderMini.style.pointerEvents = "auto";
-              heroHeaderMini.style.top =
-                Math.max(10, rect.top + window.scrollY + 10) + "px";
-            }
-          }
-        }
-      }
-
-      window.addEventListener("scroll", repositionMiniHeader);
-      window.addEventListener("resize", repositionMiniHeader);
-
-      // Start auto-collapse timer
-      startAutoCollapse();
-
-      // Description read more/less functionality
-      const description = document.getElementById('description');
-      const readMore = document.getElementById('readMore');
-      const hide = document.getElementById('hide');
-
-      if (description && readMore && hide) {
-        const lineHeight = parseFloat(window.getComputedStyle(description).lineHeight);
-        const maxHeight = lineHeight * 4;
-        const isOverflowing = description.scrollHeight > maxHeight;
-
-        if (!isOverflowing) {
-          readMore.style.display = 'none';
-        }
-
-        readMore.addEventListener('click', () => {
-          description.classList.remove('clamped');
-          readMore.style.display = 'none';
-          hide.style.display = 'inline-block';
-        });
-
-        hide.addEventListener('click', () => {
-          description.classList.add('clamped');
-          hide.style.display = 'none';
-          readMore.style.display = 'inline-block';
-        });
-      }
-    });
-    
-
-  </script>
+  <script src="/js/hero-header.js" is:inline></script>
+  <script src="/js/description-toggle.js" is:inline></script>
 </Layout>

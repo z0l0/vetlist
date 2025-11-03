@@ -103,7 +103,7 @@ const cities = [...new Set(profiles.map(profile => profile.city_slug))]
     const cityData = profiles.find(profile => profile.city_slug === citySlug);
     return {
       name: cityData.city,
-      slug: `/${country}/${region}/${citySlug}`,
+      slug: `/${country}/${region}/${citySlug}/`,
       count: cityCounts.get(citySlug) || 0
     };
   })

@@ -551,7 +551,7 @@ const schemaData = {
             {relatedVets.length > 0 ? (
               relatedVets.slice(0, 10).map((vet) => (
                 <a 
-                  href={`/${vet.country_slug}/${vet.province_slug}/${vet.city_slug}/${vet.name_slug}`} 
+                  href={`/${vet.country_slug}/${vet.province_slug}/${vet.city_slug}/${vet.name_slug}/`} 
                   class="flex bg-white rounded-lg hover:bg-primary-50 transition group shadow-sm overflow-hidden"
                   style="height: 72px;"
                 >
@@ -588,7 +588,7 @@ const schemaData = {
           <div class="grid grid-cols-1 gap-2">
             {finalNearbyCities.length > 0 ? (
               finalNearbyCities.slice(0, 5).map((nearby) => (
-                <a href={`/${country}/${region}/${nearby.city_slug}`} class="flex items-center gap-3 p-3 rounded-lg hover:bg-primary-50 transition group">
+                <a href={`/${country}/${region}/${nearby.city_slug}/`} class="flex items-center gap-3 p-3 rounded-lg hover:bg-primary-50 transition group">
                   <div class="text-primary-500 bg-primary-50 p-1.5 rounded-full group-hover:bg-white">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />

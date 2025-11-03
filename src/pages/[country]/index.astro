@@ -82,7 +82,7 @@ const regions = Array.from(new Set(profiles.map(profile => profile.province_slug
     const profile = profiles.find(p => p.province_slug === regionSlug);
     return {
       name: profile.province,
-      slug: `/${country}/${regionSlug}`
+      slug: `/${country}/${regionSlug}/`
     };
   })
   .sort((a, b) => a.name.localeCompare(b.name));
@@ -199,8 +199,8 @@ const twitterCardData = {
 
   <Breadcrumbs path={path} />
   
-  <!-- Enhanced Hero Section with Collapsible Feature -->
-  <section class="relative overflow-hidden bg-gradient-to-br from-primary-700 via-primary-800 to-primary-900 mb-6" style="margin-left: calc(-50vw + 50%); margin-right: calc(-50vw + 50%); width: 100vw;">
+  <!-- Hero Section with Disappearing Logic -->
+  <section class="relative overflow-hidden bg-gradient-to-br from-primary-700 via-primary-800 to-primary-900 pt-4 pb-4 md:pt-6 md:pb-6 mb-2" style="margin-left: calc(-50vw + 50%); margin-right: calc(-50vw + 50%); width: 100vw;">
     <!-- Subtle background elements -->
     <div class="absolute inset-0 overflow-hidden">
       <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
@@ -208,28 +208,56 @@ const twitterCardData = {
     </div>
 
     <div class="container mx-auto px-4 md:px-8 lg:px-12 max-w-6xl relative">
-      <!-- Collapsible Header Container -->
-      <div id="hero-container" class="text-center py-8 transition-all duration-500 ease-out">
-        <h1 class="text-2xl md:text-3xl xl:text-4xl font-semibold text-white mb-4 leading-tight">
-          {countryName} Veterinarians
-        </h1>
-        <p class="text-base xl:text-lg text-primary-100/80 leading-relaxed max-w-5xl mx-auto">
-          Discover top veterinary clinics across {countryName} in {regions.length} regions including cities like {sampleCities}! 
-          Explore a network of {totalVets} veterinarians serving {uniqueCities} cities, specializing in 
-          {topSpecializations.length > 0 ? ` ${topSpecializations.join(', ')}` : ' various veterinary services'}. 
-          {countryName} offers exceptional pet care with {insight1} and {insight2}.
-        </p>
+      <!-- Header Container with Dynamic Height -->
+      <div
+        id="hero-header-container"
+        class="text-center transition-all duration-500 ease-out overflow-hidden"
+        style="margin-bottom: 0.5rem;"
+      >
+        <!-- Main Header -->
+        <div id="hero-header" class="transition-all duration-500 ease-out">
+          <h1 class="text-lg md:text-xl xl:text-2xl font-medium text-white/85 mb-1.5 leading-tight tracking-wide">
+            {countryName} Veterinarians
+          </h1>
+          <p class="text-sm xl:text-base text-primary-100/70 leading-relaxed max-w-5xl mx-auto font-light">
+            Discover top veterinary clinics across {countryName} in {regions.length} regions including cities like {sampleCities}! 
+            Explore a network of {totalVets} veterinarians serving {uniqueCities} cities, specializing in 
+            {topSpecializations.length > 0 ? ` ${topSpecializations.join(', ')}` : ' various veterinary services'}. 
+            {countryName} offers exceptional pet care with {insight1} and {insight2}.
+          </p>
+        </div>
+
+        <!-- Ultra-minimal Header State - Behind Content -->
+        <div
+          id="hero-header-mini"
+          class="transition-all duration-500 ease-out opacity-0 scale-90 pointer-events-none fixed inset-x-0 z-40"
+          style="top: -10px;"
+        >
+          <div class="container mx-auto px-4 md:px-8 lg:px-12 max-w-6xl">
+            <button
+              id="header-expand-btn"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-white/70 hover:text-white/90 hover:bg-white/20 transition-all text-xs font-light shadow-lg"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1"
+                stroke="currentColor"
+                class="w-3 h-3"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19.5 8.25l-7.5 7.5-7.5-7.5"></path>
+              </svg>
+              <span>{countryName} Veterinarians</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <!-- Collapsed State Button -->
-      <div id="collapsed-header" class="hidden fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
-        <button id="expand-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-white/90 hover:bg-white/20 transition-all text-sm font-medium shadow-lg">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-          </svg>
-          <span>{countryName} Veterinarians</span>
-        </button>
-      </div>
+
     </div>
   </section>
     
@@ -258,73 +286,148 @@ const twitterCardData = {
 </Layout>
 
 <script>
-  // Optimized collapsible hero functionality
-  document.addEventListener('DOMContentLoaded', function() {
-    const heroContainer = document.getElementById('hero-container');
-    const collapsedHeader = document.getElementById('collapsed-header');
-    const expandBtn = document.getElementById('expand-btn');
-    
-    if (!heroContainer || !collapsedHeader || !expandBtn) return;
-    
+  // Hero header collapse/expand functionality
+  document.addEventListener("DOMContentLoaded", function () {
+    const heroHeaderContainer = document.getElementById("hero-header-container");
+    const heroHeader = document.getElementById("hero-header");
+    const heroHeaderMini = document.getElementById("hero-header-mini");
+    const expandBtn = document.getElementById("header-expand-btn");
+
     let isCollapsed = false;
-    let collapseTimeout;
-    
-    // Auto-collapse after 4 seconds
+    let autoCollapseTimeout: any;
+    let userHasExpanded = false;
+
+    // Auto-collapse after 3 seconds (only if user hasn't manually expanded)
     function startAutoCollapse() {
-      collapseTimeout = setTimeout(() => {
-        if (!isCollapsed) collapseHero();
-      }, 4000);
+      autoCollapseTimeout = setTimeout(function () {
+        if (!isCollapsed && !userHasExpanded) {
+          collapseHeader();
+        }
+      }, 3000);
     }
-    
-    // Collapse hero section
-    function collapseHero() {
-      if (isCollapsed) return;
-      isCollapsed = true;
-      
-      heroContainer.style.transform = 'translateY(-20px)';
-      heroContainer.style.opacity = '0';
-      heroContainer.style.height = '0';
-      heroContainer.style.paddingTop = '0';
-      heroContainer.style.paddingBottom = '0';
-      heroContainer.style.overflow = 'hidden';
-      
-      setTimeout(() => {
-        collapsedHeader.classList.remove('hidden');
-      }, 300);
-    }
-    
-    // Expand hero section
-    function expandHero() {
-      if (!isCollapsed) return;
-      isCollapsed = false;
-      
-      collapsedHeader.classList.add('hidden');
-      
-      heroContainer.style.height = 'auto';
-      heroContainer.style.paddingTop = '2rem';
-      heroContainer.style.paddingBottom = '2rem';
-      heroContainer.style.transform = 'translateY(0)';
-      heroContainer.style.opacity = '1';
-      heroContainer.style.overflow = 'visible';
-      
-      // Don't auto-collapse again after manual expand
-      clearTimeout(collapseTimeout);
-    }
-    
-    // Event listeners
-    expandBtn.addEventListener('click', expandHero);
-    
-    // Cancel auto-collapse on hover
-    heroContainer.addEventListener('mouseenter', () => clearTimeout(collapseTimeout));
-    heroContainer.addEventListener('mouseleave', () => {
-      if (!isCollapsed) {
-        collapseTimeout = setTimeout(() => collapseHero(), 2000);
+
+    // Cancel auto-collapse
+    function cancelAutoCollapse() {
+      if (autoCollapseTimeout) {
+        clearTimeout(autoCollapseTimeout);
       }
-    });
-    
+    }
+
+    // Collapse header
+    function collapseHeader() {
+      if (isCollapsed || !heroHeader || !heroHeaderMini || !heroHeaderContainer)
+        return;
+
+      isCollapsed = true;
+
+      // Get current height and set it explicitly for smooth transition
+      const currentHeight = heroHeaderContainer.offsetHeight;
+      heroHeaderContainer.style.height = currentHeight + "px";
+
+      // Animate out main header
+      heroHeader.style.opacity = "0";
+      heroHeader.style.transform = "translateY(-10px) scale(0.98)";
+      heroHeader.style.pointerEvents = "none";
+
+      // Animate in mini header and collapse container height
+      setTimeout(function () {
+        if (heroHeaderMini && heroHeaderContainer) {
+          // Position mini header between the collapsed header space and the search bar
+          const heroSection = heroHeaderContainer.closest("section");
+          if (heroSection) {
+            const rect = heroSection.getBoundingClientRect();
+            heroHeaderMini.style.top = rect.top + window.scrollY + 10 + "px";
+          }
+
+          heroHeaderMini.style.opacity = "1";
+          heroHeaderMini.style.transform = "scale(1)";
+          heroHeaderMini.style.pointerEvents = "auto";
+
+          // Collapse to mini header height and move content up more
+          heroHeaderContainer.style.height = "0px";
+          heroHeaderContainer.style.marginBottom = "0rem";
+        }
+      }, 250);
+    }
+
+    // Expand header
+    function expandHeader() {
+      if (!isCollapsed || !heroHeader || !heroHeaderMini || !heroHeaderContainer)
+        return;
+
+      isCollapsed = false;
+      userHasExpanded = true; // Mark that user has manually expanded
+
+      // Animate out mini header
+      heroHeaderMini.style.opacity = "0";
+      heroHeaderMini.style.transform = "scale(0.9)";
+      heroHeaderMini.style.pointerEvents = "none";
+
+      // Restore container height and margin
+      heroHeaderContainer.style.height = "auto";
+      heroHeaderContainer.style.marginBottom = "0.5rem";
+
+      // Animate in main header
+      setTimeout(function () {
+        if (heroHeader) {
+          heroHeader.style.opacity = "1";
+          heroHeader.style.transform = "translateY(0) scale(1)";
+          heroHeader.style.pointerEvents = "auto";
+        }
+      }, 250);
+
+      // Don't restart auto-collapse timer since user manually expanded
+    }
+
+    // Event listeners
+    if (expandBtn) {
+      expandBtn.addEventListener("click", expandHeader);
+    }
+
+    // Cancel auto-collapse on user interaction with header container
+    if (heroHeaderContainer) {
+      heroHeaderContainer.addEventListener("mouseenter", cancelAutoCollapse);
+      heroHeaderContainer.addEventListener("mouseleave", function () {
+        // Only restart timer if user hasn't manually expanded
+        if (!userHasExpanded) {
+          autoCollapseTimeout = setTimeout(function () {
+            if (!isCollapsed) {
+              collapseHeader();
+            }
+          }, 2000);
+        }
+      });
+    }
+
+    // Reposition mini header on scroll when collapsed
+    function repositionMiniHeader() {
+      if (isCollapsed && heroHeaderMini && heroHeaderContainer) {
+        const heroSection = heroHeaderContainer.closest("section");
+        if (heroSection) {
+          const rect = heroSection.getBoundingClientRect();
+          
+          // Hide the mini header if the hero section is completely scrolled past
+          if (rect.bottom < 0) {
+            heroHeaderMini.style.opacity = "0";
+            heroHeaderMini.style.pointerEvents = "none";
+          } else {
+            heroHeaderMini.style.opacity = "1";
+            heroHeaderMini.style.pointerEvents = "auto";
+            heroHeaderMini.style.top =
+              Math.max(10, rect.top + window.scrollY + 10) + "px";
+          }
+        }
+      }
+    }
+
+    window.addEventListener("scroll", repositionMiniHeader);
+    window.addEventListener("resize", repositionMiniHeader);
+
     // Start auto-collapse timer
     startAutoCollapse();
   });
+
+
 </script>
 
 

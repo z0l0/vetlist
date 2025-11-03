@@ -18,59 +18,59 @@ const topUSACities = [
   {
     name: "Los Angeles",
     state: "California",
-    slug: "/united-states/california/los-angeles",
+    slug: "/united-states/california/los-angeles/",
   },
   {
     name: "Chicago",
     state: "Illinois",
-    slug: "/united-states/illinois/chicago",
+    slug: "/united-states/illinois/chicago/",
   },
-  { name: "Houston", state: "Texas", slug: "/united-states/texas/houston" },
-  { name: "Phoenix", state: "Arizona", slug: "/united-states/arizona/phoenix" },
+  { name: "Houston", state: "Texas", slug: "/united-states/texas/houston/" },
+  { name: "Phoenix", state: "Arizona", slug: "/united-states/arizona/phoenix/" },
   {
     name: "Philadelphia",
     state: "Pennsylvania",
-    slug: "/united-states/pennsylvania/philadelphia",
+    slug: "/united-states/pennsylvania/philadelphia/",
   },
   {
     name: "San Antonio",
     state: "Texas",
-    slug: "/united-states/texas/san-antonio",
+    slug: "/united-states/texas/san-antonio/",
   },
   {
     name: "San Diego",
     state: "California",
-    slug: "/united-states/california/san-diego",
+    slug: "/united-states/california/san-diego/",
   },
-  { name: "Dallas", state: "Texas", slug: "/united-states/texas/dallas" },
-  { name: "Austin", state: "Texas", slug: "/united-states/texas/austin" },
+  { name: "Dallas", state: "Texas", slug: "/united-states/texas/dallas/" },
+  { name: "Austin", state: "Texas", slug: "/united-states/texas/austin/" },
   {
     name: "Rochester",
     state: "New York",
-    slug: "/united-states/new-york/rochester",
+    slug: "/united-states/new-york/rochester/",
   },
 ];
 
 // Top Canadian cities
 const topCanadaCities = [
-  { name: "Toronto", province: "Ontario", slug: "/canada/ontario/toronto" },
-  { name: "Montreal", province: "Quebec", slug: "/canada/quebec/montreal" },
+  { name: "Toronto", province: "Ontario", slug: "/canada/ontario/toronto/" },
+  { name: "Montreal", province: "Quebec", slug: "/canada/quebec/montreal/" },
   {
     name: "Vancouver",
     province: "British Columbia",
-    slug: "/canada/british-columbia/vancouver",
+    slug: "/canada/british-columbia/vancouver/",
   },
-  { name: "Calgary", province: "Alberta", slug: "/canada/alberta/calgary" },
-  { name: "Edmonton", province: "Alberta", slug: "/canada/alberta/edmonton" },
-  { name: "Ottawa", province: "Ontario", slug: "/canada/ontario/ottawa" },
-  { name: "Winnipeg", province: "Manitoba", slug: "/canada/manitoba/winnipeg" },
+  { name: "Calgary", province: "Alberta", slug: "/canada/alberta/calgary/" },
+  { name: "Edmonton", province: "Alberta", slug: "/canada/alberta/edmonton/" },
+  { name: "Ottawa", province: "Ontario", slug: "/canada/ontario/ottawa/" },
+  { name: "Winnipeg", province: "Manitoba", slug: "/canada/manitoba/winnipeg/" },
   {
     name: "Quebec City",
     province: "Quebec",
-    slug: "/canada/quebec/quebec-city",
+    slug: "/canada/quebec/quebec-city/",
   },
-  { name: "Hamilton", province: "Ontario", slug: "/canada/ontario/hamilton" },
-  { name: "Kitchener", province: "Ontario", slug: "/canada/ontario/kitchener" },
+  { name: "Hamilton", province: "Ontario", slug: "/canada/ontario/hamilton/" },
+  { name: "Kitchener", province: "Ontario", slug: "/canada/ontario/kitchener/" },
 ];
 ---
 
@@ -195,7 +195,7 @@ const topCanadaCities = [
 
           <!-- Browse All USA -->
           <a
-            href="/united-states"
+            href="/united-states/"
             class="flex items-center gap-3 p-3 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white transition group shadow-sm border-2 border-blue-200"
           >
             <span class="text-lg">🇺🇸</span>
@@ -258,7 +258,7 @@ const topCanadaCities = [
 
           <!-- Browse All Canada -->
           <a
-            href="/canada"
+            href="/canada/"
             class="flex items-center gap-3 p-3 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white transition group shadow-sm border-2 border-red-200"
           >
             <span class="text-lg">🇨🇦</span>
@@ -350,7 +350,7 @@ const topCanadaCities = [
 
           <!-- Add Your Clinic -->
           <a
-            href="/claim-clinic"
+            href="/claim-clinic/"
             class="flex items-center gap-3 p-3 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white transition group shadow-sm border-2 border-green-200"
           >
             <span class="text-lg">➕</span>
@@ -366,161 +366,4 @@ const topCanadaCities = [
   </div>
 </section>
 
-<script>
-  // Hero header collapse/expand functionality
-  document.addEventListener("DOMContentLoaded", function () {
-    const heroHeaderContainer = document.getElementById(
-      "hero-header-container",
-    );
-    const heroHeader = document.getElementById("hero-header");
-    const heroHeaderMini = document.getElementById("hero-header-mini");
-    const expandBtn = document.getElementById("header-expand-btn");
-
-    let isCollapsed = false;
-    let autoCollapseTimeout;
-
-    // Auto-collapse after 3 seconds
-    function startAutoCollapse() {
-      autoCollapseTimeout = setTimeout(function () {
-        if (!isCollapsed) {
-          collapseHeader();
-        }
-      }, 3000);
-    }
-
-    // Cancel auto-collapse
-    function cancelAutoCollapse() {
-      if (autoCollapseTimeout) {
-        clearTimeout(autoCollapseTimeout);
-      }
-    }
-
-    // Collapse header
-    function collapseHeader() {
-      if (isCollapsed || !heroHeader || !heroHeaderMini || !heroHeaderContainer)
-        return;
-
-      isCollapsed = true;
-
-      // Get current height and set it explicitly for smooth transition
-      const currentHeight = heroHeaderContainer.offsetHeight;
-      heroHeaderContainer.style.height = currentHeight + "px";
-
-      // Animate out main header
-      heroHeader.style.opacity = "0";
-      heroHeader.style.transform = "translateY(-10px) scale(0.98)";
-      heroHeader.style.pointerEvents = "none";
-
-      // Animate in mini header and collapse container height
-      setTimeout(function () {
-        if (heroHeaderMini && heroHeaderContainer) {
-          // Position mini header between the collapsed header space and the badges
-          const heroSection = heroHeaderContainer.closest("section");
-          if (heroSection) {
-            const rect = heroSection.getBoundingClientRect();
-            heroHeaderMini.style.top = rect.top + window.scrollY + 10 + "px";
-          }
-
-          heroHeaderMini.style.opacity = "1";
-          heroHeaderMini.style.transform = "scale(1)";
-          heroHeaderMini.style.pointerEvents = "auto";
-
-          // Collapse to mini header height and move content up more
-          heroHeaderContainer.style.height = "0px";
-          heroHeaderContainer.style.marginBottom = "0rem";
-
-          // Move content up to fill the collapsed space
-          const heroContent = document.getElementById("hero-content");
-          if (heroContent) {
-            heroContent.style.transform = "translateY(-80px)";
-          }
-        }
-      }, 250);
-    }
-
-    // Expand header
-    function expandHeader() {
-      if (
-        !isCollapsed ||
-        !heroHeader ||
-        !heroHeaderMini ||
-        !heroHeaderContainer
-      )
-        return;
-
-      isCollapsed = false;
-
-      // Animate out mini header
-      heroHeaderMini.style.opacity = "0";
-      heroHeaderMini.style.transform = "scale(0.9)";
-      heroHeaderMini.style.pointerEvents = "none";
-
-      // Restore container height and margin
-      heroHeaderContainer.style.height = "auto";
-      heroHeaderContainer.style.marginBottom = "1.125rem";
-
-      // Move content back to normal position
-      const heroContent = document.getElementById("hero-content");
-      if (heroContent) {
-        heroContent.style.transform = "translateY(0)";
-      }
-
-      // Animate in main header
-      setTimeout(function () {
-        if (heroHeader) {
-          heroHeader.style.opacity = "1";
-          heroHeader.style.transform = "translateY(0) scale(1)";
-          heroHeader.style.pointerEvents = "auto";
-        }
-      }, 250);
-
-      // Restart auto-collapse timer
-      startAutoCollapse();
-    }
-
-    // Event listeners
-    if (expandBtn) {
-      expandBtn.addEventListener("click", expandHeader);
-    }
-
-    // Cancel auto-collapse on user interaction with header container
-    if (heroHeaderContainer) {
-      heroHeaderContainer.addEventListener("mouseenter", cancelAutoCollapse);
-      heroHeaderContainer.addEventListener("mouseleave", function () {
-        // Restart timer when mouse leaves, but with shorter delay
-        autoCollapseTimeout = setTimeout(function () {
-          if (!isCollapsed) {
-            collapseHeader();
-          }
-        }, 2000);
-      });
-    }
-
-    // Reposition mini header on scroll when collapsed
-    function repositionMiniHeader() {
-      if (isCollapsed && heroHeaderMini && heroHeaderContainer) {
-        const heroSection = heroHeaderContainer.closest("section");
-        if (heroSection) {
-          const rect = heroSection.getBoundingClientRect();
-
-          // Hide the mini header if we've scrolled past the hero header area
-          if (rect.top < -200) {
-            heroHeaderMini.style.opacity = "0";
-            heroHeaderMini.style.pointerEvents = "none";
-          } else {
-            heroHeaderMini.style.opacity = "1";
-            heroHeaderMini.style.pointerEvents = "auto";
-            heroHeaderMini.style.top =
-              Math.max(10, rect.top + window.scrollY + 10) + "px";
-          }
-        }
-      }
-    }
-
-    window.addEventListener("scroll", repositionMiniHeader);
-    window.addEventListener("resize", repositionMiniHeader);
-
-    // Start auto-collapse timer
-    startAutoCollapse();
-  });
-</script>
+<script src="/js/hero-header.js" is:inline></script>

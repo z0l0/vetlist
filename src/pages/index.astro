@@ -23,7 +23,7 @@ const popularCities = allProfiles
         if (!acc[key]) {
           acc[key] = {
             name: item.city,
-            slug: `/${item.country_slug}/${item.province_slug}/${item.city_slug}`,
+            slug: `/${item.country_slug}/${item.province_slug}/${item.city_slug}/`,
             count: 0
           };
         }
@@ -48,12 +48,12 @@ const popularCities = allProfiles
 
 // Fallback static list if no cities are fetched
 const fallbackCities = [
-  { name: 'Fort Worth', slug: '/united-states/texas/fort-worth' },
-  { name: 'Dallas', slug: '/united-states/texas/dallas' },
-  { name: 'Houston', slug: '/united-states/texas/houston' },
-  { name: 'Austin', slug: '/united-states/texas/austin' },
-  { name: 'San Antonio', slug: '/united-states/texas/san-antonio' },
-  { name: 'Arlington', slug: '/united-states/texas/arlington' }
+  { name: 'Fort Worth', slug: '/united-states/texas/fort-worth/' },
+  { name: 'Dallas', slug: '/united-states/texas/dallas/' },
+  { name: 'Houston', slug: '/united-states/texas/houston/' },
+  { name: 'Austin', slug: '/united-states/texas/austin/' },
+  { name: 'San Antonio', slug: '/united-states/texas/san-antonio/' },
+  { name: 'Arlington', slug: '/united-states/texas/arlington/' }
 ];
 
 // Use fetched cities if available, otherwise fallback
@@ -63,7 +63,7 @@ const citiesToDisplay = popularCities.length > 0 ? popularCities : fallbackCitie
 const topVisitedProfiles = [
   {
     name: "VCA Canada Tuscany Animal Hospital",
-    slug: "canada/alberta/calgary/vca-canada-tuscany-animal-hospital",
+    slug: "canada/alberta/calgary/vca-canada-tuscany-animal-hospital/",
     city: "Calgary",
     province: "Alberta",
     country: "Canada",
@@ -72,7 +72,7 @@ const topVisitedProfiles = [
   },
   {
     name: "Springbank Pet Hospital", 
-    slug: "canada/alberta/calgary/springbank-pet-hospital",
+    slug: "canada/alberta/calgary/springbank-pet-hospital/",
     city: "Calgary",
     province: "Alberta", 
     country: "Canada",
@@ -81,7 +81,7 @@ const topVisitedProfiles = [
   },
   {
     name: "North Kipling Veterinary Hospital",
-    slug: "canada/ontario/toronto/north-kipling-veterinary-hospital",
+    slug: "canada/ontario/toronto/north-kipling-veterinary-hospital/",
     city: "Toronto",
     province: "Ontario",
     country: "Canada", 
@@ -90,7 +90,7 @@ const topVisitedProfiles = [
   },
   {
     name: "Richardson Ranch",
-    slug: "canada/british-columbia/tlell/richardson-ranch",
+    slug: "canada/british-columbia/tlell/richardson-ranch/",
     city: "Tlell",
     province: "British Columbia",
     country: "Canada",
@@ -99,7 +99,7 @@ const topVisitedProfiles = [
   },
   {
     name: "Dr. Roberto J. Rojas, DVM",
-    slug: "united-states/arizona/nogales/rojas-roberto-j-dvm", 
+    slug: "united-states/arizona/nogales/rojas-roberto-j-dvm/", 
     city: "Nogales",
     state: "Arizona",
     country: "United States",
@@ -108,7 +108,7 @@ const topVisitedProfiles = [
   },
   {
     name: "North Island Veterinary Hospital",
-    slug: "canada/british-columbia/port-hardy/north-island-veterinary-hospital",
+    slug: "canada/british-columbia/port-hardy/north-island-veterinary-hospital/",
     city: "Port Hardy",
     province: "British Columbia", 
     country: "Canada",
@@ -117,7 +117,7 @@ const topVisitedProfiles = [
   },
   {
     name: "Junction West Animal Hospital",
-    slug: "canada/ontario/toronto/junction-west-animal-hospital",
+    slug: "canada/ontario/toronto/junction-west-animal-hospital/",
     city: "Toronto",
     province: "Ontario",
     country: "Canada",
@@ -126,7 +126,7 @@ const topVisitedProfiles = [
   },
   {
     name: "Aloha Veterinary Care",
-    slug: "united-states/hawaii/kihei/aloha-veterinary-care",
+    slug: "united-states/hawaii/kihei/aloha-veterinary-care/",
     city: "Kihei", 
     state: "Hawaii",
     country: "United States",
@@ -135,7 +135,7 @@ const topVisitedProfiles = [
   },
   {
     name: "Greenfield Animal Hospital",
-    slug: "united-states/florida/miami/greenfield-animal-hospital",
+    slug: "united-states/florida/miami/greenfield-animal-hospital/",
     city: "Miami",
     state: "Florida", 
     country: "United States",
@@ -144,7 +144,7 @@ const topVisitedProfiles = [
   },
   {
     name: "Jane Animal Hospital",
-    slug: "canada/ontario/toronto/jane-animal-hospital",
+    slug: "canada/ontario/toronto/jane-animal-hospital/",
     city: "Toronto",
     province: "Ontario",
     country: "Canada",
@@ -153,7 +153,7 @@ const topVisitedProfiles = [
   },
   {
     name: "North Lanark Veterinary Services", 
-    slug: "canada/ontario/lanark/north-lanark-veterinary-services",
+    slug: "canada/ontario/lanark/north-lanark-veterinary-services/",
     city: "Lanark",
     province: "Ontario",
     country: "Canada",
@@ -162,7 +162,7 @@ const topVisitedProfiles = [
   },
   {
     name: "VET-ER Emergency Clinic",
-    slug: "canada/alberta/edmonton/vet-er",
+    slug: "canada/alberta/edmonton/vet-er/",
     city: "Edmonton",
     province: "Alberta",
     country: "Canada", 

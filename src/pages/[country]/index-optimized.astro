@@ -42,7 +42,7 @@ const countryName = profiles[0]?.country || toTitleCase(country);
 const regions = Array.from(new Set(profiles.map(profile => profile.province_slug)))
   .map(regionSlug => {
     const profile = profiles.find(p => p.province_slug === regionSlug);
-    return { name: profile.province, slug: `/${country}/${regionSlug}` };
+    return { name: profile.province, slug: `/${country}/${regionSlug}/` };
   })
   .sort((a, b) => a.name.localeCompare(b.name));
 
