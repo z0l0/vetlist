@@ -15,10 +15,12 @@ const {
   openGraph,
   twitterCard,
 } = Astro.props;
-const canonicalURL = new URL(
-  Astro.url.pathname,
-  "https://vetlist.org",
-).toString();
+// Ensure canonical URL matches trailingSlash config
+let pathname = Astro.url.pathname;
+if (!pathname.endsWith('/') && pathname !== '/') {
+  pathname += '/';
+}
+const canonicalURL = new URL(pathname, "https://vetlist.org").toString();
 ---
 
 <!doctype html>

@@ -163,6 +163,48 @@ const path = Astro.url.pathname.replace(/\/$/, '');
 ---
 
 <Layout title={`${cityName} Veterinarians`}>
+  <!-- Local business schema for rich snippets -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": `Veterinarians in ${cityName}`,
+    "description": `Complete directory of veterinary clinics and animal hospitals in ${cityName}, ${toTitleCase(region)}`,
+    "numberOfItems": profiles.length,
+    "itemListOrder": "https://schema.org/ItemListOrderDescending",
+    "itemListElement": profiles.slice(0, 20).map((profile, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "VeterinaryCare",
+        "@id": `https://vetlist.org/${country}/${region}/${city}/${profile.name_slug}`,
+        "name": profile.name,
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": profile.city,
+          "addressRegion": profile.province,
+          "addressCountry": profile.country
+        },
+        "telephone": profile.phone_number || "",
+        "url": `https://vetlist.org/${country}/${region}/${city}/${profile.name_slug}`,
+        ...(profile.rating ? {
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": profile.rating,
+            "bestRating": "5"
+          }
+        } : {})
+      }
+    })),
+    "mainEntity": {
+      "@type": "City",
+      "name": cityName,
+      "containedInPlace": {
+        "@type": "State", 
+        "name": toTitleCase(region)
+      }
+    }
+  })} />
+  
   <Breadcrumbs path={path} />
   
   <!-- Hero Section with Disappearing Logic -->

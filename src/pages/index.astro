@@ -200,6 +200,40 @@ const topSpecializations = Array.from(allSpecializations).slice(0, 8) as string[
 ---
 
 <Layout title="Find Top Rated Veterinarians Near You | VetList.org">
+  <!-- Organization schema for brand rich snippets -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "VetList.org",
+    "url": "https://vetlist.org",
+    "logo": "https://vetlist.org/favicon.svg",
+    "description": "Find the best veterinarians and animal hospitals near you. Browse our comprehensive directory of veterinary professionals across North America.",
+    "foundingDate": "2024",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "customer service",
+      "availableLanguage": ["English"]
+    },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://vetlist.org/search?q={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    },
+    "mainEntity": {
+      "@type": "WebSite",
+      "name": "VetList.org",
+      "url": "https://vetlist.org",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://vetlist.org/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  })} />
+  
   <Hero 
     cities={citiesToDisplay} 
     popularVets={popularVets}

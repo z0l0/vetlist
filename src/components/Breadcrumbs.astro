@@ -33,7 +33,7 @@ const breadcrumbItems = items || (() => {
     currentPath += `/${segment}`;
     generatedItems.push({
       label: toTitleCase(segment),
-      href: currentPath
+      href: currentPath + '/' // Ensure trailing slash for consistency
     });
   });
   

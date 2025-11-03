@@ -262,6 +262,8 @@ const schemaData = {
   "url": canonicalURL.toString(),
   "telephone": profileData.phone_number || "",
   "image": imageUrl,
+  
+  // Enhanced address with proper formatting
   "address": {
     "@type": "PostalAddress",
     "streetAddress": addressComponents.streetAddress || profileData.address || "",
@@ -270,13 +272,33 @@ const schemaData = {
     "postalCode": addressComponents.postalCode || "",
     "addressCountry": addressComponents.addressCountry || ""
   },
+  
+  // Geo coordinates for map integration and rich snippets
   ...(profileData.latitude && profileData.longitude ? {
     "geo": {
       "@type": "GeoCoordinates",
       "latitude": profileData.latitude,
       "longitude": profileData.longitude
-    }
+    },
+    "hasMap": `https://maps.google.com/?q=${profileData.latitude},${profileData.longitude}`
   } : {}),
+  
+  // Service area for local SEO rich snippets
+  "areaServed": {
+    "@type": "City",
+    "name": profileData.city,
+    "containedInPlace": {
+      "@type": "State",
+      "name": profileData.province
+    }
+  },
+  
+  // Enhanced business info for rich snippets
+  "priceRange": "$$",
+  "currenciesAccepted": profileData.country === "United States" ? "USD" : "CAD",
+  "paymentAccepted": ["Cash", "Credit Card", "Debit Card", "Pet Insurance"],
+  
+  // Opening hours with enhanced format for rich snippets
   ...(hoursData ? {
     "openingHoursSpecification": Object.entries(hoursData || {})
       .filter(([_, hours]) => hours && Array.isArray(hours) && hours.length > 0)
@@ -293,29 +315,67 @@ const schemaData = {
         }).filter(Boolean) : [];
       }).flat()
   } : {}),
-  "priceRange": "$",
+  
+  // Services offered for better categorization and rich snippets
   ...(Array.isArray(profileData.specialization) && profileData.specialization.length > 0 ? {
     "makesOffer": profileData.specialization.map((service: any) => ({
       "@type": "Offer",
       "itemOffered": {
         "@type": "Service",
-        "name": service
+        "name": service,
+        "category": "Veterinary Care"
       }
-    }))
+    })),
+    "medicalSpecialty": profileData.specialization
   } : {}),
+  
+  // Enhanced rating with review count for star rich snippets
   ...(ratingData?.rating !== null ? {
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": ratingData.rating,
       "bestRating": "5",
       "worstRating": "1",
-      "ratingCount": profileData.rating_count || "1"
+      "ratingCount": profileData.rating_count || "1",
+      "reviewCount": profileData.review_count || profileData.rating_count || "1"
     }
-  } : {})
+  } : {}),
+  
+  // Contact points for better business info in rich snippets
+  "contactPoint": [
+    {
+      "@type": "ContactPoint",
+      "telephone": profileData.phone_number || "",
+      "contactType": "customer service",
+      "availableLanguage": ["English"]
+    }
+  ]
 };
 ---
 
 <Layout title={pageTitle} description={metaDescription} openGraph={openGraphData} twitterCard={twitterCardData}>
+  <!-- Enhanced meta tags for rich snippets and local SEO -->
+  {profileData.latitude && profileData.longitude && (
+    <>
+      <meta name="geo.region" content={`${profileData.country_code || (profileData.country === "United States" ? "US" : "CA")}-${profileData.province_code || profileData.province?.substring(0,2).toUpperCase()}`} slot="head" />
+      <meta name="geo.placename" content={profileData.city} slot="head" />
+      <meta name="geo.position" content={`${profileData.latitude};${profileData.longitude}`} slot="head" />
+      <meta name="ICBM" content={`${profileData.latitude}, ${profileData.longitude}`} slot="head" />
+    </>
+  )}
+  
+  <!-- Business-specific Open Graph for rich snippets -->
+  <meta property="business:contact_data:street_address" content={addressComponents.streetAddress || profileData.address} slot="head" />
+  <meta property="business:contact_data:locality" content={profileData.city} slot="head" />
+  <meta property="business:contact_data:region" content={profileData.province} slot="head" />
+  <meta property="business:contact_data:country_name" content={profileData.country} slot="head" />
+  {profileData.phone_number && (
+    <meta property="business:contact_data:phone_number" content={profileData.phone_number} slot="head" />
+  )}
+  
+  <!-- Mobile optimization for phone rich snippets -->
+  <meta name="format-detection" content="telephone=yes" slot="head" />
+  
   <script type="application/ld+json" set:html={JSON.stringify(schemaData)} />
   <script is:inline src="/js/profile.js"></script>
 
