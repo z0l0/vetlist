@@ -1,43 +1,20 @@
 ---
-import Layout from '../../layouts/Layout-optimized.astro';
+import Layout from '../../layouts/Layout.astro';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
 import { getProfessionals, getProfilesForCountry } from '../../lib/dataCache.js';
 import { fetchAllProfessionals } from '../../lib/supabase';
 
-// Convert slug to title case
 function toTitleCase(str) {
-  return str
-    .replace(/-/g, ' ')
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+  return str.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }
 
 export async function getStaticPaths() {
   try {
-    // Try to get from cache first
     const profiles = await getProfessionals();
-    console.log(`[country].astro getStaticPaths: Received ${profiles?.length || 0} profiles from cache.`);
-    
-    // If cache failed or is empty, fall back to direct fetch
     const allProfiles = profiles?.length ? profiles : await fetchAllProfessionals();
-    
-    // Filter out profiles with missing or empty country_slug
-    const validProfiles = allProfiles.filter(profile => 
-      profile.country_slug && 
-      profile.country_slug.trim() !== ''
-    );
-    
-    console.log(`[country].astro getStaticPaths: ${validProfiles.length} valid profiles after filtering`);
-    
+    const validProfiles = allProfiles.filter(profile => profile.country_slug?.trim());
     const countries = new Set(validProfiles.map(profile => profile.country_slug));
-    
-    const paths = Array.from(countries).map(country => ({
-      params: { country }
-    }));
-    
-    console.log(`[country].astro getStaticPaths: Generated ${paths.length} country paths`);
-    return paths;
+    return Array.from(countries).map(country => ({ params: { country } }));
   } catch (error) {
     console.error("[country].astro getStaticPaths ERROR:", error.message);
     return [];
@@ -45,141 +22,78 @@ export async function getStaticPaths() {
 }
 
 const { country } = Astro.params;
+let profiles = await getProfilesForCountry(country);
 
-// Attempt to use the cached data first
-let profiles: any[] = [];
-
-// Get profiles for this country from cache
-profiles = await getProfilesForCountry(country);
-
-// If no profiles found in cache, fetch all profiles and filter
-if (!profiles || profiles.length === 0) {
-  console.log(`[country].astro: No profiles found in cache for ${country}, trying direct fetch...`);
+if (!profiles?.length) {
   try {
     const allProfiles = await getProfessionals();
     profiles = allProfiles.filter(p => p.country_slug === country);
   } catch (e) {
-    console.error(`[country].astro: Error fetching profiles from cache:`, e.message);
-    
-    // Try direct fetch as last resort
     try {
       const allProfiles = await fetchAllProfessionals();
       profiles = allProfiles.filter(p => p.country_slug === country);
     } catch (directFetchError) {
-      console.error(`[country].astro: Direct fetch also failed:`, directFetchError.message);
       profiles = [];
     }
   }
 }
 
-console.log(`[country].astro: Fetched ${profiles.length} profiles for ${country}`);
-
 const countryName = profiles[0]?.country || toTitleCase(country);
-
-// Generate regions dynamically for the current country
 const regions = Array.from(new Set(profiles.map(profile => profile.province_slug)))
   .map(regionSlug => {
     const profile = profiles.find(p => p.province_slug === regionSlug);
-    return {
-      name: profile.province,
-      slug: `/${country}/${regionSlug}`
-    };
+    return { name: profile.province, slug: `/${country}/${regionSlug}` };
   })
   .sort((a, b) => a.name.localeCompare(b.name));
 
-// Get total number of vets
 const totalVets = profiles.length;
+const uniqueCities = new Set(profiles.filter(p => p.city).map(p => p.city)).size;
+const sampleCities = [...new Set(profiles.filter(p => p.city).map(p => p.city))].slice(0, 3).join(', ') || 'various locations';
 
-// Get unique cities
-const uniqueCities = new Set(profiles.filter(profile => profile.city).map(profile => profile.city)).size;
-
-// Get sample cities (up to 3)
-const cities = [...new Set(profiles.filter(profile => profile.city).map(profile => profile.city))];
-const sampleCities = cities.length > 0 
-  ? cities.slice(0, Math.min(3, cities.length)).join(', ')
-  : 'various locations';
-
-// Get top specializations
 const specializationCounts = profiles.reduce((acc, profile) => {
   if (profile.specialization && Array.isArray(profile.specialization)) {
     profile.specialization.forEach(spec => {
-      if (spec) {
-        acc[spec] = (acc[spec] || 0) + 1;
-      }
+      if (spec) acc[spec] = (acc[spec] || 0) + 1;
     });
   }
   return acc;
 }, {});
 
-// Default specializations in case none are found
-const defaultSpecializations = ['Pet Care', 'Animal Health', 'Veterinary Medicine'];
-
 const topSpecializations = Object.keys(specializationCounts).length > 0 
-  ? Object.entries(specializationCounts)
-      .sort((a, b) => (b[1] as number) - (a[1] as number))
-      .slice(0, 3)
-      .map(([spec]) => spec)
-  : defaultSpecializations;
+  ? Object.entries(specializationCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([spec]) => spec)
+  : ['Pet Care', 'Animal Health', 'Veterinary Medicine'];
 
-// Generate some insights
-let insight1 = 'a wide network of veterinary professionals';
-if (uniqueCities > 0 && regions.length > 0) {
-  const coverage = Math.round((regions.length / uniqueCities) * 100);
-  if (coverage > 0 && coverage < 100) {
-    insight1 = `veterinary services available in ${coverage}% of regions`;
-  } else {
-    insight1 = 'extensive veterinary coverage across regions';
-  }
-}
-
-const insight2 = topSpecializations.length > 0 
-  ? `veterinarians specializing in ${topSpecializations[0]}`
-  : 'veterinarians with diverse specializations';
-
-const path = Astro.url.pathname;
-
-// Meta description
 const metaDescription = `Find trusted ${countryName} veterinarians, animal hospitals, and vet clinics across ${regions.length} regions. Browse our directory of ${totalVets}+ veterinary professionals specializing in ${topSpecializations.join(', ')} and more.`;
-
-// Meta keywords - simplified for better SEO focus
 const metaKeywords = `${countryName} veterinarians, vet clinics in ${countryName}, animal hospitals in ${countryName}, pet care, veterinary services, find vets in ${countryName}`;
 
-// Open Graph data
-const ogTitle = `${countryName} Veterinarians - Vetlist.org`;
-const ogDescription = metaDescription;
-const ogUrl = Astro.url.href;
-// No custom OG image - social platforms will generate preview from page content
-
-// Create structured Open Graph data
 const openGraphData = {
-  title: ogTitle,
-  description: ogDescription,
+  title: `${countryName} Veterinarians - Vetlist.org`,
+  description: metaDescription,
   type: "website",
-  url: ogUrl,
+  url: Astro.url.href,
   siteName: "Vetlist.org"
 };
 
-// Create Twitter Card data
 const twitterCardData = {
   card: "summary",
-  title: ogTitle,
-  description: ogDescription
+  title: `${countryName} Veterinarians - Vetlist.org`,
+  description: metaDescription
 };
 ---
 
 <Layout title={`${countryName} Veterinarians`} description={metaDescription} openGraph={openGraphData} twitterCard={twitterCardData}>
   <meta name="keywords" content={metaKeywords} slot="head" />
-
-  <!-- Schema.org markup for Google -->
+  
+  <!-- Optimized Schema.org markup -->
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     "name": `${countryName} Veterinarians - Vetlist.org`,
     "description": metaDescription,
-    "url": ogUrl,
+    "url": Astro.url.href,
     "mainEntity": {
       "@type": "ItemList",
-      "itemListElement": regions.map((region, index) => ({
+      "itemListElement": regions.slice(0, 10).map((region, index) => ({
         "@type": "ListItem",
         "position": index + 1,
         "item": {
@@ -188,16 +102,10 @@ const twitterCardData = {
           "url": new URL(`${country}/${region.name.toLowerCase().replace(/\s+/g, '-')}`, 'https://vetlist.org/').href
         }
       }))
-    },
-    "specialty": topSpecializations,
-    "provider": {
-      "@type": "Organization",
-      "name": "Vetlist.org",
-      "url": "https://vetlist.org"
     }
   })} />
 
-  <Breadcrumbs path={path} />
+  <Breadcrumbs path={Astro.url.pathname} />
   
   <!-- Simplified Hero Section -->
   <section class="bg-gradient-to-br from-primary-700 to-primary-900 py-8 mb-6 -mx-4">
@@ -218,7 +126,6 @@ const twitterCardData = {
       <a 
         href={region.slug}
         class="flex items-center gap-3 p-4 bg-white rounded-xl shadow-card hover:shadow-lg transition-shadow group"
-        data-region-name={region.name.toLowerCase()}
         role="listitem" 
         aria-label={`${region.name} veterinarians`}
       > 
@@ -235,6 +142,3 @@ const twitterCardData = {
     ))}
   </div>
 </Layout>
-
-
-

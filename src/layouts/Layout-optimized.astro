@@ -1,0 +1,111 @@
+---
+import Header from "../components/Header-optimized.astro";
+import Footer from "../components/Footer.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  openGraph?: any;
+  twitterCard?: any;
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description = "Find the best veterinarians in your area with VetList.org",
+  openGraph,
+  twitterCard,
+  noindex = false,
+} = Astro.props;
+
+let pathname = Astro.url.pathname;
+if (!pathname.endsWith('/') && pathname !== '/') {
+  pathname += '/';
+}
+const canonicalURL = new URL(pathname, "https://vetlist.org").toString();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title} | VetList.org</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+    
+    {noindex && <meta name="robots" content="noindex, follow" />}
+    
+    <!-- Preconnect to critical domains only -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Load font asynchronously -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" /></noscript>
+
+    <!-- Open Graph -->
+    {openGraph && (
+      <>
+        <meta property="og:type" content={openGraph.type || "website"} />
+        <meta property="og:url" content={openGraph.url || canonicalURL} />
+        <meta property="og:title" content={openGraph.title || title} />
+        <meta property="og:description" content={openGraph.description || description} />
+        <meta property="og:site_name" content={openGraph.siteName || "VetList.org"} />
+      </>
+    )}
+
+    <!-- Twitter -->
+    {twitterCard && (
+      <>
+        <meta name="twitter:card" content={twitterCard.card || "summary"} />
+        <meta name="twitter:title" content={twitterCard.title || title} />
+        <meta name="twitter:description" content={twitterCard.description || description} />
+      </>
+    )}
+
+    <!-- Defer analytics loading -->
+    <script is:inline>
+      function loadAnalytics() {
+        if (window.umami) return;
+        const script = document.createElement('script');
+        script.defer = true;
+        script.src = 'https://cloud.umami.is/script.js';
+        script.setAttribute('data-website-id', 'e903c81c-e76f-4af1-9b51-8f919c421666');
+        document.head.appendChild(script);
+      }
+      
+      ['mousedown', 'touchstart', 'scroll'].forEach(event => {
+        document.addEventListener(event, loadAnalytics, { once: true, passive: true });
+      });
+      
+      setTimeout(loadAnalytics, 3000);
+    </script>
+
+    <!-- Critical CSS only -->
+    <style is:inline>
+      html { font-size: 17px; scroll-behavior: smooth; }
+      body { 
+        font-size: 17px; 
+        -webkit-font-smoothing: antialiased; 
+        -moz-osx-font-smoothing: grayscale; 
+      }
+      .shadow-card { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08); }
+    </style>
+    
+    <!-- Load main CSS asynchronously -->
+    <link rel="preload" href="/styles/main-optimized.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="/styles/main-optimized.css" /></noscript>
+    
+    <slot name="head" />
+  </head>
+  <body class="bg-light font-sans flex flex-col min-h-screen">
+    <Header />
+    <main class="flex-1 container mx-auto px-4 pb-16 max-w-none">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

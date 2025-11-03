@@ -1,0 +1,28 @@
+/* Optimized CSS - Minimal and efficient */
+
+/* Firefox font improvements */
+@-moz-document url-prefix() {
+  body { font-size: 17px; font-weight: 400; }
+  h1, h2, h3, h4, h5, h6 { font-weight: 600; }
+  .font-medium { font-weight: 500; }
+}
+
+/* Essential utilities */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Smooth transitions */
+.transition-colors { transition: color 0.2s ease, background-color 0.2s ease; }
+.transition-shadow { transition: box-shadow 0.2s ease; }
+
+/* Card shadow */
+.shadow-card { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08); }
+.shadow-lg { box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); }
+
+/* Print styles */
+@media print {
+  .no-print { display: none !important; }
+}
