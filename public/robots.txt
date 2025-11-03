@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://vetlist.org/sitemap-index.xml
+
+# Block admin and API endpoints
+Disallow: /admin/
+Disallow: /api/

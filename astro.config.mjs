@@ -5,6 +5,7 @@ import tailwind from '@astrojs/tailwind';
 export default defineConfig({
   output: 'static',
   site: 'https://vetlist.org', // Required for sitemap generation
+  trailingSlash: 'always', // Ensure consistent trailing slashes
   build: { 
     assets: 'assets',
     inlineStylesheets: 'never', // Never inline CSS - keep as external files

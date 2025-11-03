@@ -6,6 +6,12 @@
   NODE_VERSION = "20"
 
 [[redirects]]
+  from = "https://www.vetlist.org/*"
+  to = "https://vetlist.org/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/*"
-  to = "/index.html"
-  status = 200 
+  to = "/404.html"
+  status = 404

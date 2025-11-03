@@ -1,1 +1,7 @@
-/*  /  301
+# Redirect www to non-www
+https://www.vetlist.org/* https://vetlist.org/:splat 301!
+
+# Astro and Vercel will handle trailing slash enforcement automatically
+
+# SPA fallback for 404s only
+/*  /404.html  404
