@@ -361,6 +361,51 @@ export async function fetchLocationsDetails() {
 }
 
 /**
+ * Fetch popular veterinarians from CSV file
+ * @returns {Promise<Array>} - Popular vets data
+ */
+export async function fetchPopularVets() {
+  const dataDir = path.join(__dirname, '..', '..', 'data');
+  const popularVetsPath = path.join(dataDir, 'popular_vets.csv');
+  
+  try {
+    const popularVetsData = await loadCsvFile(popularVetsPath);
+    console.log(`supabase.js: Loaded ${popularVetsData.length} popular vets from CSV`);
+    
+    // Get all professionals to match with popular vets for complete data
+    const allProfiles = await fetchAllProfessionals();
+    
+    // Match popular vets with full profile data
+    const popularVetsWithData = popularVetsData.map(popularVet => {
+      // Find matching profile in the main data
+      const matchingProfile = allProfiles.find(profile => 
+        profile.id == popularVet.id || 
+        profile.name === popularVet.name ||
+        (profile.city?.toLowerCase() === popularVet.city?.toLowerCase() && 
+         profile.name?.toLowerCase().includes(popularVet.name?.toLowerCase().split(' ')[0]))
+      );
+      
+      return {
+        name: popularVet.name,
+        slug: popularVet.slug,
+        picture: matchingProfile?.picture || popularVet.picture || null,
+        rating: parseFloat(popularVet.rating) || matchingProfile?.rating || 4.8,
+        city: popularVet.city,
+        state: popularVet.state || popularVet.province,
+        province: popularVet.province,
+        country: popularVet.country
+      };
+    });
+    
+    console.log(`supabase.js: Matched ${popularVetsWithData.filter(v => v.picture).length} popular vets with pictures`);
+    return popularVetsWithData;
+  } catch (error) {
+    console.warn('Failed to load popular vets CSV:', error.message);
+    return [];
+  }
+}
+
+/**
  * Configure the data loading options
  * @param {Object} config - Configuration options
  */

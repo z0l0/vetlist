@@ -12,5 +12,5 @@ Sitemap: https://vetlist.org/sitemap-index.xml
 Disallow: /admin/
 Disallow: /api/
 
-# Crawl delay to prevent overwhelming the server
-Crawl-delay: 1
+# Note: Googlebot ignores crawl-delay, but other bots may respect it
+# For Googlebot rate limiting, use Google Search Console settings instead
