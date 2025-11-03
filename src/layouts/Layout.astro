@@ -7,6 +7,7 @@ interface Props {
   description?: string;
   openGraph?: any;
   twitterCard?: any;
+  noindex?: boolean;
 }
 
 const {
@@ -14,6 +15,7 @@ const {
   description = "Find the best veterinarians in your area with VetList.org",
   openGraph,
   twitterCard,
+  noindex = false,
 } = Astro.props;
 // Ensure canonical URL matches trailingSlash config
 let pathname = Astro.url.pathname;
@@ -33,6 +35,11 @@ const canonicalURL = new URL(pathname, "https://vetlist.org").toString();
     <title>{title} | VetList.org</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
+    
+    <!-- Conditional noindex for low-quality content -->
+    {noindex && (
+      <meta name="robots" content="noindex, follow" />
+    )}
     <!-- Preconnect to external domains -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

@@ -52,14 +52,38 @@ export async function getStaticPaths() {
     console.log(`[profile].astro getStaticPaths: Processing ${allProfiles.length} profiles for page generation`);
     
     const profilesByPath = new Map();
-    const profilesForPages = allProfiles.filter(profile => 
-      profile.include_in_pages !== false && 
-      profile.name_slug && 
-      profile.name_slug.trim() !== '' && 
-      profile.country_slug && 
-      profile.province_slug && 
-      profile.city_slug
-    );
+    const profilesForPages = allProfiles.filter(profile => {
+      // Basic requirements (existing)
+      if (profile.include_in_pages === false || 
+          !profile.name_slug || 
+          profile.name_slug.trim() === '' || 
+          !profile.country_slug || 
+          !profile.province_slug || 
+          !profile.city_slug) {
+        return false;
+      }
+      
+      // Content quality requirements to reduce "Crawled - not indexed" issues
+      const hasDescription = profile.description && profile.description.length > 50;
+      const hasDetailedDescription = profile.detailed_description && profile.detailed_description.length > 100;
+      const hasContact = profile.phone_number || profile.website || profile.email_address;
+      const hasAddress = profile.address && profile.address.length > 10;
+      const hasHours = profile.hours_of_operation;
+      const hasSpecializations = profile.specialization && Array.isArray(profile.specialization) && profile.specialization.length > 0;
+      
+      // Quality score calculation
+      let qualityScore = 0;
+      if (hasDescription) qualityScore += 1;
+      if (hasDetailedDescription) qualityScore += 2;
+      if (hasContact) qualityScore += 1;
+      if (hasAddress) qualityScore += 1;
+      if (hasHours) qualityScore += 1;
+      if (hasSpecializations) qualityScore += 1;
+      if (profile.rating && profile.rating > 0) qualityScore += 1;
+      
+      // Only create pages for profiles with quality score >= 3
+      return qualityScore >= 3;
+    });
     
     console.log(`[profile].astro getStaticPaths: ${profilesForPages.length} profiles are flagged for page generation`);
     

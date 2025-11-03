@@ -1,9 +1,16 @@
 User-agent: *
 Allow: /
 
+# Prioritize important sections
+Allow: /united-states/
+Allow: /canada/
+
 # Sitemaps
 Sitemap: https://vetlist.org/sitemap-index.xml
 
 # Block admin and API endpoints
 Disallow: /admin/
 Disallow: /api/
+
+# Crawl delay to prevent overwhelming the server
+Crawl-delay: 1
