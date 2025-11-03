@@ -3,13 +3,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "astro",
-  "redirects": [
-    {
-      "source": "https://www.vetlist.org/(.*)",
-      "destination": "https://vetlist.org/$1",
-      "permanent": true
-    }
-  ],
   "trailingSlash": true,
   "routes": [
     { "handle": "filesystem" },
