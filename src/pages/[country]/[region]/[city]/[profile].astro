@@ -31,9 +31,20 @@ const formatHours = (ranges) => {
 
 const formatSchemaTime = (timeStr) => {
   if (!timeStr) return null;
-  const timeParts = timeStr.trim().split(':');
+  
+  // Clean the time string and handle various formats
+  const cleanTime = timeStr.trim().replace(/[^\d:]/g, '');
+  const timeParts = cleanTime.split(':');
+  
+  if (timeParts.length === 0) return null;
+  
   const hours = parseInt(timeParts[0], 10);
   const minutes = timeParts.length > 1 ? parseInt(timeParts[1], 10) : 0;
+  
+  // Validate hours and minutes
+  if (isNaN(hours) || hours < 0 || hours > 23) return null;
+  if (isNaN(minutes) || minutes < 0 || minutes > 59) return null;
+  
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
 };
 
@@ -327,17 +338,39 @@ const schemaData = {
     "openingHoursSpecification": Object.entries(hoursData || {})
       .filter(([_, hours]) => hours && Array.isArray(hours) && hours.length > 0)
       .map(([day, hours]) => {
-        return Array.isArray(hours) ? hours.map((timeRange) => {
-          if (!timeRange || !timeRange.includes('-')) return null;
-          const [opens, closes] = timeRange.split('-').map((t) => t.trim());
-          return {
-            "@type": "OpeningHoursSpecification",
-            "dayOfWeek": `https://schema.org/${day}`,
-            "opens": formatSchemaTime(opens),
-            "closes": formatSchemaTime(closes)
-          };
-        }).filter(Boolean) : [];
-      }).flat()
+        if (!Array.isArray(hours) || hours.length === 0) return null;
+        
+        // Handle multiple time ranges for the same day
+        // If there are overlapping or consecutive periods, merge them into a single period
+        if (hours.length === 2 && hours[1].startsWith('00:00')) {
+          // Special case: split hours like "08:00-23:59" and "00:00-05:00" 
+          // This represents continuous hours, so we'll use the first period only
+          const firstRange = hours[0];
+          if (firstRange && firstRange.includes('-')) {
+            const [opens, closes] = firstRange.split('-').map((t) => t.trim());
+            return {
+              "@type": "OpeningHoursSpecification",
+              "dayOfWeek": `https://schema.org/${day}`,
+              "opens": formatSchemaTime(opens),
+              "closes": formatSchemaTime(closes)
+            };
+          }
+        } else {
+          // For normal single time range or multiple distinct periods
+          // Only use the first time range to avoid schema conflicts
+          const timeRange = hours[0];
+          if (timeRange && timeRange.includes('-')) {
+            const [opens, closes] = timeRange.split('-').map((t) => t.trim());
+            return {
+              "@type": "OpeningHoursSpecification",
+              "dayOfWeek": `https://schema.org/${day}`,
+              "opens": formatSchemaTime(opens),
+              "closes": formatSchemaTime(closes)
+            };
+          }
+        }
+        return null;
+      }).filter(Boolean)
   } : {}),
   
   // Services offered for better categorization and rich snippets

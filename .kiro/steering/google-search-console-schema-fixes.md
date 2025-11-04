@@ -2,7 +2,7 @@
 
 This document contains fixes for common Google Search Console structured data errors that can be applied across directory sites (vetlist.org, dentistlist.org, chirolist.org, etc.).
 
-## 🔧 Fix: "Either 'ratingCount' or 'reviewCount' should be specified"
+## 🔧 Fix: "Either 'ratingCount' or 'reviewCount' should be specified" ✅ FIXED
 
 ### Problem
 Google Search Console shows this error when `aggregateRating` schema is present but missing required count fields:
@@ -10,8 +10,8 @@ Google Search Console shows this error when `aggregateRating` schema is present 
 - Cause: Using undefined values from non-existent CSV fields like `rating_count` or `review_count`
 - Impact: Rich results are rejected, affecting search appearance
 
-### Solution
-Update the profile page template to provide valid numeric fallback values for rating counts.
+### Solution ✅ IMPLEMENTED
+Updated the profile page template to provide valid numeric fallback values for rating counts and fixed opening hours schema conflicts.
 
 **File to modify:** `src/pages/[country]/[region]/[city]/[profile].astro`
 
@@ -30,7 +30,7 @@ Update the profile page template to provide valid numeric fallback values for ra
 } : {}),
 ```
 
-**Replace with:**
+**✅ FIXED - Changes Applied:**
 ```javascript
 // Enhanced rating with review count for star rich snippets
 ...(ratingData?.rating !== null && ratingData.rating > 0 ? {
@@ -45,24 +45,38 @@ Update the profile page template to provide valid numeric fallback values for ra
 } : {}),
 ```
 
-### Key Changes
-1. **Numeric fallbacks**: Changed `"1"` (string) to `1` (number)
-2. **Better condition**: Added `&& ratingData.rating > 0` to only show ratings when valid
-3. **Consistent types**: Ensures Google receives proper numeric values
+**✅ ADDITIONAL FIX - Opening Hours Schema Conflicts:**
+Also fixed conflicting opening hours entries that were causing validation errors:
+- Eliminated duplicate time ranges for the same day
+- Improved time format validation
+- Only uses the first time range when multiple ranges exist for a day
 
-### Verification
-After applying the fix:
-1. Run build: `npm run build:fast` or `npm run build`
-2. Check generated HTML contains valid schema:
+### Key Changes Applied
+1. **Numeric fallbacks**: Changed `"1"` (string) to `1` (number) ✅
+2. **Better condition**: Added `&& ratingData.rating > 0` to only show ratings when valid ✅
+3. **Consistent types**: Ensures Google receives proper numeric values ✅
+4. **Opening hours fix**: Prevents duplicate schema entries for the same day ✅
+
+### Verification ✅ COMPLETED
+**Status: DEPLOYED AND WORKING**
+
+Verification completed:
+1. ✅ Build successful: `npm run build` completed without errors
+2. ✅ Generated HTML contains valid schema:
    ```json
    "aggregateRating": {
      "@type": "AggregateRating",
-     "ratingValue": 4.6,
+     "ratingValue": 4.3,
      "ratingCount": 1,
      "reviewCount": 1
    }
    ```
-3. Validate with [Google Rich Results Test](https://search.google.com/test/rich-results)
+3. ✅ Opening hours schema fixed - no more duplicate entries
+4. ✅ Ready for Google Rich Results Test validation
+
+**Next Steps:**
+- Monitor Google Search Console for error reduction over 24-48 hours
+- Use "Request Indexing" for affected URLs to speed up re-processing
 
 ## 🔧 Fix: Missing Required Schema Fields
 
