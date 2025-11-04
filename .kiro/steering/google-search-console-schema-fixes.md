@@ -1,6 +1,18 @@
 # Google Search Console Schema.org Fixes
 
-This document contains fixes for common Google Search Console structured data errors that can be applied across directory sites (vetlist.org, dentistlist.org, chirolist.org, etc.).
+This document contains proven fixes for common Google Search Console structured data errors that can be applied across all directory sites (vetlist.org, dentistlist.org, chirolist.org, etc.).
+
+## 🎯 Quick Fix Checklist
+
+For new directory sites, apply these fixes in order:
+
+1. **Rating Count Fix** - Fix "Either 'ratingCount' or 'reviewCount' should be specified"
+2. **Opening Hours Fix** - Fix conflicting time ranges for the same day
+3. **Schema Type Update** - Change profession-specific schema types
+4. **Service Categories** - Update service category names
+5. **Build & Test** - Verify fixes work correctly
+
+---
 
 ## 🔧 Fix: "Either 'ratingCount' or 'reviewCount' should be specified" ✅ FIXED
 
@@ -14,6 +26,8 @@ Google Search Console shows this error when `aggregateRating` schema is present 
 Updated the profile page template to provide valid numeric fallback values for rating counts and fixed opening hours schema conflicts.
 
 **File to modify:** `src/pages/[country]/[region]/[city]/[profile].astro`
+
+### Step 1: Fix Rating Count Schema
 
 **Find this code block:**
 ```javascript
@@ -45,17 +59,113 @@ Updated the profile page template to provide valid numeric fallback values for r
 } : {}),
 ```
 
-**✅ ADDITIONAL FIX - Opening Hours Schema Conflicts:**
-Also fixed conflicting opening hours entries that were causing validation errors:
-- Eliminated duplicate time ranges for the same day
-- Improved time format validation
-- Only uses the first time range when multiple ranges exist for a day
+### Step 2: Fix Opening Hours Schema Conflicts
+
+**Find this code block:**
+```javascript
+// Opening hours with enhanced format for rich snippets
+...(hoursData ? {
+  "openingHoursSpecification": Object.entries(hoursData || {})
+    .filter(([_, hours]) => hours && Array.isArray(hours) && hours.length > 0)
+    .map(([day, hours]) => {
+      return Array.isArray(hours) ? hours.map((timeRange) => {
+        if (!timeRange || !timeRange.includes('-')) return null;
+        const [opens, closes] = timeRange.split('-').map((t) => t.trim());
+        return {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": `https://schema.org/${day}`,
+          "opens": formatSchemaTime(opens),
+          "closes": formatSchemaTime(closes)
+        };
+      }).filter(Boolean) : [];
+    }).flat()
+} : {}),
+```
+
+**Replace with:**
+```javascript
+// Opening hours with enhanced format for rich snippets
+...(hoursData ? {
+  "openingHoursSpecification": Object.entries(hoursData || {})
+    .filter(([_, hours]) => hours && Array.isArray(hours) && hours.length > 0)
+    .map(([day, hours]) => {
+      if (!Array.isArray(hours) || hours.length === 0) return null;
+      
+      // Handle multiple time ranges for the same day
+      // If there are overlapping or consecutive periods, merge them into a single period
+      if (hours.length === 2 && hours[1].startsWith('00:00')) {
+        // Special case: split hours like "08:00-23:59" and "00:00-05:00" 
+        // This represents continuous hours, so we'll use the first period only
+        const firstRange = hours[0];
+        if (firstRange && firstRange.includes('-')) {
+          const [opens, closes] = firstRange.split('-').map((t) => t.trim());
+          return {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": `https://schema.org/${day}`,
+            "opens": formatSchemaTime(opens),
+            "closes": formatSchemaTime(closes)
+          };
+        }
+      } else {
+        // For normal single time range or multiple distinct periods
+        // Only use the first time range to avoid schema conflicts
+        const timeRange = hours[0];
+        if (timeRange && timeRange.includes('-')) {
+          const [opens, closes] = timeRange.split('-').map((t) => t.trim());
+          return {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": `https://schema.org/${day}`,
+            "opens": formatSchemaTime(opens),
+            "closes": formatSchemaTime(closes)
+          };
+        }
+      }
+      return null;
+    }).filter(Boolean)
+} : {}),
+```
+
+### Step 3: Improve Time Format Validation
+
+**Find this function:**
+```javascript
+const formatSchemaTime = (timeStr) => {
+  if (!timeStr) return null;
+  const timeParts = timeStr.trim().split(':');
+  const hours = parseInt(timeParts[0], 10);
+  const minutes = timeParts.length > 1 ? parseInt(timeParts[1], 10) : 0;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+};
+```
+
+**Replace with:**
+```javascript
+const formatSchemaTime = (timeStr) => {
+  if (!timeStr) return null;
+  
+  // Clean the time string and handle various formats
+  const cleanTime = timeStr.trim().replace(/[^\d:]/g, '');
+  const timeParts = cleanTime.split(':');
+  
+  if (timeParts.length === 0) return null;
+  
+  const hours = parseInt(timeParts[0], 10);
+  const minutes = timeParts.length > 1 ? parseInt(timeParts[1], 10) : 0;
+  
+  // Validate hours and minutes
+  if (isNaN(hours) || hours < 0 || hours > 23) return null;
+  if (isNaN(minutes) || minutes < 0 || minutes > 59) return null;
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+};
+```
 
 ### Key Changes Applied
 1. **Numeric fallbacks**: Changed `"1"` (string) to `1` (number) ✅
 2. **Better condition**: Added `&& ratingData.rating > 0` to only show ratings when valid ✅
 3. **Consistent types**: Ensures Google receives proper numeric values ✅
 4. **Opening hours fix**: Prevents duplicate schema entries for the same day ✅
+5. **Time validation**: Improved time format parsing and validation ✅
 
 ### Verification ✅ COMPLETED
 **Status: DEPLOYED AND WORKING**
@@ -144,16 +254,29 @@ Update service categories in `makesOffer` section:
 }))
 ```
 
-## 📋 Implementation Checklist
+## 📋 Complete Implementation Checklist
 
 When applying these fixes to a new directory site:
 
-1. **Update schema type**: Change `@type` from `VeterinaryCare` to appropriate profession
-2. **Fix rating counts**: Apply the numeric fallback fix
-3. **Update service categories**: Change category names to match profession
-4. **Test build**: Run `npm run build:fast` to verify no errors
-5. **Validate schema**: Use Google Rich Results Test
-6. **Monitor GSC**: Check Google Search Console for error reduction
+### Phase 1: Core Schema Fixes
+1. **✅ Fix rating counts**: Apply the numeric fallback fix (Step 1)
+2. **✅ Fix opening hours**: Apply the duplicate time range fix (Step 2) 
+3. **✅ Improve time validation**: Apply the enhanced formatSchemaTime function (Step 3)
+4. **✅ Test build**: Run `npm run build:fast` to verify no errors
+
+### Phase 2: Profession-Specific Updates
+5. **Update schema type**: Change `@type` from `VeterinaryCare` to appropriate profession
+6. **Update service categories**: Change category names to match profession
+7. **Update meta descriptions**: Change "veterinary" to appropriate profession terms
+
+### Phase 3: Validation & Deployment
+8. **Validate schema**: Use Google Rich Results Test
+9. **Deploy changes**: Run full production build
+10. **Monitor GSC**: Check Google Search Console for error reduction over 24-48 hours
+
+### Phase 4: Force Re-indexing (Optional)
+11. **Request indexing**: Use Google Search Console "Request Indexing" for affected URLs
+12. **Submit sitemap**: Ensure updated sitemap is submitted to GSC
 
 ## 🚨 Common Mistakes to Avoid
 
@@ -163,14 +286,42 @@ When applying these fixes to a new directory site:
 4. **Wrong schema type**: Use profession-appropriate @type values
 5. **Missing required fields**: Always include name, address, and telephone
 
-## 🔄 Replication Instructions
+## 🔄 Replication Instructions for New Directory Sites
 
-To apply these fixes to a new directory site:
+### Quick Setup for New Sites
 
 1. **Copy this document** to the new project's `.kiro/steering/` folder
 2. **Find the profile template**: Usually `src/pages/[country]/[region]/[city]/[profile].astro`
-3. **Apply the rating fix**: Replace the aggregateRating code block
-4. **Update profession terms**: Change schema @type and service categories
-5. **Test and validate**: Build and check with Google tools
+3. **Apply all three fixes**:
+   - Step 1: Rating count fix (aggregateRating section)
+   - Step 2: Opening hours fix (openingHoursSpecification section)  
+   - Step 3: Time validation fix (formatSchemaTime function)
+4. **Update profession-specific terms**:
+   - Change `@type` from `VeterinaryCare` to appropriate type
+   - Update service categories from "Veterinary Care" to profession-specific
+5. **Test and validate**: Build and check with Google Rich Results Test
+
+### Profession-Specific Schema Types
+
+| Site Type | Schema @type | Service Category |
+|-----------|-------------|------------------|
+| VetList | `VeterinaryCare` | `Veterinary Care` |
+| DentistList | `Dentist` | `Dental Care` |
+| ChiroList | `MedicalBusiness` | `Chiropractic Care` |
+| General Medical | `MedicalBusiness` | `Medical Care` |
+
+### Expected Results After Fix
+
+✅ **Before Fix Issues:**
+- "Either 'ratingCount' or 'reviewCount' should be specified"
+- Duplicate opening hours entries causing validation failures
+- String values instead of numbers in rating counts
+
+✅ **After Fix Results:**
+- Clean, valid JSON-LD schema
+- Single opening hours entry per day
+- Numeric rating count values
+- Google Rich Results Test passes
+- Reduced GSC structured data errors
 
 This ensures consistent, Google-compliant structured data across all directory sites.
