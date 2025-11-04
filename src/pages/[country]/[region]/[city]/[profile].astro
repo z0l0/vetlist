@@ -354,14 +354,14 @@ const schemaData = {
   } : {}),
   
   // Enhanced rating with review count for star rich snippets
-  ...(ratingData?.rating !== null ? {
+  ...(ratingData?.rating !== null && ratingData.rating > 0 ? {
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": ratingData.rating,
       "bestRating": "5",
       "worstRating": "1",
-      "ratingCount": profileData.rating_count || "1",
-      "reviewCount": profileData.review_count || profileData.rating_count || "1"
+      "ratingCount": profileData.rating_count || 1,
+      "reviewCount": profileData.review_count || profileData.rating_count || 1
     }
   } : {}),
   
