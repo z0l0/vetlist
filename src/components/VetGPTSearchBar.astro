@@ -50,8 +50,7 @@
   .vetgpt-search-container {
     position: relative;
     width: 100%;
-    max-width: 600px;
-    margin: 0 auto;
+    margin: 0;
   }
 
   /* Search Bar Styling */
@@ -65,11 +64,12 @@
     align-items: center;
     background: white;
     border: 2px solid #e2e8f0;
-    border-radius: 25px;
-    padding: 12px 20px;
+    border-radius: 8px;
+    padding: 10px 16px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     transition: all 0.3s ease;
     cursor: pointer;
+    width: 100%;
   }
 
   .search-input-wrapper:hover {
@@ -87,10 +87,16 @@
     flex: 1;
     border: none;
     outline: none;
-    font-size: 16px;
+    font-size: 14px;
     color: #374151;
     background: transparent;
     cursor: pointer;
+  }
+
+  @media (min-width: 640px) {
+    .search-input {
+      font-size: 16px;
+    }
   }
 
   .search-input::placeholder {
@@ -199,11 +205,23 @@
     }
     
     .search-input-wrapper {
-      padding: 10px 16px;
+      padding: 10px 12px;
+      border-radius: 8px;
     }
     
     .search-input {
       font-size: 14px;
+    }
+
+    .search-icon {
+      font-size: 18px;
+      margin-right: 8px;
+    }
+
+    .ai-badge {
+      padding: 3px 6px;
+      font-size: 10px;
+      margin-left: 6px;
     }
   }
 </style>

@@ -50,10 +50,17 @@ if (pathSegments.length === 1) {
     placeholder: `Search veterinarians in ${cityName}`,
     searchType: "profiles",
   };
+} else if (pathSegments.length === 4) {
+  // Profile page: /canada/ontario/toronto/vet-name
+  pageType = "profile";
+  searchContext = {
+    placeholder: "Search vets, specialties, locations...",
+    searchType: "general",
+  };
 }
 
-// Default to homepage search if not a location page
-if (!["country", "region", "city"].includes(pageType)) {
+// Default to homepage search if not a location or profile page
+if (!["country", "region", "city", "profile"].includes(pageType)) {
   pageType = "homepage";
   searchContext = {
     placeholder: "Search vets, specialties, locations...",
@@ -101,8 +108,8 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
 
       <!-- Veterinary Search - Takes up most of the space -->
       <div class="flex-1 mx-4 relative">
-        {isHomepage ? (
-          <!-- VetGPT Smart Search for Homepage -->
+        {(isHomepage || pageType === "profile") ? (
+          <!-- VetGPT Smart Search for Homepage and Profile Pages -->
           <VetGPTSearchBar />
         ) : (
           <!-- Regular Search for Other Pages -->
@@ -369,9 +376,9 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
       // Get page context from data attributes
       const pageType = searchInput.dataset.pageType;
       const searchType = searchInput.dataset.searchType;
-      const country = searchInput.dataset.country;
-      const region = searchInput.dataset.region;
-      const city = searchInput.dataset.city;
+      const country = searchInput.dataset.country || "";
+      const region = searchInput.dataset.region || "";
+      const city = searchInput.dataset.city || "";
 
       console.log("Header search initialized for:", {
         pageType,
@@ -382,7 +389,7 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
       });
 
       // For location pages, use local search instead of Algolia
-      if (["country", "region", "city"].includes(pageType)) {
+      if (pageType && ["country", "region", "city"].includes(pageType)) {
         initializeLocationSearch(searchInput, pageType, {
           country,
           region,
@@ -1031,10 +1038,12 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
 
   // Initialize header search when DOM is ready
   document.addEventListener("DOMContentLoaded", function () {
-    // Only initialize regular search functionality if not on homepage
+    // Only initialize regular search functionality if not on homepage or profile pages
     const isHomepage = window.location.pathname === "/";
+    const pathSegments = window.location.pathname.split("/").filter(Boolean);
+    const isProfilePage = pathSegments.length === 4;
     
-    if (!isHomepage) {
+    if (!isHomepage && !isProfilePage) {
       initializeSearchFlashBadge();
       setTimeout(() => {
         initializeHeaderVetSearch();
