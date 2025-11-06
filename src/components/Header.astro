@@ -1,4 +1,6 @@
 ---
+import VetGPTSearchBar from './VetGPTSearchBar.astro';
+
 // Check page type based on URL pattern
 const pathname = Astro.url.pathname;
 const isHomepage = pathname === "/";
@@ -99,53 +101,59 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
 
       <!-- Veterinary Search - Takes up most of the space -->
       <div class="flex-1 mx-4 relative">
-        <div class="relative">
-          <!-- NEW Search Badge - Animated Flash -->
-          <div
-            id="search-flash-badge"
-            class="absolute -top-2 left-3 inline-flex items-center gap-2 px-2.5 py-1 bg-primary-500/95 backdrop-blur-sm rounded-full border-2 border-primary-400 shadow-lg z-10 transition-all duration-500 opacity-0"
-            style="transform: scale(0.8); width: 140px; height: 28px;"
-          >
-            <div class="w-1.5 h-1.5 bg-primary-200 rounded-full"></div>
-            <span class="text-white text-xs font-semibold"
-              >Try the NEW search!</span
+        {isHomepage ? (
+          <!-- VetGPT Smart Search for Homepage -->
+          <VetGPTSearchBar />
+        ) : (
+          <!-- Regular Search for Other Pages -->
+          <div class="relative">
+            <!-- NEW Search Badge - Animated Flash -->
+            <div
+              id="search-flash-badge"
+              class="absolute -top-2 left-3 inline-flex items-center gap-2 px-2.5 py-1 bg-primary-500/95 backdrop-blur-sm rounded-full border-2 border-primary-400 shadow-lg z-10 transition-all duration-500 opacity-0"
+              style="transform: scale(0.8); width: 140px; height: 28px;"
             >
-          </div>
+              <div class="w-1.5 h-1.5 bg-primary-200 rounded-full"></div>
+              <span class="text-white text-xs font-semibold"
+                >Try the NEW search!</span
+              >
+            </div>
 
-          <input
-            type="text"
-            id="header-vet-search"
-            placeholder={searchContext.placeholder ||
-              "Search vets, specialties, locations..."}
-            class="w-full px-4 py-2.5 pr-12 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-800 placeholder-gray-500 text-sm sm:text-base bg-gray-50 focus:bg-white transition-all duration-300 hover:border-primary-300"
-            autocomplete="off"
-            data-page-type={pageType}
-            data-search-type={searchContext.searchType}
-            data-country={searchContext.country || ""}
-            data-region={searchContext.region || ""}
-            data-city={searchContext.city || ""}
-          />
+            <input
+              type="text"
+              id="header-vet-search"
+              placeholder={searchContext.placeholder ||
+                "Search vets, specialties, locations..."}
+              class="w-full px-4 py-2.5 pr-12 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-800 placeholder-gray-500 text-sm sm:text-base bg-gray-50 focus:bg-white transition-all duration-300 hover:border-primary-300"
+              autocomplete="off"
+              data-page-type={pageType}
+              data-search-type={searchContext.searchType}
+              data-country={searchContext.country || ""}
+              data-region={searchContext.region || ""}
+              data-city={searchContext.city || ""}
+            />
 
-          <!-- Search Icon -->
-          <div
-            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-600"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="w-5 h-5"
+            <!-- Search Icon -->
+            <div
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-600"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-              ></path>
-            </svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                class="w-5 h-5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+                ></path>
+              </svg>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <!-- Hamburger Menu Button -->
@@ -1023,9 +1031,14 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
 
   // Initialize header search when DOM is ready
   document.addEventListener("DOMContentLoaded", function () {
-    initializeSearchFlashBadge();
-    setTimeout(() => {
-      initializeHeaderVetSearch();
-    }, 100);
+    // Only initialize regular search functionality if not on homepage
+    const isHomepage = window.location.pathname === "/";
+    
+    if (!isHomepage) {
+      initializeSearchFlashBadge();
+      setTimeout(() => {
+        initializeHeaderVetSearch();
+      }, 100);
+    }
   });
 </script>
