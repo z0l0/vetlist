@@ -1,0 +1,14 @@
+{
+  "name": "vetlist-crm",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Simple local CRM for VetList profile management",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "papaparse": "^5.5.3"
+  }
+}
