@@ -4,7 +4,7 @@ import Hero from '../components/home/Hero.astro';
 import Features from '../components/home/Features.astro';
 import FAQ from '../components/home/FAQ.astro';
 import Testimonials from '../components/home/Testimonials.astro';
-import { fetchAllProfessionals, fetchPopularVets } from '../lib/supabase';
+import { fetchAllProfessionals, fetchPopularVets, fetchClaimedVets } from '../lib/supabase';
 
 // Fetch cities with vet data from CSV
 const allProfiles = await fetchAllProfessionals();
@@ -59,8 +59,11 @@ const fallbackCities = [
 // Use fetched cities if available, otherwise fallback
 const citiesToDisplay = popularCities.length > 0 ? popularCities : fallbackCities;
 
-// Get popular vets from CSV file with actual profile data
-const popularVets = await fetchPopularVets();
+// Get claimed vets (latest 10) - these will appear in the Popular Veterinarians section
+const claimedVets = await fetchClaimedVets();
+
+// Fallback to popular vets if no claimed vets exist
+const popularVets = claimedVets.length > 0 ? claimedVets : await fetchPopularVets();
 
 // Get statistics for hero section
 const totalVets = allProfiles ? allProfiles.length : 0;

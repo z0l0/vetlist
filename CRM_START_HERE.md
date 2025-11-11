@@ -29,10 +29,13 @@ Then open in your browser: **http://localhost:3030**
 ### 2. Edit Profiles
 - Click "Edit" on any profile
 - Update all fields (name, phone, email, address, hours, services, FAQs)
+- ✅ Check/uncheck "Mark as Claimed/Verified Listing" checkbox
 - Saves directly to CSV
 
 ### 3. Import from Email ⭐
 **This is the magic feature!**
+
+**✅ NEW: Profiles imported or edited through the CRM are automatically marked as "claimed" and will appear on the homepage with a verified badge!**
 
 Just paste your claim emails like this:
 
@@ -71,10 +74,14 @@ FREQUENTLY ASKED QUESTIONS:
 1. Paste the entire email
 2. Click "Parse Email"
 3. Review the extracted data
-4. Select which CSV file to save to
+4. Select which CSV file to save to (or update existing profile)
 5. Click "Save to CSV"
 
-Done! The profile is added with a new ID.
+Done! The profile is added/updated with:
+- ✅ Marked as "claimed"
+- ✅ Will appear on homepage
+- ✅ Gets verified badge
+- ✅ Appears first in city listings
 
 ### 4. Bulk Edit
 - Direct CSV editing for advanced users

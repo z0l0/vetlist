@@ -262,6 +262,7 @@ export async function fetchAllProfessionals(maxPerFile = DEFAULT_CONFIG.MAX_PROF
       faqs: JSON.parse(profile.faqs || '[]'), // Added for profile pages, parsed as array
       rating: parseFloat(profile.rating) || null, // Added for profile pages, parsed as float
       is_verified: profile.is_verified === 'true', // Added for related vets in profile pages
+      claimed: profile.claimed === 'true' || profile.claimed === '1', // Added for claimed listings
       include_in_pages: DEFAULT_CONFIG.LOAD_ALL_FOR_RELATIONSHIPS ? 
         // When loading all for relationships, include profiles from the limited dataset
         allData.some(p => 
@@ -401,6 +402,45 @@ export async function fetchPopularVets() {
     return popularVetsWithData;
   } catch (error) {
     console.warn('Failed to load popular vets CSV:', error.message);
+    return [];
+  }
+}
+
+/**
+ * Fetch claimed veterinarians (latest 10)
+ * @returns {Promise<Array>} - Claimed vets data
+ */
+export async function fetchClaimedVets() {
+  try {
+    // Get all professionals
+    const allProfiles = await fetchAllProfessionals();
+    
+    // Filter for claimed listings and sort by most recent (assuming higher IDs are more recent)
+    const claimedProfiles = allProfiles
+      .filter(profile => profile.claimed === true)
+      .sort((a, b) => {
+        // Sort by ID descending (most recent first)
+        const idA = parseInt(a.id) || 0;
+        const idB = parseInt(b.id) || 0;
+        return idB - idA;
+      })
+      .slice(0, 10) // Get latest 10
+      .map(profile => ({
+        name: profile.name,
+        slug: `${profile.country_slug}/${profile.province_slug}/${profile.city_slug}/${profile.name_slug}/`,
+        picture: profile.picture || null,
+        rating: profile.rating || 4.8,
+        city: profile.city,
+        state: profile.province,
+        province: profile.province,
+        country: profile.country,
+        claimed: true
+      }));
+    
+    console.log(`supabase.js: Found ${claimedProfiles.length} claimed listings`);
+    return claimedProfiles;
+  } catch (error) {
+    console.warn('Failed to fetch claimed vets:', error.message);
     return [];
   }
 }

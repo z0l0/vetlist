@@ -1,6 +1,7 @@
 ---
 import Layout from '../../../../layouts/Layout.astro';
 import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
+import VerifiedBadge from '../../../../components/VerifiedBadge.astro';
 import { getProfessionals, getProfilesForCity, getLocationDetails, getNearbyCitiesForCity } from '../../../../lib/dataCache.js';
 // Keep the direct import as fallback
 import { fetchAllProfessionals } from '../../../../lib/supabase';
@@ -99,6 +100,18 @@ if (!profiles || profiles.length === 0) {
 }
 
 console.log('Fetched', profiles.length, 'profiles for', `${country}/${region}/${city}`);
+
+// Sort profiles: claimed listings first, then by rating
+profiles.sort((a, b) => {
+  // Claimed listings always come first
+  if (a.claimed && !b.claimed) return -1;
+  if (!a.claimed && b.claimed) return 1;
+  
+  // Within same claimed status, sort by rating (highest first)
+  const ratingA = a.rating || 0;
+  const ratingB = b.rating || 0;
+  return ratingB - ratingA;
+});
 
 // Fetch location details from cache
 let locationDetails = await getLocationDetails(country, region, city);
@@ -302,6 +315,30 @@ const path = Astro.url.pathname.replace(/\/$/, '');
             {profile.name_slug ? (
               <a href={`${path}/${profile.name_slug}/`} class="flex h-32">
                 <div class="relative w-32 h-32 bg-primary-50 group-hover:bg-primary-100 flex-shrink-0">
+                  {/* Verified Badge Overlay */}
+                  {profile.claimed && (
+                    <div class="absolute top-2 left-2 z-10">
+                      <div class="relative">
+                        <div class="absolute inset-0 bg-green-400 rounded-lg blur-md opacity-50 animate-pulse"></div>
+                        <div class="relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg p-1.5 shadow-lg">
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="white" 
+                            stroke-width="2.5" 
+                            stroke-linecap="round" 
+                            stroke-linejoin="round" 
+                            class="w-5 h-5"
+                          >
+                            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+                            <path d="m9 12 2 2 4-4"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   {profile.picture ? (
                     <img 
                       src={profile.picture} 
@@ -365,6 +402,30 @@ const path = Astro.url.pathname.replace(/\/$/, '');
             ) : (
               <div class="flex h-32">
                 <div class="relative w-32 h-32 bg-primary-50 flex-shrink-0">
+                  {/* Verified Badge Overlay */}
+                  {profile.claimed && (
+                    <div class="absolute top-2 left-2 z-10">
+                      <div class="relative">
+                        <div class="absolute inset-0 bg-green-400 rounded-lg blur-md opacity-50 animate-pulse"></div>
+                        <div class="relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg p-1.5 shadow-lg">
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="white" 
+                            stroke-width="2.5" 
+                            stroke-linecap="round" 
+                            stroke-linejoin="round" 
+                            class="w-5 h-5"
+                          >
+                            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+                            <path d="m9 12 2 2 4-4"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   {profile.picture ? (
                     <img 
                       src={profile.picture} 

@@ -110,6 +110,11 @@ app.post('/edit', (req, res) => {
     // Remove internal fields before saving
     const { _rowIndex, _id, _sourceFile, ...cleanData } = formData;
     
+    // Handle claimed checkbox (if not checked, it won't be in formData)
+    if (!cleanData.claimed) {
+      cleanData.claimed = 'false';
+    }
+    
     profiles[index] = {
       ...profiles[index],
       ...cleanData
@@ -228,6 +233,7 @@ app.post('/import/save', (req, res) => {
         country: data.country,
         faqs: JSON.stringify(data.faqs),
         is_verified: '1',
+        claimed: 'true',
         updated_at: new Date().toISOString()
       };
       
@@ -268,6 +274,7 @@ app.post('/import/save', (req, res) => {
     latitude: '',
     longitude: '',
     is_verified: '1',
+    claimed: 'true',
     profile_weight: '5',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -568,6 +575,16 @@ function renderEditPage(profile, selectedFile, profileId) {
           <div class="form-group">
             <label>FAQs (JSON format)</label>
             <textarea name="faqs">${profile.faqs || ''}</textarea>
+          </div>
+
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" name="claimed" value="true" ${profile.claimed === 'true' || profile.claimed === '1' ? 'checked' : ''} style="width: auto; margin: 0;">
+              <span>✅ Mark as Claimed/Verified Listing</span>
+            </label>
+            <p style="font-size: 12px; color: #6b7280; margin: 4px 0 0 0;">
+              Claimed listings appear on the homepage and get a verified badge
+            </p>
           </div>
 
           <div class="btn-group">
