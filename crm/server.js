@@ -139,13 +139,111 @@ app.get('/import', (req, res) => {
 app.post('/import/parse', (req, res) => {
   const { email_text } = req.body;
   const parsedData = parseClaimEmail(email_text);
-  res.json(parsedData);
+  
+  // Search for matching profiles across all CSV files
+  const csvFiles = getCSVFiles();
+  const matches = [];
+  
+  csvFiles.forEach(file => {
+    const profiles = loadCSV(file);
+    profiles.forEach(profile => {
+      let matchScore = 0;
+      let matchReasons = [];
+      
+      // Check for exact name match
+      if (profile.name && parsedData.name && 
+          profile.name.toLowerCase().trim() === parsedData.name.toLowerCase().trim()) {
+        matchScore += 10;
+        matchReasons.push('Exact name match');
+      }
+      
+      // Check for phone match
+      if (profile.phone_number && parsedData.phone_number) {
+        const cleanPhone1 = profile.phone_number.replace(/[^0-9]/g, '');
+        const cleanPhone2 = parsedData.phone_number.replace(/[^0-9]/g, '');
+        if (cleanPhone1 === cleanPhone2 && cleanPhone1.length >= 10) {
+          matchScore += 8;
+          matchReasons.push('Phone number match');
+        }
+      }
+      
+      // Check for address match
+      if (profile.address && parsedData.address &&
+          profile.address.toLowerCase().includes(parsedData.address.toLowerCase().substring(0, 20))) {
+        matchScore += 5;
+        matchReasons.push('Address match');
+      }
+      
+      // Check for city + province match
+      if (profile.city && parsedData.city && profile.province && parsedData.province &&
+          profile.city.toLowerCase() === parsedData.city.toLowerCase() &&
+          profile.province.toLowerCase() === parsedData.province.toLowerCase()) {
+        matchScore += 3;
+        matchReasons.push('Location match');
+      }
+      
+      // If we have a reasonable match, add it
+      if (matchScore >= 8) {
+        matches.push({
+          profile,
+          file,
+          matchScore,
+          matchReasons
+        });
+      }
+    });
+  });
+  
+  // Sort by match score
+  matches.sort((a, b) => b.matchScore - a.matchScore);
+  
+  res.json({
+    parsedData,
+    matches: matches.slice(0, 5) // Return top 5 matches
+  });
 });
 
 app.post('/import/save', (req, res) => {
-  const { parsedData, target_file } = req.body;
+  const { parsedData, target_file, update_profile_id, update_file } = req.body;
   const data = JSON.parse(parsedData);
   
+  // If updating an existing profile
+  if (update_profile_id && update_file) {
+    const profiles = loadCSV(update_file);
+    const index = profiles.findIndex(p => p._id === update_profile_id || p.id === update_profile_id);
+    
+    if (index !== -1) {
+      // Update existing profile
+      profiles[index] = {
+        ...profiles[index],
+        name: data.name,
+        hours_of_operation: JSON.stringify(data.hours_of_operation),
+        specialization: JSON.stringify(data.specialization),
+        phone_number: data.phone_number,
+        email_address: data.email_address,
+        address: data.address,
+        website: data.website,
+        city: data.city,
+        province: data.province,
+        country: data.country,
+        faqs: JSON.stringify(data.faqs),
+        is_verified: '1',
+        updated_at: new Date().toISOString()
+      };
+      
+      // Remove internal fields before saving
+      const cleanProfiles = profiles.map(p => {
+        const { _rowIndex, _id, _sourceFile, ...clean } = p;
+        return clean;
+      });
+      
+      saveCSV(update_file, cleanProfiles);
+      res.json({ success: true, id: profiles[index].id, updated: true });
+      return;
+    }
+  }
+  
+  // Create new profile
   const profiles = loadCSV(target_file);
   const maxId = Math.max(...profiles.map(p => parseInt(p.id) || 0));
   const newId = maxId + 1;
@@ -178,9 +276,16 @@ app.post('/import/save', (req, res) => {
   };
   
   profiles.push(newProfile);
-  saveCSV(target_file, profiles);
   
-  res.json({ success: true, id: newId });
+  // Remove internal fields before saving
+  const cleanProfiles = profiles.map(p => {
+    const { _rowIndex, _id, _sourceFile, ...clean } = p;
+    return clean;
+  });
+  
+  saveCSV(target_file, cleanProfiles);
+  
+  res.json({ success: true, id: newId, updated: false });
 });
 
 app.get('/bulk-edit', (req, res) => {
@@ -502,24 +607,26 @@ function renderImportPage() {
           <textarea id="email_text" placeholder="Paste the entire claim email here..." style="min-height: 400px;"></textarea>
         </div>
 
-        <div class="form-group">
-          <label>Target CSV File</label>
-          <select id="target_file">
-            <option value="professionals.csv">professionals.csv</option>
-            <option value="professionals2.csv">professionals2.csv</option>
-            <option value="professionals3.csv">professionals3.csv</option>
-            <option value="professionals4.csv">professionals4.csv</option>
-            <option value="professionals5.csv">professionals5.csv</option>
-            <option value="professionals6.csv">professionals6.csv</option>
-            <option value="professionals7.csv">professionals7.csv</option>
-            <option value="professionals8.csv">professionals8.csv</option>
-            <option value="professionals9.csv">professionals9.csv</option>
-            <option value="professionals10.csv">professionals10.csv</option>
-          </select>
+        <button onclick="parseEmail()" style="width: 100%; padding: 12px; font-size: 16px;">🔍 Parse Email & Search All Files</button>
+        
+        <div id="targetFileSection" style="display:none; margin-top: 20px;">
+          <div class="form-group">
+            <label>Target CSV File <span style="color: #6b7280; font-size: 12px;">(Only used when creating new profiles)</span></label>
+            <select id="target_file">
+              <option value="professionals.csv">professionals.csv</option>
+              <option value="professionals2.csv">professionals2.csv</option>
+              <option value="professionals3.csv">professionals3.csv</option>
+              <option value="professionals4.csv">professionals4.csv</option>
+              <option value="professionals5.csv">professionals5.csv</option>
+              <option value="professionals6.csv">professionals6.csv</option>
+              <option value="professionals7.csv">professionals7.csv</option>
+              <option value="professionals8.csv">professionals8.csv</option>
+              <option value="professionals9.csv">professionals9.csv</option>
+              <option value="professionals10.csv">professionals10.csv</option>
+            </select>
+          </div>
+          <button onclick="saveToCSV()" id="saveBtn" class="btn-success" style="width: 100%; padding: 12px; font-size: 16px;">Save to CSV</button>
         </div>
-
-        <button onclick="parseEmail()">Parse Email</button>
-        <button onclick="saveToCSV()" id="saveBtn" style="display:none;" class="btn-success">Save to CSV</button>
       </div>
 
       <div class="panel">
@@ -533,41 +640,159 @@ function renderImportPage() {
 
   <script>
     let parsedData = null;
+    let matchedProfiles = [];
+    let selectedMatch = null;
 
     async function parseEmail() {
       const emailText = document.getElementById('email_text').value;
+      
+      if (!emailText.trim()) {
+        alert('Please paste an email first!');
+        return;
+      }
+      
       const response = await fetch('/import/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email_text: emailText })
       });
       
-      parsedData = await response.json();
-      displayPreview(parsedData);
-      document.getElementById('saveBtn').style.display = 'inline-block';
+      const result = await response.json();
+      parsedData = result.parsedData;
+      matchedProfiles = result.matches || [];
+      selectedMatch = null;
+      
+      displayPreview(parsedData, matchedProfiles);
+      document.getElementById('targetFileSection').style.display = 'block';
     }
 
     async function saveToCSV() {
       const targetFile = document.getElementById('target_file').value;
+      
+      const payload = { 
+        parsedData: JSON.stringify(parsedData),
+        target_file: targetFile
+      };
+      
+      // If updating an existing profile
+      if (selectedMatch) {
+        payload.update_profile_id = selectedMatch.profile._id || selectedMatch.profile.id;
+        payload.update_file = selectedMatch.file;
+      }
+      
       const response = await fetch('/import/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          parsedData: JSON.stringify(parsedData),
-          target_file: targetFile
-        })
+        body: JSON.stringify(payload)
       });
       
       const result = await response.json();
       if (result.success) {
-        alert('Profile added successfully! ID: ' + result.id);
+        const action = result.updated ? 'updated' : 'added';
+        alert(\`Profile \${action} successfully! ID: \${result.id}\`);
         window.location.href = '/';
       }
     }
 
-    function displayPreview(data) {
+    function selectMatch(index) {
+      selectedMatch = matchedProfiles[index];
+      
+      // Update UI to show selection
+      document.querySelectorAll('.match-card').forEach((card, i) => {
+        if (i === index) {
+          card.classList.add('selected');
+          card.style.border = '2px solid #10b981';
+          card.style.backgroundColor = '#ecfdf5';
+        } else {
+          card.classList.remove('selected');
+          card.style.border = '1px solid #e5e7eb';
+          card.style.backgroundColor = 'white';
+        }
+      });
+      
+      // Update save button text and hide target file selector
+      const saveBtn = document.getElementById('saveBtn');
+      const targetFileGroup = document.querySelector('#targetFileSection .form-group');
+      saveBtn.innerHTML = '✅ Update Existing Profile in ' + selectedMatch.file;
+      saveBtn.className = 'btn-warning';
+      targetFileGroup.style.display = 'none';
+    }
+
+    function createNew() {
+      selectedMatch = null;
+      
+      // Clear all selections
+      document.querySelectorAll('.match-card').forEach(card => {
+        card.classList.remove('selected');
+        card.style.border = '1px solid #e5e7eb';
+        card.style.backgroundColor = 'white';
+      });
+      
+      // Update save button text and show target file selector
+      const saveBtn = document.getElementById('saveBtn');
+      const targetFileGroup = document.querySelector('#targetFileSection .form-group');
+      saveBtn.textContent = '➕ Create New Profile';
+      saveBtn.className = 'btn-success';
+      targetFileGroup.style.display = 'block';
+    }
+
+    function displayPreview(data, matches) {
       const preview = document.getElementById('preview');
+      
+      let matchesHTML = '';
+      if (matches && matches.length > 0) {
+        matchesHTML = \`
+          <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 12px 0; color: #92400e;">⚠️ Found \${matches.length} Matching Profile\${matches.length > 1 ? 's' : ''} Across All CSV Files</h3>
+            <p style="margin: 0 0 16px 0; color: #78350f; font-size: 14px;">
+              <strong>The system searched all 10 CSV files automatically.</strong> Select a profile below to update it, or click "Create New Profile" to add a new entry.
+            </p>
+            
+            \${matches.map((match, index) => \`
+              <div class="match-card" style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s;" onclick="selectMatch(\${index})">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                  <div style="flex: 1;">
+                    <strong style="font-size: 16px; color: #111827;">\${match.profile.name}</strong>
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+                      <span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; margin-right: 8px; font-weight: 600;">📁 \${match.file}</span>
+                      <span style="color: #059669; font-weight: 600;">✓ Match Score: \${match.matchScore}</span>
+                    </div>
+                  </div>
+                  <button type="button" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; font-weight: 600;">
+                    Select This
+                  </button>
+                </div>
+                <div style="font-size: 13px; color: #4b5563; line-height: 1.8; background: #f9fafb; padding: 8px; border-radius: 4px; margin-top: 8px;">
+                  <div><strong>Phone:</strong> \${match.profile.phone_number || 'N/A'}</div>
+                  <div><strong>Address:</strong> \${match.profile.address || 'N/A'}</div>
+                  <div><strong>Location:</strong> \${match.profile.city || 'N/A'}, \${match.profile.province || 'N/A'}</div>
+                  <div style="color: #059669; margin-top: 6px; padding-top: 6px; border-top: 1px solid #e5e7eb;">
+                    <strong>Why matched:</strong> \${match.matchReasons.join(', ')}
+                  </div>
+                </div>
+              </div>
+            \`).join('')}
+            
+            <button type="button" onclick="createNew()" style="width: 100%; background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 15px; cursor: pointer; margin-top: 8px; font-weight: 600;">
+              ➕ No Match - Create New Profile Instead
+            </button>
+          </div>
+        \`;
+      } else {
+        matchesHTML = \`
+          <div style="background: #d1fae5; border: 2px solid #10b981; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 8px 0; color: #065f46;">✅ No Existing Profiles Found</h3>
+            <p style="margin: 0; color: #047857; font-size: 14px;">
+              Searched all 10 CSV files - no matches found. This will create a new profile.
+            </p>
+          </div>
+        \`;
+      }
+      
       preview.innerHTML = \`
+        \${matchesHTML}
+        
+        <h3 style="margin: 0 0 16px 0; color: #111827;">📋 Parsed Data from Email</h3>
         <div class="preview">
           <div class="preview-item"><strong>Practice Name:</strong> <span>\${data.name || 'N/A'}</span></div>
           <div class="preview-item"><strong>Phone:</strong> <span>\${data.phone_number || 'N/A'}</span></div>
@@ -578,7 +803,7 @@ function renderImportPage() {
           <div class="preview-item"><strong>Province:</strong> <span>\${data.province || 'N/A'}</span></div>
           <div class="preview-item"><strong>Country:</strong> <span>\${data.country || 'N/A'}</span></div>
           <div class="preview-item">
-            <strong>Services:</strong>
+            <strong>Services (\${data.specialization.length}):</strong>
             <ul class="preview-list">
               \${data.specialization.slice(0, 10).map(s => \`<li>\${s}</li>\`).join('')}
               \${data.specialization.length > 10 ? \`<li>...and \${data.specialization.length - 10} more</li>\` : ''}
@@ -595,6 +820,20 @@ function renderImportPage() {
           <div class="preview-item"><strong>FAQs:</strong> <span>\${data.faqs.length} questions parsed</span></div>
         </div>
       \`;
+      
+      // Set initial button state
+      const saveBtn = document.getElementById('saveBtn');
+      const targetFileGroup = document.querySelector('#targetFileSection .form-group');
+      
+      if (matches && matches.length > 0) {
+        saveBtn.textContent = '➕ Create New Profile';
+        saveBtn.className = 'btn-success';
+        targetFileGroup.style.display = 'block';
+      } else {
+        saveBtn.textContent = '💾 Save New Profile';
+        saveBtn.className = 'btn-success';
+        targetFileGroup.style.display = 'block';
+      }
     }
   </script>
 </body>
