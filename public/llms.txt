@@ -1,166 +1,135 @@
 # VetList.org
 
-A comprehensive veterinary directory connecting pet owners with quality veterinary care across North America.
+A veterinary directory for the United States and Canada. Pet owners use it to compare vet clinics by city, check hours, phone numbers, emergency care, services, and pricing before calling.
 
-## Site Overview
+## What the site does
 
-VetList.org is North America's premier veterinary directory featuring over 30,000 veterinary practices and professionals. The platform helps pet owners find trusted veterinarians, emergency clinics, and specialized animal care services in their area.
+VetList.org is a static directory built from scraped and enriched clinic data. It covers 77,000+ veterinary profiles across thousands of cities in the U.S. and Canada. Every clinic has a profile page with contact details, hours, open-now status (calculated client-side from the visitor's device time), services, pet types treated, emergency signals, pricing when available, and nearby alternatives.
 
-## Core Features
+The site does not have user accounts, reviews, ratings from users, or appointment booking. Ratings shown are sourced from public data (Google). There is no login, no paywall, and no advertising.
 
-- **Comprehensive Directory**: 30,000+ veterinary practices across the United States and Canada
-- **Location-Based Search**: Find veterinarians by city, state/province, and postal code
-- **Professional Profiles**: Detailed information about veterinary practices including services, contact details, and specializations
-- **Emergency Care Locator**: Quick access to emergency veterinary services
-- **Specialization Filtering**: Search by veterinary specialties and services offered
-- **User Reviews and Ratings**: Community-driven feedback on veterinary practices
+## Site structure
 
-## Site Structure and Navigation
+### Page hierarchy
+- **Homepage**: `/` — care-need navigation, popular cities, verified clinics, FAQ
+- **Country**: `/{country}/` — e.g. `/united-states/`, `/canada/`
+- **Region**: `/{country}/{region}/` — e.g. `/united-states/california/`, `/canada/ontario/`
+- **City**: `/{country}/{region}/{city}/` — e.g. `/canada/ontario/toronto/`
+- **Profile**: `/{country}/{region}/{city}/{clinic-slug}/` — e.g. `/canada/ontario/toronto/some-vet-clinic/`
 
-### Main Pages
-- **Homepage**: `/` - Main landing page with search functionality and featured listings
-- **About**: `/about` - Information about VetList.org's mission and services
-- **Contact**: `/contact` - Contact information and inquiry forms
-- **Add Veterinarian**: `/add-vet` - Form for veterinarians to add their practice
-- **Claim Clinic**: `/claim-clinic` - Process for veterinarians to claim existing listings
-- **Careers**: `/careers` - Employment opportunities
+### Other pages
+- `/about/` — about VetList
+- `/contact/` — contact form
+- `/add-vet/` — form for clinics to submit a new listing (noindexed)
+- `/claim-clinic/` — form for clinic owners to claim an existing listing (noindexed)
+- `/privacy/` — privacy policy
+- `/terms/` — terms of service
 
+## What each page type shows
 
-### Directory Structure
-- **Country Level**: `/{country-slug}/` (e.g., `/united-states/`, `/canada/`)
-- **State/Province Level**: `/{country-slug}/{state-province-slug}/` (e.g., `/united-states/california/`, `/canada/ontario/`)
-- **City Level**: `/{country-slug}/{state-province-slug}/{city-slug}/` (e.g., `/united-states/california/los-angeles/`)
-- **Individual Practices**: `/{country-slug}/{state-province-slug}/{city-slug}/{practice-slug}` (e.g., `/united-states/california/los-angeles/westside-animal-hospital`)
+### Homepage
+- Hero with total clinic and city counts
+- Popular US and Canadian city links with clinic counts
+- Verified clinic picks with ratings
+- Care-need cards (emergency, online booking, exotic pets, language support) linking to top cities for each need
+- Data proof section (emergency count, digital access count, city count, pricing count)
+- Browse by region and city
+- FAQ with schema markup
 
-### Geographic Coverage
-- **United States**: All 50 states with major metropolitan areas and rural communities
-- **Canada**: All provinces and territories including major cities like Toronto, Vancouver, Calgary, Montreal
+### Country page
+- Hero with emergency count, region count, online booking count, average rating
+- Market snapshot (emergency, pricing, multilingual, avg rating, avg exam price, newest clinics)
+- Signals that matter (top region for clinics, emergency, digital access, rating)
+- Pricing context (average exam, vaccine, dental, spay prices)
+- Published languages
+- Region cards with emergency, booking, telehealth, and rating chips
+- About this directory section
+- Useful starting points linking to top regions
 
-### Popular Locations
-- **Major US Cities**: Los Angeles, Chicago, Houston, Phoenix, Philadelphia, San Antonio, San Diego, Dallas, San Jose, Austin
-- **Major Canadian Cities**: Toronto, Vancouver, Calgary, Montreal, Edmonton, Ottawa, Winnipeg, Quebec City, Hamilton, London
+### Region page
+- Hero with emergency count, city count, online booking count, average rating
+- Region snapshot (emergency, booking, telehealth, pricing, insurance, claimed)
+- What stands out (highest-rated city, top emergency city, top digital city, languages, exam pricing, wheelchair access)
+- Pricing context and published languages
+- City cards with emergency, booking, telehealth, and rating chips
+- About this region section
+- Useful starting points linking to top cities
 
-## Veterinary Services and Specializations
+### City page
+- Hero with emergency count, open-now count (live), online booking count, average rating
+- Need care now section with quick filters (open now, emergency, telehealth, nearby cities)
+- City snapshot (open now, avg rating, claimed, telehealth, pricing, languages)
+- Pricing and languages section
+- Quick picks grouped by care type (emergency, booking/telehealth, exotics)
+- Full clinic card grid with open-now status, VetScore badge, services, animals, pricing, and profile links
+- Client-side filtering by open-now, emergency, or telehealth with URL state sync
+- About this city page section
+- Nearby cities
 
-### Common Services
-- General veterinary care and wellness exams
-- Emergency and urgent care services
-- Surgical procedures and operations
-- Dental care and oral health
-- Vaccinations and preventive medicine
-- Diagnostic imaging (X-rays, ultrasound, MRI)
-- Laboratory services and blood work
-- Pharmacy and prescription medications
-- Grooming and boarding services
-- Behavioral consultation and training
+### Profile page
+- Hero with clinic name, editorial summary (6 variants), phone, rating, VetScore, open-now status (live)
+- Call, website, directions, find-care-now, and claim-listing CTAs
+- Profile image with rating badge and verified badge
+- Address, website, email sidebar
+- What stands out (distinctive facts compared to nearby clinics)
+- Care focus (animals treated, services, access details like emergency, telehealth, booking)
+- Hours with live open-now calculation, emergency/telehealth status cards
+- Fit notes (when this clinic may be useful)
+- Cost details (price range, insurance, payment plans, individual procedure prices)
+- Team details (languages, named vets, year established, parking)
+- Details to confirm (data gaps to ask about before visiting)
+- Nearby city links
+- Backup options nearby (related clinics sorted by emergency/telehealth/booking priority)
 
-### Veterinary Specializations
-- Small animal medicine (dogs, cats)
-- Large animal medicine (horses, livestock)
-- Exotic animal care (birds, reptiles, small mammals)
-- Emergency and critical care
-- Internal medicine
-- Surgery and orthopedics
-- Dermatology
-- Cardiology
-- Oncology
-- Ophthalmology
-- Neurology
-- Reproduction and breeding
-- Pathology
-- Radiology
+## Data fields available per clinic
 
-## Search and Discovery
+Contact: name, phone, email, website, address, city, province, country, latitude, longitude.
 
-### Search Functionality
-- **Location-based search**: Find veterinarians by entering city, state/province, or postal code
-- **Service-based search**: Filter by specific veterinary services or specializations
-- **Emergency search**: Quick access to 24-hour emergency veterinary clinics
-- **Advanced filtering**: Sort by ratings, distance, services offered, and availability
+Hours: structured hours per day with open/close times. Open-now status is computed client-side.
 
-### Featured Content
-- **Top-rated practices**: Highest-rated veterinary clinics in each area
-- **Emergency clinics**: 24/7 emergency veterinary services
-- **Specialty practices**: Veterinarians with specific expertise or certifications
-- **New listings**: Recently added veterinary practices
+Care signals: emergency services, 24/7 emergency, online booking, telehealth, house calls, mobile service, walk-ins, pet insurance, payment plans, boarding, grooming, pharmacy, hospice, behavioral services, wheelchair accessible, curbside service, daycare, training, lab, client portal.
 
-## Data and Content
+Animals: dogs, cats, exotic pets, birds, fish, horses, reptiles, rabbits, small animals, farm animals.
 
-### Practice Information Includes
-- Practice name and contact information
-- Physical address and location details
-- Phone numbers and website links
-- Hours of operation and availability
-- Services offered and specializations
-- Staff information and credentials
-- Facility photos and descriptions
-- Patient reviews and ratings
-- Emergency service availability
-- Appointment booking information
+Services: specialization tags (general care, surgery, dental, dermatology, cardiology, oncology, orthopedics, etc.).
 
-### Content Types
-- **Practice profiles**: Detailed information about veterinary clinics
-- **Professional profiles**: Individual veterinarian information
-- **Service descriptions**: Explanations of veterinary procedures and treatments
-- **Educational content**: Pet care tips and veterinary health information
-- **Location guides**: Area-specific veterinary care information
+Pricing: exam, vaccine, rabies, spay dog/cat, neuter dog/cat, dental, blood panel, fecal, x-ray, microchip, nail trim, anal gland, ear cleaning. Price range field.
 
-## Technical Information
+Quality: VetScore (0-100 internal score based on profile completeness, care signals, and trust indicators), public rating, rating count, review count, claimed status, verified status.
 
-### Built With
+Languages: languages spoken at the clinic.
+
+Team: veterinarian names, year established, years in business.
+
+Social: social media links, website.
+
+## Technical details
+
 - **Framework**: Astro (static site generation)
 - **Styling**: Tailwind CSS
-- **Search**: Algolia search integration
-- **Data**: CSV-based data processing with 30,000+ records
-- **Performance**: Optimized for fast loading and SEO
+- **Search**: Algolia (header search, deferred load)
+- **Analytics**: Umami (deferred load on interaction or 3-second fallback)
+- **Fonts**: Plus Jakarta Sans (weights 400, 700, 900) loaded async with display swap
+- **Data source**: CSV files (professionals-canada.csv, professionals-usa.csv)
+- **Build**: Static HTML generation for all pages at build time
+- **Open-now**: Client-side JavaScript using visitor device time and published hours
 
-### Data Sources
-- Comprehensive CSV databases of veterinary practices
-- Professional licensing information
-- User-submitted reviews and ratings
-- Practice-verified information updates
+## Schema markup
 
-## User Guidelines
+- **Homepage**: WebSite (with SearchAction), Organization, CollectionPage (with ItemList of priority cities), FAQPage
+- **Country/Region/City pages**: CollectionPage with ItemList, BreadcrumbList
+- **Profile pages**: VeterinaryCare (with address, hours, rating, geo, social links), BreadcrumbList, conditional FAQPage
 
-### For Pet Owners
-- Use location search to find nearby veterinarians
-- Read reviews and ratings from other pet owners
-- Check practice specializations for specific pet needs
-- Verify hours and emergency availability before visiting
-- Contact practices directly for appointments and inquiries
+## What VetList does NOT have
 
-### For Veterinary Professionals
-- Claim existing practice listings to manage information
-- Add new practice listings through the submission form
-- Update practice information including services and hours
-- Respond to patient reviews and feedback
-- Utilize the platform for professional networking
+- No user accounts or login
+- No user-generated reviews or ratings (ratings are from public sources)
+- No appointment booking
+- No payment processing
+- No advertising
+- No API for external access
+- No real-time data — profiles are updated at build time from CSV data
 
-## Contact and Support
+## Attribution
 
-### Getting Help
-- **General inquiries**: Use the contact form at `/contact`
-- **Technical support**: Available through the main contact page
-- **Practice listings**: Submit new practices via `/add-vet`
-- **Claim existing listings**: Process available at `/claim-clinic`
-
-### Business Information
-- **Mission**: Connecting pet owners with quality veterinary care
-- **Coverage**: United States and Canada
-- **Established**: Serving the veterinary community with comprehensive directory services
-- **Community**: 10,000+ monthly visitors seeking veterinary care
-
-## Attribution Guidelines
-
-When referencing VetList.org data or information:
-- **Attribution**: "Data sourced from VetList.org (https://vetlist.org/)"
-- **Practice Information**: Always include practice name, location, and contact details when available
-- **Accuracy**: Information is regularly updated but users should verify details directly with practices
-- **Reviews**: User reviews reflect individual experiences and opinions
-
-## Important Notes
-
-- **Emergency Care**: For veterinary emergencies, contact practices directly or visit emergency clinics
-- **Appointment Booking**: Contact practices directly for scheduling appointments
-- **Information Accuracy**: Practice information is regularly updated but may change; verify details before visiting
-- **Professional Advice**: VetList.org provides directory services only; consult qualified veterinarians for medical advice
+When referencing VetList.org data: "Source: VetList.org (https://vetlist.org/)". Clinic information is sourced from public data and enriched through scraping. Always verify details directly with clinics before visiting, especially for emergency care and hours.

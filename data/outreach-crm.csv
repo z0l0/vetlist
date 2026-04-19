@@ -1,0 +1,207 @@
+city,clinic_name,current_rank,current_score,potential_score,score_gain,gap_to_leader,leader_name,leader_score,phone,email,website
+"Toronto, Ontario",Juno Veterinary Summerhill,2,85.0,91.8,6.8,1.0,Juno Veterinary Bloor West,86.0,(647) 558-9191,hello@junovet.com,http://www.junovet.com/
+"Vancouver, British Columbia",Tele-Vet,2,84.0,90.7,6.7,3.0,Burrard Animal Hospital + Emergency,87.0,(604) 230-6162,,https://www.tele-vet.ca/
+"Calgary, Alberta",VCA Canada Calgary North Animal Hospital & 24 Hour Emergency Service,2,83.0,89.6,6.6,0.0,Trinity Hills 24 Hour Pet Hospital,83.0,(403) 277-0135,,https://vcacanada.com/calgarynorth/
+"Guelph, Ontario",Upper Grand Veterinary Services,2,83.0,89.6,6.6,1.0,Peaceful Passing Home Pet Euthanasia Service (previously Dailley Mobile),84.0,(519) 767-9191,reception@uppergrandvets.ca,http://www.uppergrandvets.ca/
+"Mississauga, Ontario",Malton Veterinary Services,2,82.0,88.6,6.6,5.0,Burnhamthorpe Animal Hospital,87.0,(905) 678-2929,"maltonvet@rogers.com,cawthorpevet@yahoo.com,cawthorpevet@yahoo.co,altonvet@rogers.com",https://www.maltonveterinaryservices.com/
+"Toronto, Ontario",Star Veterinary Hospital,3,83.0,89.6,6.6,3.0,Juno Veterinary Bloor West,86.0,(416) 900-7827,starveterinaryhospital@gmail.com,https://starveterinaryhospital.ca/
+"Guelph, Ontario",Campus Estates Animal Hospital,3,81.0,87.5,6.5,3.0,Peaceful Passing Home Pet Euthanasia Service (previously Dailley Mobile),84.0,(519) 837-1212,ceah@petsandvets.ca,https://www.petsandvets.ca/
+"Toronto, Ontario",Midtown Mobile Veterinary Hospice Services,4,81.0,87.5,6.5,5.0,Juno Veterinary Bloor West,86.0,(416) 817-3572,info@mmvhs.ca,https://mmvhs.ca/
+"Surrey, British Columbia",Panorama Village Animal Hospital,2,80.0,86.4,6.4,1.0,South Surrey Veterinary Hospital,81.0,(604) 575-1133,pvanimalhospital@shaw.ca,https://www.pvanimalhospital.com/
+"Abbotsford, British Columbia",Gladys Pet Hospital,2,80.0,86.4,6.4,1.0,Glenn Mountain Animal Hospital,81.0,(604) 850-2000,gph2016@gmail.com,https://gladysvet.ca/
+"Abbotsford, British Columbia",Horizon Equine Veterinary Clinic Ltd.,3,80.0,86.4,6.4,1.0,Glenn Mountain Animal Hospital,81.0,(604) 826-5089,care@horizonequine.ca,https://www.horizonequine.ca/
+"Abbotsford, British Columbia",Agwest Veterinary Group Ltd.,4,79.0,85.3,6.3,2.0,Glenn Mountain Animal Hospital,81.0,(604) 229-7231,office@agwestvet.com,http://agwestvet.com/
+"Cambridge, Ontario",Main Street Animal Hospital,2,79.0,85.3,6.3,1.0,Fisher Mills Animal Hospital,80.0,(519) 622-6988,info@mainstreetanimalhospital.ca,http://www.mainstreetanimalhospital.ca/
+"Richmond Hill, Ontario",Bayview Hill Animal Hospital,2,79.0,85.3,6.3,1.0,Dr. Kafai Veterinary Hospital,80.0,(905) 508-1991,bayviewhillanimalhospital@gmail.com,https://www.bayviewhill.ca/
+"Surrey, British Columbia",Fraser Heights Animal Hospital,3,77.0,83.2,6.2,4.0,South Surrey Veterinary Hospital,81.0,(604) 588-4161,"fraserheightsvet@shaw.ca,hospital@fhah.ca,petstore@fhah.ca",https://fraserheightsvet.com/
+"Langley, British Columbia",Animal Emergency Clinic of the Fraser Valley,2,77.0,83.2,6.2,0.0,Willowbrook Animal Hospital,77.0,(604) 514-1711,,https://animalemerg.com/
+"Newmarket, Ontario",Brooker Ridge Animal Hospital,2,78.0,84.2,6.2,1.0,Gorham Animal Hospital,79.0,(905) 898-1010,"vetsnewmarket@gmail.com,zsaleh@live.ca",https://vetsnewmarket.com/
+"Almonte, Ontario",Almonte Veterinary Services,2,78.0,84.2,6.2,1.0,Mississippi Mills Animal Hospital,79.0,(613) 256-3443,info@almontevet.com,https://almontevet.com/
+"Trois-Rivières, Quebec",Hôpital Vétérinaire Rive-Nord inc.,2,77.0,83.2,6.2,6.0,Veterinary Hospital Trifluvien inc.,83.0,(819) 691-1717,hvrn@bellnet.ca,http://www.hvrn.ca/
+"Richmond, Quebec","Dre Marie Frédérique Villemaire, Vétérinaire équin",2,78.0,84.2,6.2,5.0,Bureau Vétérinaire De Richmond (animaux de ferme seulement),83.0,(819) 460-1747,,https://vetequinvillemaire.com/
+"Sherbrooke, Quebec",Veterinary Hospital De L'Estrie,2,77.0,83.2,6.2,1.0,Carrefour Santé Animale,78.0,(819) 562-8585,,https://www.hvestrie.com/
+"Québec, Quebec",Clinique Vétérinaire Féline de Ste-Foy - Vet et Nous,2,78.0,84.2,6.2,5.0,Hôpital Vétérinaire des Laurentides - Vet et Nous,83.0,(418) 653-9861,,https://www.vetetnous.com/nos-veterinaires/clinique-veterinaire-feline-de-ste-foy/
+"Courtenay, British Columbia",Van Isle Veterinary Hospital,2,76.0,82.1,6.1,3.0,Comox Valley Animal Hospital,79.0,(250) 334-8400,,https://www.vanislevet.com/
+"Dryden, Ontario",Dryden Veterinary Services,2,76.0,82.1,6.1,2.0,Hillcrest Animal Clinic,78.0,(807) 223-2484,,http://www.drydenvetservices.com/
+"Port Coquitlam, British Columbia",Tricity Animal Hospital,2,75.0,81.0,6.0,3.0,Burkeview Animal Hospital Ltd,78.0,(604) 942-2225,info@tricityvet.ca,http://www.tricityvet.ca/
+"Ottawa, Ontario",VCA Canada Alta Vista Animal Hospital,2,75.0,81.0,6.0,0.0,Animal Emergency & Specialty Hospital,75.0,(613) 731-6851,,https://vcacanada.com/altavista/
+"Halifax, Nova Scotia",Coastal Care Veterinary Emergency & Referral Hospital,2,75.0,81.0,6.0,1.0,Fairview Animal Hospital,76.0,(902) 703-2323,,https://www.coastalcarevets.ca/
+"Newmarket, Ontario",Veterinary Emergency Clinic of York Region,3,74.0,79.9,5.9,5.0,Gorham Animal Hospital,79.0,(905) 953-5351,infovecer@rogers.com,https://veter.ca/
+"Langley, British Columbia",Langley Meadows Animal Hospital,3,73.0,78.8,5.8,4.0,Willowbrook Animal Hospital,77.0,(236) 706-0019,langleymeadowsvets@gmail.com,https://langleymeadowsanimalhospital.com/
+"Kamloops, British Columbia",Kamloops Large Animal Veterinary Clinic,2,72.0,77.8,5.8,1.0,Phases Veterinary Emergency Hospital,73.0,(250) 374-1486,reception@klavc.ca,http://www.klavc.ca/
+"Rocky Mountain House, Alberta",Gateway Companion Animal Clinic,2,73.0,78.8,5.8,2.0,Clearwater Vet Clinic,75.0,(403) 845-2121,gatewaycompanionanimalclinic@gmail.com,http://www.myanimalclinic.ca/
+"Red Deer, Alberta",Dog & Cat Hospital - East Hill,2,72.0,77.8,5.8,2.0,Cedarwood Veterinary & Animal Emergency Hospital,74.0,(403) 343-7387,,http://www.dogandcathospital.ca/
+"Kitchener, Ontario",Gateway Pet Hospital,2,73.0,78.8,5.8,5.0,Kingsdale Animal Hospital,78.0,(519) 653-1003,,https://gatewaypethospital.com/
+"Hamilton, Ontario",Hamilton Region Emergency Veterinary Clinic,2,73.0,78.8,5.8,5.0,East Mountain Animal Hospital,78.0,(905) 529-1004,hrevcrecords@gmail.com,http://hamiltonevc.ca/
+"Brampton, Ontario",Peak Veterinary House Call Svc,2,72.0,77.8,5.8,5.0,Beachsurf Veterinary Mobile Service,77.0,(905) 872-9080,brarhs@gmail.com,http://www.bramptonmobilevet.com/
+"Brampton, Ontario",Bramalea Animal Hospital,3,72.0,77.8,5.8,5.0,Beachsurf Veterinary Mobile Service,77.0,(905) 792-2200,info@bramaleaanimalhospital.ca,http://bramaleaanimalhospital.ca/
+"Oakville, Ontario",Foxcreek Animal Hospital,2,72.0,77.8,5.8,5.0,VCA Canada Mississauga Oakville Veterinary Emergency Hospital,77.0,(905) 469-0800,foxcreekvet@hotmail.ca,http://www.foxcreekvet.com/
+"Markham, Ontario",Mount Joy Animal Clinic,2,73.0,78.8,5.8,5.0,16thAve Animal Hospital,78.0,(905) 294-6100,mountjoyanimalclinic@hotmail.com,https://mjac.ca/
+"St. Catharines, Ontario",Court Animal Hospital,2,73.0,78.8,5.8,3.0,Animal Health Services St. Catharines,76.0,(905) 688-3720,info@courtanimalhospital.com,http://www.courtanimalhospital.com/
+"Blainville, Quebec",Hôpital Vétérinaire Blainville - Vet et Nous,2,73.0,78.8,5.8,5.0,CENTREDMVET Hôpital vétérinaire d'urgence 24/7 - Rive-Nord de Montréal - Blainville,78.0,(450) 435-5555,,https://www.vetetnous.com/nos-veterinaires/hopital-veterinaire-blainville/
+"Montréal, Quebec",Veterinary Clinic Hochelaga Inc.,2,73.0,78.8,5.8,3.0,Centre Vétérinaire Montréal,76.0,(514) 352-6263,reception@cliniqueveterinairehochelaga.com,http://cliniqueveterinairehochelaga.com/
+"Montréal, Quebec",Veterinary Clinic Passionimo De La Pointe,3,72.0,77.8,5.8,4.0,Centre Vétérinaire Montréal,76.0,(514) 498-1600,info@cvdelapointe.ca,https://passionimo.ca/trouvez-un-etablissement/clinique-veterinaire-de-la-pointe-inc/
+"Brentwood Bay, British Columbia",Brentwood Bay Veterinary Hospital,2,71.0,76.7,5.7,2.0,PenVet Mobile Veterinary Services,73.0,(250) 652-3131,,http://www.brentwoodbayvet.com/
+"Lloydminster, Alberta",Lloydminster Animal Hospital,2,71.0,76.7,5.7,3.0,Weir Veterinary Services Ltd,74.0,(780) 875-5733,clientservices@lah.ca,http://www.lah.ca/
+"Vaughan, Ontario",Vellore Woods Veterinary Clinic,2,71.0,76.7,5.7,0.0,Darlington Veterinary Hospital PC,71.0,(289) 217-7949,vellorewoodsveterinary@gmail.com,https://www.vellorewoodsvetclinic.com/
+"North York, Ontario",Bayview Mall Veterinary Clinic,2,71.0,76.7,5.7,4.0,York Veterinary Hospital,75.0,(416) 223-1750,bmvcinfodesk@gmail.com,https://bayviewmallvetclinic.com/
+"St. Catharines, Ontario",Dog and Cat Clinic of Niagara,3,71.0,76.7,5.7,5.0,Animal Health Services St. Catharines,76.0,(905) 687-1805,dogandcatclinic2015@gmail.com,http://dogandcatclinicofniagara.com/
+"Pickering, Ontario",Millennium City Veterinary Hospital,2,71.0,76.7,5.7,2.0,Rosebank Animal Hospital,73.0,(905) 420-9555,frontdesk@mcvh.ca,http://www.millenniumcityvethospital.com/
+"Montréal, Quebec",Hôpital vétérinaire Anima-Plus Laurier,4,71.0,76.7,5.7,5.0,Centre Vétérinaire Montréal,76.0,(514) 277-0977,,https://www.anima-plus.com/fr/cliniques-veterinaires/hopital-veterinaire-laurier/
+"Prince George, British Columbia",Murdoch Veterinary Clinic,2,70.0,75.6,5.6,0.0,Westwinds Mobile Veterinary Services,70.0,(250) 963-9898,admin@murdochvet.com,http://www.murdochvet.com/
+"Kelowna, British Columbia",Pandosy Village Veterinary Hospital,2,70.0,75.6,5.6,3.0,Fairfield Animal Hospital,73.0,(778) 478-7088,frontdesk@pandosyvet.com,https://pandosyvet.com/
+"Canmore, Alberta",Mountain Animal Hospital and Mobile Veterinary Care,2,70.0,75.6,5.6,0.0,Bow River Veterinary Centre,70.0,(403) 679-2555,reception@mountainvetcare.com,http://www.mountainvetcare.com/
+"London, Ontario",Sears Animal Hospital & Pet Rehabilitation,2,70.0,75.6,5.6,4.0,Whitehills Animal Hospital,74.0,(519) 661-0496,,https://searsanimalhospital.ca/
+"Etobicoke, Ontario",Rexdale Animal Hospital,2,70.0,75.6,5.6,1.0,Islington Village Animal Hospital,71.0,(416) 740-7387,info@rexdaleanimalhospital.com,http://www.rexdaleanimalhospital.com/
+"North York, Ontario",Yonge Sheppard Animal Hospital,3,70.0,75.6,5.6,5.0,York Veterinary Hospital,75.0,(647) 260-8387,yonge.sheppard.vets@gmail.com,https://www.yongesheppardvets.ca/
+"Scarborough, Ontario",Chartwell Veterinary Clinic,2,70.0,75.6,5.6,1.0,Cedarbrae Veterinary Clinic,71.0,(416) 291-2364,chartwellvet@gmail.com,http://www.chartwellvet.com/
+"Ottawa, Ontario","Dr. Vetamin Veterinary Team- Urgent Care, Primary Care & Mobile Offices",3,70.0,75.6,5.6,5.0,Animal Emergency & Specialty Hospital,75.0,(343) 998-9452,,http://www.dr-vetamin.ca/
+"Saint-Jérôme, Quebec",CLINIQUE VÉTÉRINAIRE LA PROVIDENCE Inc,2,70.0,75.6,5.6,4.0,CLINIQUE VÉTÉRINAIRE CÔTÉ,74.0,(450) 432-2228,veterinairelaprovidence@gmail.com,http://www.veterinairelaprovidence.com/
+"Saint-Jean-sur-Richelieu, Quebec","Dans Ta Niche | Service Vétérinaire Mobile | Urgences, Vaccination & Euthanasie À Domicile | Région de Montérégie",2,70.0,75.6,5.6,5.0,Veterinary Clinic Johannaise,75.0,(855) 676-1222,info@danstaniche.com,https://www.danstaniche.com/
+"Nelson, British Columbia",Selkirk Veterinary Hospital,2,69.0,74.5,5.5,4.0,Nelson Animal Hospital,73.0,(250) 352-2999,,https://selkirkvet.com/
+"Cranbrook, British Columbia",Steeples Veterinary Clinic,2,69.0,74.5,5.5,1.0,Tanglefoot Veterinary Services,70.0,(250) 489-3451,info@steeplesvetclinic.com,http://www.steeplesvetclinic.com/
+"Sarnia, Ontario",Sarnia Animal Hospital,2,69.0,74.5,5.5,0.0,Sarnia Veterinary Urgent Care,69.0,(519) 542-2553,sarniavets@sarniavets.com,http://sarniavets.com/
+"Barrie, Ontario",Allandale Veterinary Hospital,2,69.0,74.5,5.5,1.0,Huronia Veterinary Emergency Clinic,70.0,(705) 733-1422,,https://allandalevet.com/
+"Etobicoke, Ontario",The Kingsway Animal Hospital,3,69.0,74.5,5.5,2.0,Islington Village Animal Hospital,71.0,(416) 233-3277,reception@tkah.ca,http://www.thekingswayanimalhospital.com/
+"Thornhill, Ontario",Centre Street Animal Hospital,2,69.0,74.5,5.5,5.0,Central Vaughan Animal Hospital,74.0,(289) 807-3647,,http://www.centrestreetanimalhospital.com/
+"Saint-Jérôme, Quebec",Hôpital Vétérinaire St-Jérôme inc.,3,69.0,74.5,5.5,5.0,CLINIQUE VÉTÉRINAIRE CÔTÉ,74.0,(450) 436-7400,"loi25hvsj@outlook.com,hvsj@videotron.ca",https://passionimo.ca/trouvez-un-etablissement/hopital-veterinaire-st-jerome-inc/
+"Sechelt, British Columbia",Eagle Ridge Veterinary Hospital,2,68.0,73.4,5.4,5.0,Sechelt Animal Hospital,73.0,(604) 885-5158,,https://sunshinecoastvet.com/
+"North Saanich, British Columbia",Sidney Animal Hospital,2,67.0,72.4,5.4,4.0,Dean Park Pet Hospital,71.0,(250) 656-3333,info@sidneyanimalhospital.com,http://www.sidneyanimalhospital.com/
+"North Vancouver, British Columbia",Waterfront Park Veterinary Clinic,2,68.0,73.4,5.4,0.0,Westview Veterinary Services,68.0,(604) 971-5051,waterfrontparkvet@gmail.com,http://www.waterfrontparkvetclinic.com/
+"Langley Twp, British Columbia",Animal Hospital @65th Ave,2,68.0,73.4,5.4,1.0,Wise Equine Veterinary Services Ltd,69.0,(604) 245-7778,info@animalhospital65ave.com,https://animalhospital65ave.com/
+"Canmore, Alberta",Canmore Veterinary Hospital,3,68.0,73.4,5.4,2.0,Bow River Veterinary Centre,70.0,(403) 678-4425,clientinfo@canmorevethospital.com,http://www.canmorevet.com/
+"Airdrie, Alberta",City Centre Animal Hospital,2,68.0,73.4,5.4,5.0,Thrive Vet Care | Airdrie Animal Clinic,73.0,(403) 980-7677,,https://www.cityvetsairdrie.ca/
+"Yorkton, Saskatchewan",Yorkton Animal Health Centre P.C. Ltd.,2,67.0,72.4,5.4,0.0,Vitality Veterinary Services,67.0,(306) 782-6620,yorkvet@sasktel.net,http://www.yorktonvet.com/
+"Windsor, Ontario",Clearwater Animal Hospital,2,68.0,73.4,5.4,4.0,Walker Road Animal Hospital,72.0,(519) 253-7204,clearwateranimalhospital@cogeco.net,https://windsorvets.com/
+"Collingwood, Ontario",Dr. Sean Lawes,2,68.0,73.4,5.4,4.0,Collingwood Veterinary Services,72.0,(705) 445-1901,,http://collingwoodvet.ca/
+"Collingwood, Ontario",Mountain Vista Veterinary Hospital,3,67.0,72.4,5.4,5.0,Collingwood Veterinary Services,72.0,(705) 446-0261,reception@mvvh.ca,https://www.mountainvistavet.com/
+"Waterdown, Ontario",Parkside Animal Hospital,2,68.0,73.4,5.4,4.0,Watzin Veterinary Clinic,72.0,(289) 895-8985,,https://parksideanimalhospital.ca/
+"Stoney Creek, Ontario",Briarwood Animal Hospital,2,67.0,72.4,5.4,5.0,Grandview Animal Hospital,72.0,(905) 664-4888,,https://www.briarwoodanimalhospital.com/
+"Barrie, Ontario",Aldergrove Animal Clinic,3,67.0,72.4,5.4,3.0,Huronia Veterinary Emergency Clinic,70.0,(705) 726-5031,receptionaldergroveac@bellnet.ca,http://aldergroveanimalclinic.com/
+"Etobicoke, Ontario",BloorMill Veterinary Hospital,4,68.0,73.4,5.4,3.0,Islington Village Animal Hospital,71.0,(416) 621-6753,bloormillvet@gmail.com,https://www.bloormillvet.ca/
+"Etobicoke, Ontario",Eatonville Animal Hospital,5,67.0,72.4,5.4,4.0,Islington Village Animal Hospital,71.0,(416) 231-3167,evanimal@hotmail.com,http://www.evvet.ca/
+"Etobicoke, Ontario",Toronto Veterinary Clinic,6,67.0,72.4,5.4,4.0,Islington Village Animal Hospital,71.0,(416) 817-9955,torontoveterinaryclinic@gmail.com,https://torontoveterinaryclinic.com/
+"Scarborough, Ontario",Milliken Bridlewood Vet Clinic | 宠物医院,3,68.0,73.4,5.4,3.0,Cedarbrae Veterinary Clinic,71.0,(416) 292-7804,vets@millikenvet.com,http://millikenvet.com/
+"Scarborough, Ontario",Bridletowne Warden Animal Hospital,4,67.0,72.4,5.4,4.0,Cedarbrae Veterinary Clinic,71.0,(416) 491-8706,bwahreceptionjes@gmail.com,http://www.bridletownewardenanimalhospital.com/
+"Scarborough, Ontario",Beaches-Fallingbrook Veterinary Clinic,5,67.0,72.4,5.4,4.0,Cedarbrae Veterinary Clinic,71.0,(416) 792-7421,beachesvets@gmail.com,http://beachesvet.com/
+"Scarborough, Ontario",Bellamy-Lawrence Animal Hospital,6,67.0,72.4,5.4,4.0,Cedarbrae Veterinary Clinic,71.0,(416) 289-2524,bellamylawrenceah@gmail.com,https://vet4you.ca/
+"Oshawa, Ontario",Rossland Animal Hospital,2,68.0,73.4,5.4,2.0,Simcoe Street North Animal Hospital,70.0,(905) 240-1119,info@rosslandvet.com,http://www.rosslandvet.com/
+"Bowmanville, Ontario",Bowmanville Veterinary Clinic,2,67.0,72.4,5.4,2.0,Animal Clinic of East Durham (and Home Euthanasia Services),69.0,(905) 623-4431,"j.lynn.duke66@gmail.com,faithg962@gmail.com,leonagail@live.com,jennajoye@gmail.com,linabryant10@gmail.com",https://www.bowmanvilleveterinaryclinic.com/
+"Brockville, Ontario",Kellie Stein,2,67.0,72.4,5.4,5.0,Brockville Animal Hospital,72.0,(613) 345-7388,,https://www.islandcityanimalhospital.com/staff/dr-kellie
+"Moncton, New Brunswick",Elmwood Veterinary Hospital,2,67.0,72.4,5.4,2.0,Moncton Animal Hospital,69.0,(506) 858-9900,,https://www.elmwoodvethospital.com/
+"North Vancouver, British Columbia",Mountainside 24/7 Animal Emergency,3,66.0,71.3,5.3,2.0,Westview Veterinary Services,68.0,(604) 973-1247,,https://www.mountainside24er.ca/
+"North Vancouver, British Columbia",Norgate Animal Hospital,4,66.0,71.3,5.3,2.0,Westview Veterinary Services,68.0,(604) 980-2222,norgateanimalhospital@gmail.com,https://norgateanimalhospital.ca/
+"New Westminster, British Columbia",Royal City Paws Pet Centre,2,66.0,71.3,5.3,0.0,Alpine Animal Hospital,66.0,(604) 565-8400,"veterinary@pawspetcentre.com,grooming@pawspetcentre.com",http://www.pawspetcentre.com/
+"Prince George, British Columbia",Dr Samantha Fuller Hart Family Veterinary Clinic,3,66.0,71.3,5.3,4.0,Westwinds Mobile Veterinary Services,70.0,(250) 962-7808,info@hartfamilyvet.com,http://www.hartfamilyvet.com/
+"Langley Twp, British Columbia",Thunderbird Animal Hospital,3,66.0,71.3,5.3,3.0,Wise Equine Veterinary Services Ltd,69.0,(604) 513-8100,thunderbirdanimalhospital@yahoo.ca,http://thunderbirdanimalhospital.com/
+"Aldergrove, British Columbia",Aldergrove Animal Hospital,2,66.0,71.3,5.3,2.0,Country Grove Veterinary Clinic Ltd,68.0,(604) 856-7707,,https://www.aldergrovevet.com/
+"Ancaster, Ontario",Beattie Pet Hospital - Ancaster,2,66.0,71.3,5.3,0.0,Village Cat Clinic,66.0,(289) 639-5540,,https://www.beattiepethospitalhamilton.com/
+"Alliston, Ontario",Boyne Veterinary Clinic,2,66.0,71.3,5.3,4.0,Nottawasaga Valley Veterinary Hospital,70.0,(705) 435-7641,boyneveterinary@gmail.com,http://www.boyneandangusvets.ca/
+"Alliston, Ontario",New Tecumseth Animal Clinic,3,66.0,71.3,5.3,4.0,Nottawasaga Valley Veterinary Hospital,70.0,(705) 250-7500,thanuja.vet@gmail.com,http://newtecumsethanimalclinic.com/
+"Barrie, Ontario",Trooper Pet Veterinary Nursing,4,66.0,71.3,5.3,4.0,Huronia Veterinary Emergency Clinic,70.0,(705) 242-5402,info@trooperpet.com,http://www.trooperpet.com/
+"Aurora, Ontario",Golf Glen Veterinary Clinic,2,66.0,71.3,5.3,1.0,LeGallais Veterinary Hospital,67.0,(905) 727-3003,,https://www.golfglenvet.ca/
+"Scarborough, Ontario",Kennedy Eglinton Animal Hospital,7,66.0,71.3,5.3,5.0,Cedarbrae Veterinary Clinic,71.0,(416) 757-7455,vetonkennedy@gmail.com,https://www.kennedyeglintonanimalhospital.com/
+"Scarborough, Ontario",Markham Road Animal Hospital,8,66.0,71.3,5.3,5.0,Cedarbrae Veterinary Clinic,71.0,(416) 438-1751,markhamroadanimalhospital@gmail.com,http://www.markhamroadanimalhospital.com/
+"St. Albert, Alberta",Dr. Tammy Wilde,2,65.0,70.2,5.2,3.0,Tudor Glen Veterinary Hospital,68.0,(780) 458-6051,info@tudorglenvet.com,http://tudorglenvethospital.ca/
+"Yorkton, Saskatchewan",Companion Animal Hospital,3,65.0,70.2,5.2,2.0,Vitality Veterinary Services,67.0,(306) 783-3349,,https://companionyorkton.ca/
+"Concord, Ontario",Dufferin Rutherford Veterinary Hospital,2,65.0,70.2,5.2,1.0,Rutherford Road & Hwy 400 Animal Hospital,66.0,(905) 832-0011,dufferinrutherfordv@yahoo.ca,http://dufferinrutherfordveterinaryhospital.ca/
+"Aurora, Ontario",Aurora Animal Clinic,3,65.0,70.2,5.2,2.0,LeGallais Veterinary Hospital,67.0,(905) 727-9449,info@auroraanimalclinic.com,https://www.auroraanimalclinic.com/
+"Kirkland, Quebec",Clinique Vétérinaire Timberlea,2,65.0,70.2,5.2,2.0,Clinique Vétérinaire Mobile Plus Inc,67.0,(514) 505-6555,,http://www.veterinairetimberlea.com/
+"Sainte-Julie, Quebec",Clinique vétérinaire Sainte-Julie inc,2,65.0,70.2,5.2,5.0,Hôpital Vétérinaire Victoria Ste-Julie - Vet et Nous,70.0,(450) 922-1203,reception@vetsaintejulie.ca,http://www.vetsaintejulie.ca/
+"Langley Twp, British Columbia",Aldor Veterinary Clinic Ltd.,4,64.0,69.1,5.1,5.0,Wise Equine Veterinary Services Ltd,69.0,(604) 530-0704,aldorvet@shaw.ca,https://www.aldorvet.com/
+"Caledon Village, Ontario",Caledon Mountain Veterinary Hospital,2,64.0,69.1,5.1,3.0,Glendale Veterinary Hospital,67.0,(519) 927-5775,,https://caledonvet.com/
+"York, Ontario",Weston Veterinary Clinic,2,64.0,69.1,5.1,1.0,Eglinton Dufferin Animal Clinic,65.0,(416) 244-1267,admin@westonvet.ca,http://www.westonvet.ca/
+"Moncton, New Brunswick",Maritime Animal Hospital (Moncton),3,64.0,69.1,5.1,5.0,Moncton Animal Hospital,69.0,(506) 389-2121,careteam@maritimeanimalhospital.ca,http://www.maritimeanimalhospital.ca/
+"Squamish, British Columbia",Sea to Sky Veterinary Clinic,2,63.0,68.0,5.0,2.0,Alpenlofts Veterinary Hospital,65.0,(604) 567-9248,info@seatoskyvets.com,http://www.seatoskyvets.com/
+"Squamish, British Columbia",Eagleview Veterinary Hospital,3,63.0,68.0,5.0,2.0,Alpenlofts Veterinary Hospital,65.0,(604) 815-6808,,https://eagleviewvet.ca/
+"Squamish, British Columbia",Points East West Veterinary Services,4,62.0,67.0,5.0,3.0,Alpenlofts Veterinary Hospital,65.0,(604) 567-9300,,http://pointseastwest.com/
+"New Westminster, British Columbia",Noble Paw Veterinary Hospital,3,63.0,68.0,5.0,3.0,Alpine Animal Hospital,66.0,(604) 522-9716,noblepawveterinary@gmail.com,http://www.noblepawvet.com/
+"New Westminster, British Columbia",Queen's Park Pet Hospital,4,62.0,67.0,5.0,4.0,Alpine Animal Hospital,66.0,(604) 544-7387,,https://www.queensparkpethospital.ca/
+"Fort Macleod, Alberta",Edgewater Companion Animal Clinic,2,63.0,68.0,5.0,3.0,Fort MacLeod Veterinary Clinic Ltd.,66.0,(403) 557-0015,edgewateranimalclinic@outlook.com,http://www.edgewateranimalclinic.com/
+"Ancaster, Ontario",Chedoke Animal Hospital,3,63.0,68.0,5.0,3.0,Village Cat Clinic,66.0,(905) 648-4747,info@chedokeanimalhospital.ca,http://www.chedokeanimalhospital.ca/
+"Midland, Ontario",Midland Veterinary Service,2,63.0,68.0,5.0,2.0,North Simcoe Veterinary Services,65.0,(705) 526-8002,,http://www.northsimcoevets.com/
+"Milton, Ontario",Robinson Pet Hospital,2,62.0,67.0,5.0,2.0,Hollybank Animal Hospital,64.0,(905) 876-4636,"info@bouldincreekvet.com,robinsonpethospital@gmail.com",http://www.robinsonpethospital.ca/
+"York, Ontario",Lennox Animal Hospital,3,63.0,68.0,5.0,2.0,Eglinton Dufferin Animal Clinic,65.0,(416) 247-5454,lennoxah@gmail.com,https://www.lennoxanimalhospital.com/
+"Aurora, Ontario",Aurora North Pet Clinic,4,63.0,68.0,5.0,4.0,LeGallais Veterinary Hospital,67.0,(905) 727-2753,,http://www.auroranorthpetclinic.com/
+"Uxbridge, Ontario",Pet Hospital on Main,2,63.0,68.0,5.0,2.0,Uxbridge Veterinary Hospital,65.0,(905) 862-0862,info@pethospitalonmain.com,http://www.pethospitalonmain.com/
+"Uxbridge, Ontario",Uxbridge Equine Veterinary Services,3,63.0,68.0,5.0,2.0,Uxbridge Veterinary Hospital,65.0,(905) 852-0852,,http://uxbridgeequine.com/
+"Boucherville, Quebec",Hôpital Vétérinaire Passion Compassion,2,63.0,68.0,5.0,4.0,À mon chat à mon chien Hôpital vétérinaire inc.,67.0,(450) 906-6090,info@vetpassioncompassion.com,https://vetpassioncompassion.com/
+"High River, Alberta",Highview Animal Clinic Ltd,2,61.0,65.9,4.9,2.0,High River Veterinary Clinic,63.0,(403) 652-1300,"haclinic@telus.net,hv-vet@telus.net",http://highviewanimalclinic.com/
+"Essex, Ontario",Essex Animal Hospital,2,61.0,65.9,4.9,3.0,Talbot Street Animal Hospital,64.0,(519) 776-7325,essexahtechs@gmail.com,http://www.essexanimalhospital.ca/
+"York, Ontario",Forest Hill Animal Clinic,4,61.0,65.9,4.9,4.0,Eglinton Dufferin Animal Clinic,65.0,(416) 782-1031,,https://www.foresthillanimalclinic.com/
+"Laval, Quebec",Clinique Vétérinaire Laennec,2,61.0,65.9,4.9,4.0,Laval Veterinary Centre,65.0,(450) 903-0339,info@cvlaennec.ca,http://www.cliniqueveterinairelaennec.ca/
+"Innisfail, Alberta",Poplar Grove Veterinary Services,2,60.0,64.8,4.8,1.0,Innisfail Veterinary Service Ltd,61.0,(403) 227-4701,"impallari@gmail.com,team@latofonts.com,poplargrovevet@gmail.com",http://www.poplargrovevet.com/
+"Amherstburg, Ontario",Wings Rehab,2,60.0,64.8,4.8,4.0,Fort Malden Animal Hospital,64.0,(519) 736-8172,wingsrehabcentre@gmail.com,https://www.wingswildlifecentre.com/contact
+"Chatham, Ontario",Chatham-Kent Veterinary Hospital,2,60.0,64.8,4.8,3.0,Thames Valley Animal Hospital,63.0,(519) 352-3630,"website-accessibility@nva.com,privacy@nva.com",https://www.ckvets.com/locations/chatham-kent-veterinary-hospital
+"Wasaga Beach, Ontario",Wasaga Beach Veterinary Clinic,2,60.0,64.8,4.8,4.0,Long Beach Veterinary Hospital,64.0,(705) 429-9069,info@wasagabeachvetclinic.com,https://www.wasagabeachvetclinic.com/
+"Saint-Hyacinthe, Quebec",CHUV - Saint-Hyacinthe,2,60.0,64.8,4.8,3.0,Chatterie Royal Bengal | Éleveur de chat Royal Bengal certifié et adoption,63.0,(450) 778-8111,refuge@chuv.umontreal.ca,http://chuv.umontreal.ca/
+"Grimsby, Ontario",Livingston Animal Hospital,2,59.0,63.7,4.7,3.0,Grimsby Animal Hospital,62.0,(905) 309-9600,info@livingstonanimalhospital.com,https://livingstonanimalhospital.com/
+"Embrun, Ontario",Hôpital Vétérinaire Embrun Veterinary Hospital,2,59.0,63.7,4.7,0.0,Services Vétérinaires De L’Est Ontarien / Eastern Ontario Veterinary Services,59.0,(613) 443-5459,,https://www.embrunvet.com/
+"Qualicum Beach, British Columbia",Mid-Isle Veterinary Hospital,2,58.0,62.6,4.6,0.0,Qualicum Beach Animal Hospital,58.0,(250) 752-8969,midislevet@shaw.ca,https://www.midislevet.ca/
+"Sooke, British Columbia",Saseenos Veterinary Services (1997) Ltd,2,57.0,61.6,4.6,3.0,Sooke Veterinary Hospital,60.0,(250) 642-7387,info@saseenosvet.com,https://www.saseenosvet.com/
+"Diamond Valley, Alberta",Diamond Valley Veterinary Clinic,2,57.0,61.6,4.6,3.0,Eastern Slopes Veterinary Services,60.0,(403) 933-4397,info@indiantypefoundry.com,http://diamondvalleyvet.ca/
+"Sault Ste. Marie, Ontario",Animal Hospital,2,58.0,62.6,4.6,3.0,Northland Animal Hospital,61.0,(705) 949-4222,,https://www.animalhospitalsaultstemarie.ca/site/home
+"Sault Ste. Marie, Ontario",Sault Ste Marie Animal Clinic,3,58.0,62.6,4.6,3.0,Northland Animal Hospital,61.0,(705) 759-8888,,http://www.ssmanimalclinic.com/
+"Whitchurch-Stouffville, Ontario",Thicketwood Veterinary Hospital,2,58.0,62.6,4.6,3.0,Town and Country Animal Hospital,61.0,(905) 640-8084,"info@uvh.ca,vetrehab@uvh.ca",https://www.uvh.ca/locations/thicketwood
+"Whitchurch-Stouffville, Ontario",VCA Stouffville Veterinary Clinic (Accepting new clients),3,57.0,61.6,4.6,4.0,Town and Country Animal Hospital,61.0,(905) 640-1641,,http://stouffvillevetclinic.com/
+"Terrebonne, Quebec",Clinique Veterinaire Passionimo La Plaine,2,58.0,62.6,4.6,2.0,Hôpital Vétérinaire de la Seigneurie de Terrebonne inc.,60.0,(450) 477-9662,info_cvlp@passionimo.ca,http://www.cliniqueveterinairelaplaine.com/
+"Saint-Léonard, Quebec",Clinique Vétérinaire du Quartier,2,58.0,62.6,4.6,0.0,Hopital Veterinaire Lacordaire,58.0,(514) 259-2541,"info@vetetcie.com,saint-leonard@vetetcie.com",https://vetetcie.com/
+"Saint-Amable, Quebec",Bureau Vétérinaire Saint-Amable,2,58.0,62.6,4.6,1.0,Monvet - Main Street Veterinary Clinic,59.0,(450) 338-3880,,https://www.veterinairestamable.com/
+"Penticton, British Columbia",Lindsey Veterinary Hospital,2,56.0,60.5,4.5,1.0,Anderson Veterinary Clinic,57.0,(250) 492-8113,,https://www.lindseyvet.com/
+"North Bay, Ontario",North Bay Humane Society Pet Clinic,2,56.0,60.5,4.5,4.0,Blue Sky Animal Hospital,60.0,(705) 478-8233,info@northbayhumanesociety.ca,http://www.northbayhumanesociety.ca/
+"East Gwillimbury, Ontario",Blackstone Animal Hospital,2,56.0,60.5,4.5,1.0,Sharon Veterinary Clinic,57.0,(905) 853-4738,info@blackstoneanimalhospital.ca,http://www.blackstoneanimalhospital.ca/
+"Courtice, Ontario",Clarington Animal Hospital,2,56.0,60.5,4.5,1.0,Rosswell Animal Hospital,57.0,(905) 404-2030,,http://www.claringtonvet.ca/
+"Belleville, Ontario",VCA Foster Park Animal Hospital,2,56.0,60.5,4.5,1.0,Quinte Pet Housecall: Exclusively Home Euthanasia (Mobile Vet),57.0,(613) 969-2273,,http://www.fosterparkpethospital.com/
+"Beloeil, Quebec",Hôpital Vétérinaire du Richelieu inc.,2,56.0,60.5,4.5,1.0,Clinique Vétérinaire de la Rive,57.0,(450) 813-9997,,https://monvet.com/clinique/hopital-veterinaire-richelieu-inc/
+"Duncan, British Columbia",Prevost Veterinary Clinic,2,55.0,59.4,4.4,1.0,Cowichan Valley Veterinary Services,56.0,(250) 746-7178,,https://www.prevostvetclinic.ca/
+"Spruce Grove, Alberta",Best Friend’s Animal Hospital,2,55.0,59.4,4.4,1.0,Parkland Veterinary Clinic,56.0,(780) 962-1281,reception@bestfriendsah.ca,http://www.bestfriendsah.ca/
+"Fort Saskatchewan, Alberta",Heartland Fort Veterinary Hospital,2,55.0,59.4,4.4,4.0,Fort Saskatchewan Veterinary,59.0,(780) 981-0333,info@heartlandfortvet.ca,http://www.heartlandfortvet.ca/
+"Gravenhurst, Ontario",Gravenhurst Veterinary Services,2,55.0,59.4,4.4,3.0,Muskoka Bay Animal Clinic (formerly Chidiac Animal Hospital of Gravenhurst),58.0,(705) 687-5158,,http://www.centennialah.ca/
+"Val-d'Or, Quebec",Clinique vétérinaire Boréale inc,2,55.0,59.4,4.4,3.0,Clinique Vétérinaire des Étoiles du Nord,58.0,(819) 831-5696,,http://www.cliniqueveterinaireboreale.com/
+"Russell, Ontario",Russell Equine Veterinary Service,2,55.0,59.4,4.4,4.0,Village Veterinary Clinic,59.0,(613) 445-3521,,https://www.russellequine.com/
+"Mirabel, Quebec",Clinique vétérinaire St-Augustin-de-Mirabel,2,55.0,59.4,4.4,4.0,Veterinary Clinic Domaine Vert inc.,59.0,(450) 414-1515,,https://www.veterinairestaugustin.com/
+"Drummondville, Quebec",Clinique vétérinaire Dre Eve Biron,2,55.0,59.4,4.4,1.0,Lindsay Veterinary Hospital,56.0,(819) 478-1838,,https://www.evebironveterinaire.com/
+"Pitt Meadows, British Columbia",Meadowvale Animal Hospital,2,54.0,58.3,4.3,0.0,Pitt Meadows Animal Clinic,54.0,(604) 459-2525,meadowvaleah@gmail.com,http://meadowvaleanimalhospital.com/
+"Armstrong, British Columbia",Armstrong Veterinary Clinic,2,54.0,58.3,4.3,4.0,Mills Veterinary Services,58.0,(250) 546-9506,reception@armstrongveterinaryclinic.com,http://www.armstrongveterinaryclinic.com/
+"Spruce Grove, Alberta",Spruce Grove Veterinary Clinic,3,54.0,58.3,4.3,2.0,Parkland Veterinary Clinic,56.0,(780) 962-3233,,http://sprucegrovevet.com/
+"Dauphin, Manitoba",Dauphin Veterinary Clinic,2,54.0,58.3,4.3,1.0,Uptown Pet Clinic,55.0,(204) 638-3044,contactus@dauphinvetclinic.com,http://www.dauphinvetclinic.com/
+"Fort Erie, Ontario",Fort Erie Spay & Neuter clinic with Basic Care,2,54.0,58.3,4.3,3.0,Fort Erie Animal Hospital,57.0,(905) 871-2461,technician@forteriespca.ca,https://www.forteriespayandneuter.ca/
+"Trenton, Ontario",Southeastern Ontario Spay Neuter Clinic,2,54.0,58.3,4.3,0.0,Quinte Animal Hospital,54.0,(613) 392-7729,bellevillespayneuter@gmail.com,http://www.spayneuterontario.com/
+"Beloeil, Quebec",Clinique Vétérinaire St-Exupéry Inc.,3,54.0,58.3,4.3,3.0,Clinique Vétérinaire de la Rive,57.0,(450) 464-2255,,http://www.veterinairebeloeil.com/
+"Drummondville, Quebec","Clinique Vétérinaire des Voltigeurs | Consultation, Toilettage & Nourriture | Canin & Félin | Région de Centre-du-Québec",3,54.0,58.3,4.3,2.0,Lindsay Veterinary Hospital,56.0,(873) 382-0305,info@veterinairedesvoltigeurs.com,http://cliniqueveterinairedesvoltigeurs.com/
+"Dieppe, New Brunswick",Grey Cove Veterinary Health Centre,2,54.0,58.3,4.3,2.0,Vet-Champlain Animal Care Inc,56.0,(506) 854-8282,info@gcvet.ca,http://gcvet.ca/
+"Corner Brook, Newfoundland and Labrador",Humber Veterinary Clinic,2,54.0,58.3,4.3,3.0,Animal Health Centre,57.0,(709) 634-3537,humbervetstaff@humbervet.com,http://www.humbervalleyvet.com/
+"Campbell River, British Columbia",Campbell River Veterinary Hospital,2,53.0,57.2,4.2,1.0,Coastland Veterinary Hospital,54.0,(250) 923-4292,,https://www.campbellrivervet.com/
+"Duncan, British Columbia",Kinsol Veterinary Clinic,3,53.0,57.2,4.2,3.0,Cowichan Valley Veterinary Services,56.0,(250) 929-5888,info@kinsolvet.ca,http://www.kinsolvet.ca/
+"Duncan, British Columbia",Duncan Cat Clinic,4,52.0,56.2,4.2,4.0,Cowichan Valley Veterinary Services,56.0,(778) 455-2287,doctor@duncancatclinic.com,https://duncancatclinic.com/
+"Penticton, British Columbia",BC SPCA Penticton Veterinary Hospital,3,53.0,57.2,4.2,4.0,Anderson Veterinary Clinic,57.0,(250) 493-1530,pvh@spca.bc.ca,http://www.pentictonvet.ca/
+"Elmira, Ontario",North Waterloo Veterinary Hospital,2,52.0,56.2,4.2,4.0,Eldale Veterinary Clinic,56.0,(519) 669-2901,,http://nwvethospital.com/
+"Trenton, Ontario",Trenton Pet Hospital,3,53.0,57.2,4.2,1.0,Quinte Animal Hospital,54.0,(613) 392-6667,info@trentonpethospital.com,http://trentonpethospital.com/
+"Stirling, Ontario",Stirling Veterinary Services,2,52.0,56.2,4.2,0.0,Hastings Veterinary Hospital,52.0,(613) 395-2716,stirlingvet@gmail.com,http://www.stirlingvet.ca/
+"Navan, Ontario",Navan Veterinary Services,2,53.0,57.2,4.2,3.0,Colonial Veterinary Hospital,56.0,(613) 835-2646,info@navanvetservices.com,http://www.navanvetservices.com/
+"Casselman, Ontario",Hôpital vétérinaire Nation Veterinary Hospital,2,52.0,56.2,4.2,4.0,Carole Michon Equine Veterinary Services,56.0,(613) 764-1234,,http://www.nationvet.com/
+"Saint-Georges, Quebec",Clinique Vet-St-Georges Enr,2,53.0,57.2,4.2,4.0,Clinique Vétérinaire Beauce-Appalaches Enr,57.0,(418) 228-3761,,
+"Miramichi, New Brunswick",Plc animal hospital,2,52.0,56.2,4.2,4.0,Waterview Animal Hospital,56.0,(506) 773-7845,plcanimalhospital@hotmail.com,http://www.plcanimalhospital.com/
+"Mount Pearl, Newfoundland and Labrador",Topsail Road Veterinary Clinic,2,52.0,56.2,4.2,1.0,Sunrise Animal Hospital,53.0,(709) 747-5353,reception@topsailroadvet.com,http://www.topsailroadvet.com/
+"Mount Pearl, Newfoundland and Labrador",Veterinary Specialty Centre Of Newfoundland and Labrador,3,52.0,56.2,4.2,1.0,Sunrise Animal Hospital,53.0,(709) 221-7838,,http://www.vscnl.ca/
+"Binbrook, Ontario",Binbrook Animal Hospital,2,51.0,55.1,4.1,3.0,Village Centre Animal Hospital,54.0,(905) 692-2693,,http://www.binbrookvet.com/
+"Farnham, Quebec",Clinique Vétérinaire Farnham Bedford,2,51.0,55.1,4.1,3.0,Clinique Vétérinaire des Cantons-Farnham inc,54.0,(450) 293-5524,info@cvfarnhambedford.ca,http://www.clinique-veterinaire-farnham-bedford.ca/
+"Valcourt, Quebec",Bureau Veterinaire De Richmond,2,51.0,55.1,4.1,3.0,Clinique Veterinaire-Valcourt,54.0,(450) 820-8180,,https://www.vetrichmond.ca/
+"Magog, Quebec",Bureau Vétérinaire Holistique Omanimo,2,51.0,55.1,4.1,3.0,Clinique Vétérinaire Magog Orford,54.0,(819) 769-1690,info@vet-holistique.com,http://www.vet-holistique.com/
+"Rothesay, New Brunswick",Atlantic Veterinary Hospital,2,51.0,55.1,4.1,0.0,Fairvale Animal Hospital,51.0,(506) 847-2400,,https://www.atlanticveterinaryhospital.ca/
+"Conception Bay South, Newfoundland and Labrador",CBS Animal Hospital,2,51.0,55.1,4.1,4.0,Memorial Animal Hospital,55.0,(709) 240-2288,info@cbsanimalhospital.com,http://cbsanimalhospital.com/
+"Petrolia, Ontario",Discovery Animal Hospital,2,50.0,54.0,4.0,1.0,VCA Canada Petrolia Veterinary Services,51.0,(226) 738-0411,,
+"Orillia, Ontario",Orillia Pet Hospital,2,50.0,54.0,4.0,2.0,Colborne Street Pet Hospital,52.0,(705) 325-4224,,https://orilliapethospital.com/
+"Orillia, Ontario",Mariposa Veterinary Hospital,3,50.0,54.0,4.0,2.0,Colborne Street Pet Hospital,52.0,(705) 327-5311,reception@mariposavh.com,http://www.mariposavh.com/
+"Mont-Laurier, Quebec",Animaux de ferme BV des Hautes-laurentides inc,2,50.0,54.0,4.0,3.0,Veterinary Hospital De Mont Laurier,53.0,(819) 623-3495,,
+"Campbellville, Ontario",Brookville Veterinary Clinic,2,49.0,52.9,3.9,1.0,McKee-Pownall Equine Services Campbellville,50.0,(905) 854-2216,contact@brookvillevet.com,http://www.brookvillevet.com/
+"Huntsville, Ontario",Muskoka Animal Hospital,2,49.0,52.9,3.9,2.0,Huntsville Animal Hospital,51.0,(705) 789-7979,,https://www.muskokaanimalhospital.com/
+"West Vancouver, British Columbia",Animal Medical Hospital,2,47.0,50.8,3.8,3.0,Ambleside Animal Hospital,50.0,(604) 926-8654,,http://www.vet.bc.ca/
+"Campbellville, Ontario",Campbellville Animal Hospital,3,47.0,50.8,3.8,3.0,McKee-Pownall Equine Services Campbellville,50.0,(905) 854-5556,petcare@campbellvillevet.ca,http://www.campbellvillevet.ca/
+"Amherstview, Ontario",Fairfield Pet Hospital,2,48.0,51.8,3.8,1.0,Amherstview Pet Hospital,49.0,(613) 766-2263,petcare@fairfieldpethospital.ca,https://fairfieldpethospital.ca/
+"Pincher Creek, Alberta",Peak Veterinary Hospital,2,44.0,47.5,3.5,2.0,Pincher Creek Veterinary Clinic,46.0,(403) 904-1100,,https://peakvet.ca/
+"Pincher Creek, Alberta",Country Vets Ltd,3,43.0,46.4,3.4,3.0,Pincher Creek Veterinary Clinic,46.0,(403) 627-4212,,http://countryvets.weebly.com/
+"Morriston, Ontario",Morriston Veterinary Clinic,2,42.0,45.4,3.4,1.0,Animal Eye Clinic of Waterloo Region,43.0,(519) 766-9494,contact@morristonvetclinic.com,http://morristonvetclinic.com/
+"Bragg Creek, Alberta",Banded Peak Veterinary Hosp,2,41.0,44.3,3.3,3.0,Bragg Creek Veterinary Clinic,44.0,(403) 949-3249,,http://www.bpvh.ca/
+"Waterloo, Quebec",Clinique vétérinaire FOSTERVET,2,41.0,44.3,3.3,2.0,Clinique Vétérinaire Waterloo Inc.,43.0,(450) 920-7387,,https://www.facebook.com/Clinique-Veterinaire-Fostervet-205427251502646
+"Meadow Lake, Saskatchewan",Woodland Veterinary Clinic,2,31.0,33.5,2.5,2.0,Labrash Veterinary Services,33.0,(306) 236-5770,,

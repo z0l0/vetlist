@@ -30,3 +30,28 @@ yarn-error.log*
 
 # Cache
 .astro/
+
+# Scraper caches (large, not needed in repo)
+data/.scraper-cache/
+data/.scraper-cache-v3/
+
+# Precomputed derived data (generated locally before build)
+data/derived/
+
+# Backups
+data/backups/
+
+# OG images (generated)
+public/images/og/
+
+# Misc scripts/notes not needed in repo
+docs/
+resume-scraper.sh
+scrape-all-canada.sh
+vet-scraper.md
+zz-shortassets.html
+transcript-notes-1.md
+listing-removal.md
+ai-chatbot.md
+ai-chat-header-removal.md
+smart-search-replacement.md

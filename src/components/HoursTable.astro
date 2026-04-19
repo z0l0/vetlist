@@ -1,34 +1,247 @@
 ---
-const { data } = Astro.props;
+const {
+  data,
+  emergency24Hour = false,
+  emergencyServices = false,
+  telehealthAvailable = false,
+} = Astro.props;
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const serializedHours = JSON.stringify(data || {});
+
+function dayHours(dayIndex) {
+  if (!data) return "Closed";
+  const dayKey = (dayIndex + 1).toString();
+  const value = data[dayKey];
+  if (!value || !Array.isArray(value) || value.length === 0) return "Closed";
+  return value.join(", ");
+}
+
+const operationsHeadline = emergency24Hour
+  ? "Emergency care is marked as available 24/7. Routine hours can still vary."
+  : emergencyServices
+    ? "Emergency support is listed in addition to the routine schedule below."
+    : telehealthAvailable
+      ? "Telehealth is listed, which may help if an in-person visit is not immediately available."
+    : data
+      ? "The live status below uses your device time and the published schedule."
+      : "Call to confirm current hours before visiting.";
 ---
 
-<section class="profile-section">
-  <h2>Hours of Operation</h2>
-  <table class="hours-table">
-    <thead>
-      <tr>
-        <th>Day</th>
-        <th>Hours</th>
-      </tr>
-    </thead>
-    <tbody>
-      {data ? (
-        DAYS.map((day, index) => {
-          const dayKey = (index + 1).toString();
-          const hours = data[dayKey] ? data[dayKey][0] : "Closed";
-          return (
-            <tr>
-              <td>{day}</td>
-              <td>{hours}</td>
-            </tr>
-          );
-        })
-      ) : (
-        <tr>
-          <td colSpan="2">Hours information unavailable</td>
-        </tr>
-      )}
-    </tbody>
-  </table>
+<section class="rounded-[28px] border border-slate-200 bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_100%)] p-5 shadow-sm">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Clinic operations</p>
+      <h3 class="mt-2 text-2xl font-black tracking-tight text-slate-950">Open now, hours, and urgent-care options</h3>
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{operationsHeadline}</p>
+    </div>
+    <div
+      class="js-open-now open-now-card min-w-[13rem] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+      data-hours={serializedHours}
+      data-emergency-24={emergency24Hour ? 'true' : 'false'}
+      data-compact="false"
+    >
+      <div data-open-status>{data ? 'Checking hours...' : 'Call for hours'}</div>
+      <div data-open-detail class="mt-1 text-xs font-medium text-slate-500">{data ? 'Using your device time' : 'No schedule is published'}</div>
+      <div data-open-local class="mt-1 text-xs font-medium text-slate-400"></div>
+    </div>
+  </div>
+
+  <div class="mt-5 grid gap-3 sm:grid-cols-3">
+    <div class={`rounded-2xl border px-4 py-3 text-sm ${emergency24Hour ? 'border-rose-200 bg-rose-50 text-rose-900' : 'border-slate-200 bg-white text-slate-600'}`}>
+      <div class="font-bold">24/7 emergency</div>
+      <div class="mt-1 text-xs">{emergency24Hour ? 'Listed' : 'Not listed'}</div>
+    </div>
+    <div class={`rounded-2xl border px-4 py-3 text-sm ${(emergency24Hour || emergencyServices) ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-slate-200 bg-white text-slate-600'}`}>
+      <div class="font-bold">Emergency support</div>
+      <div class="mt-1 text-xs">{(emergency24Hour || emergencyServices) ? 'Listed' : 'Not listed'}</div>
+    </div>
+    <div class={`rounded-2xl border px-4 py-3 text-sm ${telehealthAvailable ? 'border-cyan-200 bg-cyan-50 text-cyan-900' : 'border-slate-200 bg-white text-slate-600'}`}>
+      <div class="font-bold">Telehealth</div>
+      <div class="mt-1 text-xs">{telehealthAvailable ? 'Listed' : 'Not listed'}</div>
+    </div>
+  </div>
+
+  {data && (
+    <div class="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-600">
+      <span class="font-semibold text-slate-900">Your time:</span>
+      <span data-open-local-inline>checking...</span>
+      <span class="text-slate-400"> | </span>
+      <span>clinic hours may use the clinic's local time, so call before an urgent visit.</span>
+    </div>
+  )}
+
+  <div class="mt-5 grid gap-3">
+    {data ? (
+      DAYS.map((day, index) => {
+        const hours = dayHours(index);
+        return (
+      <div class="hours-row flex flex-col items-start gap-2 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4" data-day-key={String(index + 1)}>
+        <div>
+          <div class="text-sm font-bold text-slate-800">{day}</div>
+          <div data-today-label class="hidden text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-700">Today</div>
+        </div>
+        <div class={`text-left text-sm font-medium sm:text-right ${hours === 'Closed' ? 'text-slate-400' : 'text-slate-700'}`}>
+          {hours}
+        </div>
+      </div>
+        );
+      })
+    ) : (
+      <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-500">
+        Hours information unavailable
+      </div>
+    )}
+  </div>
+
+  {(emergency24Hour || emergencyServices) && (
+    <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+      {emergency24Hour
+        ? 'Emergency care is marked as available around the clock, even when front-desk hours are limited.'
+        : 'Emergency support is marked as available, so after-hours help may be worth asking about even if routine hours are limited.'}
+    </div>
+  )}
 </section>
+
+<script is:inline>
+  (() => {
+    if (window.__vetlistOpenNowInit) return;
+    window.__vetlistOpenNowInit = true;
+
+    const dayKeyForDate = (date) => {
+      const day = date.getDay();
+      return day === 0 ? '7' : String(day);
+    };
+
+    const parseTime = (value) => {
+      const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})/);
+      if (!match) return null;
+      const hours = Number(match[1]);
+      const minutes = Number(match[2]);
+      if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+      return hours * 60 + minutes;
+    };
+
+    const formatTime = (minutes) => {
+      const clamped = ((minutes % 1440) + 1440) % 1440;
+      const hours = Math.floor(clamped / 60);
+      const mins = clamped % 60;
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours % 12 || 12;
+      return `${displayHours}:${String(mins).padStart(2, '0')} ${period}`;
+    };
+
+    const parseHours = (raw) => {
+      try {
+        const parsed = JSON.parse(raw || '{}');
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch {
+        return {};
+      }
+    };
+
+    const intervalsForDay = (hours, dayKey) => {
+      const intervals = hours[dayKey] || [];
+      return Array.isArray(intervals) ? intervals : [];
+    };
+
+    const evaluateOpenNow = (hours, now) => {
+      const todayKey = dayKeyForDate(now);
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const todayIntervals = intervalsForDay(hours, todayKey);
+
+      for (const interval of todayIntervals) {
+        const [opensRaw, closesRaw] = String(interval).split('-').map((part) => part.trim());
+        const opens = parseTime(opensRaw);
+        const closes = parseTime(closesRaw);
+        if (opens == null || closes == null) continue;
+
+        if (opens === 0 && closes >= 1439) {
+          return { state: 'open', status: 'Open 24 hours', detail: 'Based on the published schedule' };
+        }
+
+        if (closes < opens) {
+          if (currentMinutes >= opens || currentMinutes < closes) {
+            return { state: 'open', status: 'Open now', detail: `Closes at ${formatTime(closes)}` };
+          }
+        } else if (currentMinutes >= opens && currentMinutes < closes) {
+          return { state: 'open', status: 'Open now', detail: `Closes at ${formatTime(closes)}` };
+        }
+
+        if (currentMinutes < opens) {
+          return { state: 'closed', status: 'Closed now', detail: `Opens today at ${formatTime(opens)}` };
+        }
+      }
+
+      for (let offset = 1; offset <= 7; offset += 1) {
+        const next = new Date(now);
+        next.setDate(now.getDate() + offset);
+        const nextKey = dayKeyForDate(next);
+        const nextIntervals = intervalsForDay(hours, nextKey);
+        const nextOpen = nextIntervals
+          .map((interval) => parseTime(String(interval).split('-')[0]))
+          .find((value) => value != null);
+        if (nextOpen != null) {
+          const dayName = new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(next);
+          return { state: 'closed', status: 'Closed now', detail: `Opens ${dayName} at ${formatTime(nextOpen)}` };
+        }
+      }
+
+      return { state: 'unknown', status: 'Call for hours', detail: 'No upcoming open time found in the published schedule' };
+    };
+
+    const now = new Date();
+    const localTime = new Intl.DateTimeFormat(undefined, {
+      weekday: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(now);
+    const todayKey = dayKeyForDate(now);
+
+    document.querySelectorAll('[data-open-local-inline]').forEach((node) => {
+      node.textContent = localTime;
+    });
+
+    document.querySelectorAll('.hours-row').forEach((row) => {
+      if (row.getAttribute('data-day-key') === todayKey) {
+        row.setAttribute('data-today', 'true');
+        row.querySelector('[data-today-label]')?.classList.remove('hidden');
+      }
+    });
+
+    document.querySelectorAll('.js-open-now').forEach((card) => {
+      const hours = parseHours(card.getAttribute('data-hours'));
+      const hasHours = Object.keys(hours).length > 0;
+      const emergency24 = card.getAttribute('data-emergency-24') === 'true';
+      const result = hasHours
+        ? evaluateOpenNow(hours, now)
+        : { state: 'unknown', status: 'Call for hours', detail: 'No schedule is published' };
+
+      card.setAttribute('data-state', result.state);
+      card.querySelector('[data-open-status]').textContent = emergency24 && result.state !== 'open'
+        ? `${result.status} · 24/7 emergency listed`
+        : result.status;
+      card.querySelector('[data-open-detail]').textContent = result.detail;
+      const localNode = card.querySelector('[data-open-local]');
+      if (localNode) localNode.textContent = `Your time: ${localTime}`;
+    });
+  })();
+</script>
+
+<style is:global>
+  .open-now-card[data-state="open"] {
+    border-color: rgb(167 243 208);
+    background: rgb(236 253 245);
+    color: rgb(6 95 70);
+  }
+
+  .open-now-card[data-state="closed"] {
+    border-color: rgb(254 202 202);
+    background: rgb(254 242 242);
+    color: rgb(153 27 27);
+  }
+
+  .hours-row[data-today="true"] {
+    border-color: rgb(165 243 252);
+    background: rgb(236 254 255);
+  }
+</style>

@@ -2,6 +2,7 @@ import express from 'express';
 import { readFileSync, writeFileSync, readdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { execFile } from 'child_process';
 import Papa from 'papaparse';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -39,9 +40,74 @@ function saveCSV(filename, data) {
   writeFileSync(csvPath, csv, 'utf-8');
 }
 
+function refreshDerivedSiteData() {
+  return new Promise((resolve) => {
+    execFile(process.execPath, [join(__dirname, '..', 'scripts', 'precompute-site-data.js')], { cwd: join(__dirname, '..') }, (error, stdout, stderr) => {
+      if (error) {
+        console.error('Failed to refresh derived site data:', error.message);
+      }
+      if (stdout) console.log(stdout.trim());
+      if (stderr) console.error(stderr.trim());
+      resolve();
+    });
+  });
+}
+
 // Get list of CSV files
 function getCSVFiles() {
   return readdirSync(dataDir).filter(f => f.startsWith('professionals') && f.endsWith('.csv'));
+}
+
+function getDefaultCsvFile() {
+  const csvFiles = getCSVFiles();
+  return csvFiles.includes('professionals-canada.csv') ? 'professionals-canada.csv' : csvFiles[0];
+}
+
+function slugify(text) {
+  return String(text || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-')
+    .replace(/-?\d+$/, '');
+}
+
+function normalizeCountry(country) {
+  if (!country) return '';
+  if (/^(us|usa|united\s*states(\s*of\s*america)?)$/i.test(country.trim())) {
+    return 'united-states';
+  }
+  return slugify(country);
+}
+
+function normalizeProvince(province) {
+  return slugify(province);
+}
+
+function buildProfilePath(profile) {
+  const country = normalizeCountry(profile.country);
+  const region = normalizeProvince(profile.province);
+  const city = slugify(profile.city);
+  const name = slugify(profile.name);
+
+  if (!country || !region || !city || !name) return null;
+  return `http://localhost:4323/${country}/${region}/${city}/${name}/`;
+}
+
+function getDashboardStats(csvFiles) {
+  let totalProfiles = 0;
+
+  for (const file of csvFiles) {
+    try {
+      totalProfiles += loadCSV(file).length;
+    } catch {}
+  }
+
+  return {
+    csvFiles: csvFiles.length,
+    totalProfiles,
+  };
 }
 
 // Routes
@@ -80,20 +146,26 @@ app.get('/', (req, res) => {
     );
   }
   
-  res.send(renderBrowsePage(csvFiles, selectedFile, searchQuery, profiles, filesSearched));
+  res.send(renderBrowsePage(csvFiles, selectedFile, searchQuery, profiles, filesSearched, getDashboardStats(csvFiles)));
+});
+
+app.get('/docs', (req, res) => {
+  const csvFiles = getCSVFiles();
+  res.send(renderDocsPage(getDashboardStats(csvFiles)));
 });
 
 app.get('/edit', (req, res) => {
   const profileId = req.query.id;
-  const selectedFile = req.query.file || 'professionals.csv';
+  const selectedFile = req.query.file || getDefaultCsvFile();
+  const success = req.query.success === '1';
   
   const profiles = loadCSV(selectedFile);
   const profile = profiles.find(p => p._id === profileId || p.id === profileId);
   
-  res.send(renderEditPage(profile, selectedFile, profileId));
+  res.send(renderEditPage(profile, selectedFile, profileId, success));
 });
 
-app.post('/edit', (req, res) => {
+app.post('/edit', async (req, res) => {
   const { profileId, selectedFile, ...formData } = req.body;
   
   console.log('Editing profile:', profileId, 'in file:', selectedFile);
@@ -130,6 +202,7 @@ app.post('/edit', (req, res) => {
     
     saveCSV(selectedFile, cleanProfiles);
     console.log('Saved to CSV');
+    await refreshDerivedSiteData();
     
     res.redirect(`/edit?id=${profileId}&file=${selectedFile}&success=1`);
   } else {
@@ -138,7 +211,7 @@ app.post('/edit', (req, res) => {
 });
 
 app.get('/import', (req, res) => {
-  res.send(renderImportPage());
+  res.send(renderImportPage(getCSVFiles(), getDefaultCsvFile()));
 });
 
 app.post('/import/parse', (req, res) => {
@@ -208,7 +281,7 @@ app.post('/import/parse', (req, res) => {
   });
 });
 
-app.post('/import/save', (req, res) => {
+app.post('/import/save', async (req, res) => {
   const { parsedData, target_file, update_profile_id, update_file } = req.body;
   const data = JSON.parse(parsedData);
   
@@ -244,6 +317,7 @@ app.post('/import/save', (req, res) => {
       });
       
       saveCSV(update_file, cleanProfiles);
+      await refreshDerivedSiteData();
       res.json({ success: true, id: profiles[index].id, updated: true });
       return;
     }
@@ -291,29 +365,31 @@ app.post('/import/save', (req, res) => {
   });
   
   saveCSV(target_file, cleanProfiles);
+  await refreshDerivedSiteData();
   
   res.json({ success: true, id: newId, updated: false });
 });
 
 app.get('/bulk-edit', (req, res) => {
-  const selectedFile = req.query.file || 'professionals.csv';
+  const selectedFile = req.query.file || getDefaultCsvFile();
   const csvContent = readFileSync(join(dataDir, selectedFile), 'utf-8');
-  res.send(renderBulkEditPage(selectedFile, csvContent));
+  res.send(renderBulkEditPage(getCSVFiles(), selectedFile, csvContent));
 });
 
-app.post('/bulk-edit', (req, res) => {
+app.post('/bulk-edit', async (req, res) => {
   const { csv_content, target_file } = req.body;
   
   try {
     const parsed = Papa.parse(csv_content, { header: true, skipEmptyLines: true });
     if (parsed.errors.length > 0) {
-      res.send(renderBulkEditPage(target_file, csv_content, `CSV parsing errors: ${parsed.errors.map(e => e.message).join(', ')}`));
+      res.send(renderBulkEditPage(getCSVFiles(), target_file, csv_content, `CSV parsing errors: ${parsed.errors.map(e => e.message).join(', ')}`));
     } else {
       writeFileSync(join(dataDir, target_file), csv_content, 'utf-8');
+      await refreshDerivedSiteData();
       res.redirect(`/bulk-edit?file=${target_file}&success=1`);
     }
   } catch (error) {
-    res.send(renderBulkEditPage(target_file, csv_content, `Error: ${error.message}`));
+    res.send(renderBulkEditPage(getCSVFiles(), target_file, csv_content, `Error: ${error.message}`));
   }
 });
 
@@ -411,7 +487,7 @@ function parseClaimEmail(emailText) {
 }
 
 // HTML Templates
-function renderBrowsePage(csvFiles, selectedFile, searchQuery, profiles, filesSearched) {
+function renderBrowsePage(csvFiles, selectedFile, searchQuery, profiles, filesSearched, stats) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -423,14 +499,42 @@ function renderBrowsePage(csvFiles, selectedFile, searchQuery, profiles, filesSe
 <body>
   <div class="container">
     <header>
-      <h1>🏥 VetList CRM</h1>
-      <p>Local profile management • ${csvFiles.length} CSV files • ${profiles.length} profiles ${searchQuery ? 'found' : 'loaded'}</p>
+      <div class="header-top">
+        <div>
+          <div class="eyebrow">Local-only CMS</div>
+          <h1>VetList Admin</h1>
+          <p>Simple local editing for listings, imports, bulk work, and quality control.</p>
+        </div>
+        <div class="header-note">
+          <strong>${stats.totalProfiles.toLocaleString()}</strong>
+          <span>profiles across ${stats.csvFiles} CSV files</span>
+        </div>
+      </div>
       <div class="nav">
-        <a href="/">Browse Profiles</a>
-        <a href="/import">Import from Email</a>
+        <a href="/">Browse</a>
+        <a href="/import">Import</a>
         <a href="/bulk-edit">Bulk Edit</a>
+        <a href="/docs">Docs</a>
       </div>
     </header>
+
+    <div class="dashboard-grid">
+      <div class="dashboard-card">
+        <span class="dashboard-label">Profiles in view</span>
+        <strong>${profiles.length.toLocaleString()}</strong>
+        <p>${searchQuery ? 'Matching your current search.' : 'Loaded from the selected file scope.'}</p>
+      </div>
+      <div class="dashboard-card">
+        <span class="dashboard-label">Current scope</span>
+        <strong>${selectedFile === 'all' ? 'All files' : selectedFile}</strong>
+        <p>${searchQuery ? `Searching across ${filesSearched.length} files.` : 'Switch files or search globally.'}</p>
+      </div>
+      <div class="dashboard-card">
+        <span class="dashboard-label">Best workflow</span>
+        <strong>Search -> Edit -> Preview</strong>
+        <p>Use import for claim emails and bulk edit only when you truly need raw CSV access.</p>
+      </div>
+    </div>
 
     <div class="search-bar">
       <form class="search-form" method="get">
@@ -467,7 +571,7 @@ function renderBrowsePage(csvFiles, selectedFile, searchQuery, profiles, filesSe
             </div>
             <div class="profile-actions">
               <a href="/edit?id=${profile._id || profile.id}&file=${profile._sourceFile || selectedFile}" class="btn btn-edit">Edit</a>
-              <a href="http://localhost:4323/${profile.country}/${profile.province?.toLowerCase()}/${profile.city?.toLowerCase()}/${profile.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-')}/" class="btn btn-view" target="_blank">View</a>
+              ${buildProfilePath(profile) ? `<a href="${buildProfilePath(profile)}" class="btn btn-view" target="_blank">View</a>` : ''}
             </div>
           </div>
         `).join('')}
@@ -485,8 +589,7 @@ function renderBrowsePage(csvFiles, selectedFile, searchQuery, profiles, filesSe
 </html>`;
 }
 
-function renderEditPage(profile, selectedFile, profileId) {
-  const success = '';
+function renderEditPage(profile, selectedFile, profileId, success = false) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -498,11 +601,20 @@ function renderEditPage(profile, selectedFile, profileId) {
 <body>
   <div class="container">
     <header>
-      <h1>✏️ Edit Profile</h1>
-      <a href="/" class="back-link">← Back to profiles</a>
+      <div class="header-top">
+        <div>
+          <div class="eyebrow">Editing workflow</div>
+          <h1>Edit Profile</h1>
+          <p>Make direct factual changes to the listing, save, then refresh the public page locally.</p>
+        </div>
+        <div class="nav">
+          <a href="/">Browse</a>
+          <a href="/docs">Docs</a>
+        </div>
+      </div>
     </header>
 
-    ${success ? '<div class="message">Profile updated successfully!</div>' : ''}
+    ${success ? '<div class="message">Profile updated successfully and derived site data was refreshed.</div>' : ''}
 
     ${profile ? `
       <div class="form-container">
@@ -599,7 +711,7 @@ function renderEditPage(profile, selectedFile, profileId) {
 </html>`;
 }
 
-function renderImportPage() {
+function renderImportPage(csvFiles, defaultFile) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -611,9 +723,17 @@ function renderImportPage() {
 <body>
   <div class="container">
     <header>
-      <h1>📧 Import from Email</h1>
-      <p>Paste claim emails to automatically extract profile data</p>
-      <a href="/" class="back-link">← Back to profiles</a>
+      <div class="header-top">
+        <div>
+          <div class="eyebrow">Import workflow</div>
+          <h1>Email Import</h1>
+          <p>Paste a claim email, detect an existing match, then update or create the profile locally.</p>
+        </div>
+        <div class="nav">
+          <a href="/">Browse</a>
+          <a href="/docs">Docs</a>
+        </div>
+      </div>
     </header>
 
     <div class="content">
@@ -630,16 +750,7 @@ function renderImportPage() {
           <div class="form-group">
             <label>Target CSV File <span style="color: #6b7280; font-size: 12px;">(Only used when creating new profiles)</span></label>
             <select id="target_file">
-              <option value="professionals.csv">professionals.csv</option>
-              <option value="professionals2.csv">professionals2.csv</option>
-              <option value="professionals3.csv">professionals3.csv</option>
-              <option value="professionals4.csv">professionals4.csv</option>
-              <option value="professionals5.csv">professionals5.csv</option>
-              <option value="professionals6.csv">professionals6.csv</option>
-              <option value="professionals7.csv">professionals7.csv</option>
-              <option value="professionals8.csv">professionals8.csv</option>
-              <option value="professionals9.csv">professionals9.csv</option>
-              <option value="professionals10.csv">professionals10.csv</option>
+              ${csvFiles.map((file) => `<option value="${file}" ${file === defaultFile ? 'selected' : ''}>${file}</option>`).join('')}
             </select>
           </div>
           <button onclick="saveToCSV()" id="saveBtn" class="btn-success" style="width: 100%; padding: 12px; font-size: 16px;">Save to CSV</button>
@@ -857,7 +968,7 @@ function renderImportPage() {
 </html>`;
 }
 
-function renderBulkEditPage(selectedFile, csvContent, message = '') {
+function renderBulkEditPage(csvFiles, selectedFile, csvContent, message = '') {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -869,9 +980,17 @@ function renderBulkEditPage(selectedFile, csvContent, message = '') {
 <body>
   <div class="container">
     <header>
-      <h1>📝 Bulk Edit CSV</h1>
-      <p>Direct CSV editing for advanced users</p>
-      <a href="/" class="back-link">← Back to profiles</a>
+      <div class="header-top">
+        <div>
+          <div class="eyebrow">Advanced workflow</div>
+          <h1>Bulk Edit CSV</h1>
+          <p>Raw CSV access for batch cleanup. Best for find/replace work after you already know exactly what you want to change.</p>
+        </div>
+        <div class="nav">
+          <a href="/">Browse</a>
+          <a href="/docs">Docs</a>
+        </div>
+      </div>
     </header>
 
     <div class="warning">
@@ -886,16 +1005,7 @@ function renderBulkEditPage(selectedFile, csvContent, message = '') {
         <div class="form-group">
           <label>Select CSV File</label>
           <select name="target_file" onchange="window.location.href='/bulk-edit?file=' + this.value">
-            <option value="professionals.csv" ${selectedFile === 'professionals.csv' ? 'selected' : ''}>professionals.csv</option>
-            <option value="professionals2.csv" ${selectedFile === 'professionals2.csv' ? 'selected' : ''}>professionals2.csv</option>
-            <option value="professionals3.csv" ${selectedFile === 'professionals3.csv' ? 'selected' : ''}>professionals3.csv</option>
-            <option value="professionals4.csv" ${selectedFile === 'professionals4.csv' ? 'selected' : ''}>professionals4.csv</option>
-            <option value="professionals5.csv" ${selectedFile === 'professionals5.csv' ? 'selected' : ''}>professionals5.csv</option>
-            <option value="professionals6.csv" ${selectedFile === 'professionals6.csv' ? 'selected' : ''}>professionals6.csv</option>
-            <option value="professionals7.csv" ${selectedFile === 'professionals7.csv' ? 'selected' : ''}>professionals7.csv</option>
-            <option value="professionals8.csv" ${selectedFile === 'professionals8.csv' ? 'selected' : ''}>professionals8.csv</option>
-            <option value="professionals9.csv" ${selectedFile === 'professionals9.csv' ? 'selected' : ''}>professionals9.csv</option>
-            <option value="professionals10.csv" ${selectedFile === 'professionals10.csv' ? 'selected' : ''}>professionals10.csv</option>
+            ${csvFiles.map((file) => `<option value="${file}" ${selectedFile === file ? 'selected' : ''}>${file}</option>`).join('')}
           </select>
         </div>
 
@@ -909,6 +1019,104 @@ function renderBulkEditPage(selectedFile, csvContent, message = '') {
           <a href="/" class="btn-secondary">Cancel</a>
         </div>
       </form>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function renderDocsPage(stats) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docs - VetList Admin</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-top">
+        <div>
+          <div class="eyebrow">Admin wiki</div>
+          <h1>VetList Local CMS Guide</h1>
+          <p>A simple reference for what lives where, which workflow to use, and how not to get lost.</p>
+        </div>
+        <div class="nav">
+          <a href="/">Browse</a>
+          <a href="/import">Import</a>
+          <a href="/bulk-edit">Bulk Edit</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+      <div class="dashboard-card">
+        <span class="dashboard-label">Data files</span>
+        <strong>${stats.csvFiles}</strong>
+        <p>CSV sources you can edit locally.</p>
+      </div>
+      <div class="dashboard-card">
+        <span class="dashboard-label">Profiles</span>
+        <strong>${stats.totalProfiles.toLocaleString()}</strong>
+        <p>Total listings detected in the current data folder.</p>
+      </div>
+      <div class="dashboard-card">
+        <span class="dashboard-label">Rule of thumb</span>
+        <strong>Use the safest tool first</strong>
+        <p>Browse for normal edits, import for claim emails, bulk edit only for deliberate CSV work.</p>
+      </div>
+    </div>
+
+    <div class="docs-grid">
+      <section class="form-container">
+        <h2>Quick workflows</h2>
+        <div class="doc-block">
+          <h3>1. Normal listing edit</h3>
+          <p>Go to Browse, search the clinic, click Edit, save changes, then refresh the Astro page locally.</p>
+        </div>
+        <div class="doc-block">
+          <h3>2. Claim email import</h3>
+          <p>Go to Import, paste the email, review matches, choose update or create, then save.</p>
+        </div>
+        <div class="doc-block">
+          <h3>3. Large cleanup</h3>
+          <p>Use Bulk Edit only when you already know the exact CSV you want to touch and you need raw access.</p>
+        </div>
+      </section>
+
+      <section class="form-container">
+        <h2>How the local setup works</h2>
+        <div class="doc-block">
+          <h3>Public site</h3>
+          <p><code>npm run dev</code> runs the Astro site on <code>http://localhost:4323</code>.</p>
+        </div>
+        <div class="doc-block">
+          <h3>Local CMS</h3>
+          <p><code>cd crm && npm start</code> runs the local admin on <code>http://localhost:3030</code>.</p>
+        </div>
+        <div class="doc-block">
+          <h3>Derived data</h3>
+          <p>The project now precomputes site data before dev/build so Astro can render faster without redoing CSV work constantly.</p>
+        </div>
+      </section>
+
+      <section class="form-container">
+        <h2>FAQ</h2>
+        <div class="doc-block">
+          <h3>Which CSV should I edit?</h3>
+          <p>Edit the file shown on the listing card whenever possible. Search all files first if you are unsure.</p>
+        </div>
+        <div class="doc-block">
+          <h3>When should I use Bulk Edit?</h3>
+          <p>Only for advanced cleanup jobs. If one listing needs work, use the normal edit screen instead.</p>
+        </div>
+        <div class="doc-block">
+          <h3>What if a profile has the wrong URL on the public site?</h3>
+          <p>Check the country, province, city, and name fields. Those are used to build the profile path.</p>
+        </div>
+      </section>
     </div>
   </div>
 </body>

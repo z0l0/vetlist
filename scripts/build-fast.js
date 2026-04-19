@@ -14,20 +14,28 @@ process.env.NODE_ENV = 'development';
 
 console.log('🚀 Starting fast build with optimizations...');
 console.log('- Using only first CSV file per type');
-console.log('- Limiting to 100 profiles max');
+console.log('- Limiting to 500 profiles max');
 console.log('- Enabling data cache');
 
-// Run the build with increased memory
-const build = spawn('node', ['--max-old-space-size=8192', 'node_modules/.bin/astro', 'build'], {
-    stdio: 'inherit',
-    env: process.env
-});
+function run(command, args) {
+    return new Promise((resolve, reject) => {
+        const child = spawn(command, args, {
+            stdio: 'inherit',
+            env: process.env
+        });
 
-build.on('close', (code) => {
-    if (code === 0) {
-        console.log('✅ Fast build completed successfully!');
-    } else {
-        console.log('❌ Fast build failed with code:', code);
-        process.exit(code);
-    }
-});
+        child.on('close', (code) => {
+            if (code === 0) resolve();
+            else reject(new Error(`${command} ${args.join(' ')} failed with code ${code}`));
+        });
+    });
+}
+
+try {
+    await run('node', ['scripts/precompute-site-data.js']);
+    await run('node', ['--max-old-space-size=8192', 'node_modules/.bin/astro', 'build']);
+    console.log('✅ Fast build completed successfully!');
+} catch (error) {
+    console.log('❌ Fast build failed:', error.message);
+    process.exit(1);
+}

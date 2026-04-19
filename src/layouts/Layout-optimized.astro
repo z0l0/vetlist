@@ -1,5 +1,5 @@
 ---
-import Header from "../components/Header-optimized.astro";
+import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 
 interface Props {
@@ -23,6 +23,22 @@ if (!pathname.endsWith('/') && pathname !== '/') {
   pathname += '/';
 }
 const canonicalURL = new URL(pathname, "https://vetlist.org").toString();
+const resolvedTitle = title.includes('VetList') ? title : `${title} | VetList.org`;
+const resolvedOpenGraph = {
+  type: "website",
+  url: canonicalURL,
+  title: title,
+  description,
+  siteName: "VetList.org",
+  locale: "en_US",
+  ...openGraph,
+};
+const resolvedTwitter = {
+  card: "summary_large_image",
+  title: title,
+  description,
+  ...twitterCard,
+};
 ---
 
 <!doctype html>
@@ -32,9 +48,10 @@ const canonicalURL = new URL(pathname, "https://vetlist.org").toString();
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
-    <title>{title} | VetList.org</title>
+    <title>{resolvedTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
+    <meta name="theme-color" content="#020817" />
     
     {noindex && <meta name="robots" content="noindex, follow" />}
     
@@ -43,28 +60,24 @@ const canonicalURL = new URL(pathname, "https://vetlist.org").toString();
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
     <!-- Load font asynchronously -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" /></noscript>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" /></noscript>
 
     <!-- Open Graph -->
-    {openGraph && (
-      <>
-        <meta property="og:type" content={openGraph.type || "website"} />
-        <meta property="og:url" content={openGraph.url || canonicalURL} />
-        <meta property="og:title" content={openGraph.title || title} />
-        <meta property="og:description" content={openGraph.description || description} />
-        <meta property="og:site_name" content={openGraph.siteName || "VetList.org"} />
-      </>
-    )}
+    <meta property="og:type" content={resolvedOpenGraph.type} />
+    <meta property="og:url" content={resolvedOpenGraph.url} />
+    <meta property="og:title" content={resolvedOpenGraph.title} />
+    <meta property="og:description" content={resolvedOpenGraph.description} />
+    <meta property="og:site_name" content={resolvedOpenGraph.siteName} />
+    {resolvedOpenGraph.locale && <meta property="og:locale" content={resolvedOpenGraph.locale} />}
+    {resolvedOpenGraph.image && <meta property="og:image" content={resolvedOpenGraph.image} />}
+    {resolvedOpenGraph.imageAlt && <meta property="og:image:alt" content={resolvedOpenGraph.imageAlt} />}
 
     <!-- Twitter -->
-    {twitterCard && (
-      <>
-        <meta name="twitter:card" content={twitterCard.card || "summary"} />
-        <meta name="twitter:title" content={twitterCard.title || title} />
-        <meta name="twitter:description" content={twitterCard.description || description} />
-      </>
-    )}
+    <meta name="twitter:card" content={resolvedTwitter.card} />
+    <meta name="twitter:title" content={resolvedTwitter.title} />
+    <meta name="twitter:description" content={resolvedTwitter.description} />
+    {resolvedTwitter.image && <meta name="twitter:image" content={resolvedTwitter.image} />}
 
     <!-- Defer analytics loading -->
     <script is:inline>
@@ -113,9 +126,9 @@ const canonicalURL = new URL(pathname, "https://vetlist.org").toString();
     
     <slot name="head" />
   </head>
-  <body class="bg-light font-sans flex flex-col min-h-screen">
+  <body class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.08),_transparent_28%),linear-gradient(180deg,#f8fbff_0%,#eef4fb_44%,#f8fafc_100%)] font-sans flex flex-col text-slate-900">
     <Header />
-    <main class="flex-1 container mx-auto px-4 pb-16 max-w-none">
+    <main class="flex-1 mx-auto w-full max-w-[1600px] px-4 pb-16">
       <slot />
     </main>
     <Footer />

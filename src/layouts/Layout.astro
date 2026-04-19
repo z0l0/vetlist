@@ -1,6 +1,13 @@
 ---
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import {
+  DEFAULT_OG_IMAGE_HEIGHT,
+  DEFAULT_OG_IMAGE_TYPE,
+  DEFAULT_OG_IMAGE_WIDTH,
+  getDefaultOgImageUrl,
+  toAbsoluteUrl,
+} from "../lib/seo.js";
 
 interface Props {
   title: string;
@@ -17,12 +24,49 @@ const {
   twitterCard,
   noindex = false,
 } = Astro.props;
-// Ensure canonical URL matches trailingSlash config
+
 let pathname = Astro.url.pathname;
 if (!pathname.endsWith('/') && pathname !== '/') {
   pathname += '/';
 }
 const canonicalURL = new URL(pathname, "https://vetlist.org").toString();
+const resolvedTitle = title.includes('VetList') ? title : `${title} | VetList.org`;
+const defaultSocialImage = getDefaultOgImageUrl();
+const socialImage = toAbsoluteUrl(openGraph?.image || twitterCard?.image || defaultSocialImage) || defaultSocialImage;
+const socialImageAlt = openGraph?.imageAlt || twitterCard?.imageAlt || `${title} | VetList.org`;
+const resolvedOpenGraph = {
+  type: "website",
+  url: canonicalURL,
+  title: title,
+  description,
+  siteName: "VetList.org",
+  locale: "en_US",
+  image: socialImage,
+  imageAlt: socialImageAlt,
+  imageWidth: openGraph?.imageWidth || DEFAULT_OG_IMAGE_WIDTH,
+  imageHeight: openGraph?.imageHeight || DEFAULT_OG_IMAGE_HEIGHT,
+  imageType: openGraph?.imageType || DEFAULT_OG_IMAGE_TYPE,
+  ...openGraph,
+};
+const resolvedTwitter = {
+  card: socialImage ? "summary_large_image" : "summary",
+  title: title,
+  description,
+  image: toAbsoluteUrl(twitterCard?.image || socialImage) || socialImage,
+  imageAlt: twitterCard?.imageAlt || socialImageAlt,
+  ...twitterCard,
+};
+if (!resolvedOpenGraph.image) resolvedOpenGraph.image = socialImage;
+if (!resolvedOpenGraph.imageAlt) resolvedOpenGraph.imageAlt = socialImageAlt;
+if (!resolvedOpenGraph.imageWidth) resolvedOpenGraph.imageWidth = DEFAULT_OG_IMAGE_WIDTH;
+if (!resolvedOpenGraph.imageHeight) resolvedOpenGraph.imageHeight = DEFAULT_OG_IMAGE_HEIGHT;
+if (!resolvedOpenGraph.imageType) resolvedOpenGraph.imageType = DEFAULT_OG_IMAGE_TYPE;
+if (!resolvedTwitter.image) resolvedTwitter.image = socialImage;
+if (!resolvedTwitter.imageAlt) resolvedTwitter.imageAlt = socialImageAlt;
+if (!resolvedTwitter.card) resolvedTwitter.card = socialImage ? "summary_large_image" : "summary";
+const robotsContent = noindex
+  ? "noindex, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
 ---
 
 <!doctype html>
@@ -32,79 +76,73 @@ const canonicalURL = new URL(pathname, "https://vetlist.org").toString();
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
-    <title>{title} | VetList.org</title>
+    <title>{resolvedTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
-    
-    <!-- Conditional noindex for low-quality content -->
-    {noindex && (
-      <meta name="robots" content="noindex, follow" />
-    )}
-    <!-- Preconnect to external domains -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://cloud.umami.is" />
-    <link rel="preconnect" href="https://api-gateway.umami.dev" />
-    <link rel="preconnect" href="https://g13rpgtx1b-dsn.algolia.net" />
+    <meta name="robots" content={robotsContent} />
+    <meta name="theme-color" content="#020817" />
+    <meta name="format-detection" content="telephone=no" />
+
+	    <!-- Preconnect only to critical font domains -->
+	    <link rel="preconnect" href="https://fonts.googleapis.com" />
+	    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
     <!-- Preload critical font -->
     <link
-      rel="preload"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+	      rel="preload"
+	      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;900&display=swap"
       as="style"
       onload="this.onload=null;this.rel='stylesheet'"
     />
     <noscript>
       <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+	        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;900&display=swap"
         rel="stylesheet"
       />
     </noscript>
 
+    <!-- Geo Meta Tags -->
+    <meta name="geo.region" content="US" />
+    <meta name="geo.region" content="CA" />
+
     <!-- Open Graph / Facebook -->
-    {
-      openGraph && (
-        <>
-          <meta property="og:type" content={openGraph.type || "website"} />
-          <meta property="og:url" content={openGraph.url || canonicalURL} />
-          <meta property="og:title" content={openGraph.title || title} />
-          <meta
-            property="og:description"
-            content={openGraph.description || description}
-          />
-          <meta
-            property="og:site_name"
-            content={openGraph.siteName || "VetList.org"}
-          />
-          {openGraph.image && (
-            <meta property="og:image" content={openGraph.image} />
-          )}
-          {openGraph.locale && (
-            <meta property="og:locale" content={openGraph.locale} />
-          )}
-        </>
-      )
-    }
+    <meta property="og:type" content={resolvedOpenGraph.type} />
+    <meta property="og:url" content={resolvedOpenGraph.url} />
+    <meta property="og:title" content={resolvedOpenGraph.title} />
+    <meta property="og:description" content={resolvedOpenGraph.description} />
+    <meta property="og:site_name" content={resolvedOpenGraph.siteName} />
+    {resolvedOpenGraph.locale && (
+      <meta property="og:locale" content={resolvedOpenGraph.locale} />
+    )}
+    {resolvedOpenGraph.image && (
+      <meta property="og:image" content={resolvedOpenGraph.image} />
+    )}
+    {resolvedOpenGraph.image && (
+      <meta property="og:image:secure_url" content={resolvedOpenGraph.image} />
+    )}
+    {resolvedOpenGraph.imageAlt && (
+      <meta property="og:image:alt" content={resolvedOpenGraph.imageAlt} />
+    )}
+    {resolvedOpenGraph.imageWidth && (
+      <meta property="og:image:width" content={String(resolvedOpenGraph.imageWidth)} />
+    )}
+    {resolvedOpenGraph.imageHeight && (
+      <meta property="og:image:height" content={String(resolvedOpenGraph.imageHeight)} />
+    )}
+    {resolvedOpenGraph.imageType && (
+      <meta property="og:image:type" content={resolvedOpenGraph.imageType} />
+    )}
 
     <!-- Twitter -->
-    {
-      twitterCard && (
-        <>
-          <meta
-            name="twitter:card"
-            content={twitterCard.card || "summary_large_image"}
-          />
-          <meta name="twitter:title" content={twitterCard.title || title} />
-          <meta
-            name="twitter:description"
-            content={twitterCard.description || description}
-          />
-          {twitterCard.image && (
-            <meta name="twitter:image" content={twitterCard.image} />
-          )}
-        </>
-      )
-    }
+    <meta name="twitter:card" content={resolvedTwitter.card} />
+    <meta name="twitter:title" content={resolvedTwitter.title} />
+    <meta name="twitter:description" content={resolvedTwitter.description} />
+    {resolvedTwitter.image && (
+      <meta name="twitter:image" content={resolvedTwitter.image} />
+    )}
+    {resolvedTwitter.imageAlt && (
+      <meta name="twitter:image:alt" content={resolvedTwitter.imageAlt} />
+    )}
 
 
     <!-- Umami Analytics - Load after page interaction -->
@@ -183,9 +221,9 @@ const canonicalURL = new URL(pathname, "https://vetlist.org").toString();
     
     <slot name="head" />
   </head>
-  <body class="bg-light font-sans flex flex-col min-h-screen">
+  <body class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.08),_transparent_28%),linear-gradient(180deg,#f8fbff_0%,#eef4fb_44%,#f8fafc_100%)] font-sans text-slate-900 flex flex-col">
     <Header />
-    <main class="flex-1 container mx-auto px-4 pb-16 max-w-none -mt-2">
+    <main class="flex-1 mx-auto w-full max-w-[1600px] px-4 pb-16">
       <slot />
     </main>
     <Footer />

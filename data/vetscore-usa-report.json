@@ -1,0 +1,1057 @@
+{
+  "generated": "2026-04-15T15:35:58.031921",
+  "total_clinics": 22988,
+  "statistics": {
+    "average": 38.1,
+    "max": 87.0,
+    "min": 5.0,
+    "median": 39.0,
+    "quality_60_plus": 1143,
+    "elite_80_plus": 11
+  },
+  "distribution": {
+    "90-100": 0,
+    "80-89": 11,
+    "70-79": 166,
+    "60-69": 966,
+    "50-59": 3075,
+    "40-49": 6656,
+    "30-39": 6666,
+    "20-29": 3341,
+    "10-19": 1589,
+    "0-9": 518
+  },
+  "top50": [
+    {
+      "id": "",
+      "name": "Beadle Lake Veterinary Clinic",
+      "city": "Battle Creek",
+      "province": "Michigan",
+      "score": 87.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 22,
+        "emergency": 26,
+        "services": 7,
+        "transparency": 7,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 269-441-9233",
+      "email": "info@beadlelakevet.com",
+      "website": "https://beadlelakevet.com/"
+    },
+    {
+      "id": "",
+      "name": "Dr. Ann Roberts",
+      "city": "Sandusky",
+      "province": "Michigan",
+      "score": 84.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 22,
+        "emergency": 26,
+        "services": 7,
+        "transparency": 4,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 810-648-8230",
+      "email": "reception@thumbvets.com",
+      "website": "http://www.thumbvets.com/"
+    },
+    {
+      "id": "",
+      "name": "Cheval Animal Hospital",
+      "city": "Lutz",
+      "province": "Florida",
+      "score": 82.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 25,
+        "emergency": 6,
+        "services": 7,
+        "transparency": 13,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "+1 813-949-8000",
+      "email": "chevalanimal@tampabayvets.net",
+      "website": "https://www.tampabayvets.net/location/cheval/"
+    },
+    {
+      "id": "",
+      "name": "Cleveland Park Animal Hospital",
+      "city": "Greenville",
+      "province": "South Carolina",
+      "score": 82.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 19,
+        "emergency": 16,
+        "services": 7,
+        "transparency": 12,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "+1 864-242-3300",
+      "email": "",
+      "website": "https://www.clevelandparkgreenville.com/"
+    },
+    {
+      "id": "",
+      "name": "Mount Dora Veterinary Hospital",
+      "city": "Mt Dora",
+      "province": "Florida",
+      "score": 80.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 16,
+        "emergency": 16,
+        "services": 7,
+        "transparency": 10,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "+1 352-383-6700",
+      "email": "mountdoravet@gmail.com",
+      "website": "http://www.mountdoravet.com/"
+    },
+    {
+      "id": "",
+      "name": "Calusa Veterinary Center",
+      "city": "Boca Raton",
+      "province": "Florida",
+      "score": 80.0,
+      "breakdown": {
+        "essential": 17,
+        "availability": 25,
+        "emergency": 16,
+        "services": 4,
+        "transparency": 12,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "+1 561-999-3000",
+      "email": "",
+      "website": "http://www.cvcboca.com/"
+    },
+    {
+      "id": "",
+      "name": "South Paw Animal Hospital",
+      "city": "Cape May Court House",
+      "province": "New Jersey",
+      "score": 80.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 25,
+        "emergency": 6,
+        "services": 4,
+        "transparency": 18,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "+1 609-465-9006",
+      "email": "southpawmanager@yahoo.com",
+      "website": "https://www.southpawanimalhospital.com/"
+    },
+    {
+      "id": "",
+      "name": "Monadnock Equine Veterinary Services",
+      "city": "Marlborough",
+      "province": "New Hampshire",
+      "score": 80.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 13,
+        "emergency": 26,
+        "services": 7,
+        "transparency": 7,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "+1 603-876-4820",
+      "email": "moneqvet@gmail.com,monadnockequine@gmail.com",
+      "website": "http://monadnockequine.com/"
+    },
+    {
+      "id": "",
+      "name": "KwikVet - 24 hour veterinarians",
+      "city": "Washington",
+      "province": "District of Columbia",
+      "score": 80.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 22,
+        "emergency": 30,
+        "services": 4,
+        "transparency": 2,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "+1 970-438-2838",
+      "email": "contact@kwikvet.com",
+      "website": "http://www.kwikvet.com/"
+    },
+    {
+      "id": "",
+      "name": "Eastern Animal Hospital",
+      "city": "Baltimore",
+      "province": "Maryland",
+      "score": 80.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 25,
+        "emergency": 16,
+        "services": 7,
+        "transparency": 12,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 410-633-8808",
+      "email": "vets@easternanimalhospital.com",
+      "website": "https://www.easternanimalhospital.com/"
+    },
+    {
+      "id": "",
+      "name": "True Monarch In-Home Veterinary Service",
+      "city": "Springfield",
+      "province": "New Jersey",
+      "score": 80.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 25,
+        "emergency": 26,
+        "services": 7,
+        "transparency": 0,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 814-232-2219",
+      "email": "",
+      "website": "http://www.truemonarchveterinary.com/"
+    },
+    {
+      "id": "",
+      "name": "Moxey Schreiber Veterinary Hospital",
+      "city": "Sheridan",
+      "province": "Wyoming",
+      "score": 79.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 16,
+        "emergency": 26,
+        "services": 7,
+        "transparency": 5,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 307-672-5533",
+      "email": "msvh@moxeyvet.com",
+      "website": "http://www.moxeyvet.com/"
+    },
+    {
+      "id": "",
+      "name": "Cumming Veterinary Clinic",
+      "city": "Cumming",
+      "province": "Georgia",
+      "score": 79.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 6,
+        "services": 7,
+        "transparency": 16,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "+1 770-887-3119",
+      "email": "info@cummingvetclinic.com",
+      "website": "https://www.cummingvetclinic.com/"
+    },
+    {
+      "id": "",
+      "name": "Pender Veterinary Centre - Fairfax (24/7 Emergency)",
+      "city": "Fairfax",
+      "province": "Virginia",
+      "score": 79.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 22,
+        "emergency": 16,
+        "services": 7,
+        "transparency": 7,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "+1 703-591-3304",
+      "email": "privacy@nva.com,website-accessibility@nva.com",
+      "website": "https://www.pendervet.com/locations/fairfax-campus"
+    },
+    {
+      "id": "",
+      "name": "Compassionate Care Oregon City: Home Pet Euthanasia & Pet Cremation",
+      "city": "Oregon City",
+      "province": "Oregon",
+      "score": 79.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 25,
+        "emergency": 20,
+        "services": 7,
+        "transparency": 5,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 503-880-1172",
+      "email": "",
+      "website": "https://www.drlorigibson.com/location/pet-euthanasia-cremation-oregon-city/"
+    },
+    {
+      "id": "",
+      "name": "Tufts Veterinary Field Service",
+      "city": "Woodstock",
+      "province": "Connecticut",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 23,
+        "availability": 22,
+        "emergency": 26,
+        "services": 7,
+        "transparency": 0,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 860-974-2780",
+      "email": "tvfs@tufts.edu,billing.tvfs@tufts.edu,tvfsrepro@tufts.edu",
+      "website": "https://vet.tufts.edu/tufts-veterinary-field-service/hospitals-clinics/locations/tufts-veterinary-field-service"
+    },
+    {
+      "id": "",
+      "name": "Bay Area Pet Hospital",
+      "city": "Traverse City",
+      "province": "Michigan",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 22,
+        "emergency": 16,
+        "services": 7,
+        "transparency": 9,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "+1 231-922-0911",
+      "email": "bareception@bayareapethospitals.com",
+      "website": "http://www.bayareapethospitals.com/"
+    },
+    {
+      "id": "",
+      "name": "Veterinary Emergency Center of Manchester",
+      "city": "Manchester",
+      "province": "New Hampshire",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 22,
+        "emergency": 16,
+        "services": 7,
+        "transparency": 9,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "+1 603-666-6677",
+      "email": "info@vecmnh.com",
+      "website": "http://www.vecmnh.com/"
+    },
+    {
+      "id": "",
+      "name": "Tropicana Animal Hospital: Lewis Renee DVM",
+      "city": "Las Vegas",
+      "province": "Nevada",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 22,
+        "emergency": 16,
+        "services": 7,
+        "transparency": 7,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "+1 702-736-4944",
+      "email": "",
+      "website": "https://www.tropicanaanimalhospital.com/"
+    },
+    {
+      "id": "",
+      "name": "Tropicana Animal Hospital: Tunnard Blake DVM",
+      "city": "Las Vegas",
+      "province": "Nevada",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 22,
+        "emergency": 16,
+        "services": 7,
+        "transparency": 7,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "+1 702-736-4944",
+      "email": "",
+      "website": "https://www.tropicanaanimalhospital.com/"
+    },
+    {
+      "id": "",
+      "name": "Dr. Courtney F. Wiegard",
+      "city": "Vinton",
+      "province": "Virginia",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 19,
+        "emergency": 6,
+        "services": 7,
+        "transparency": 22,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "+1 540-342-7821",
+      "email": "",
+      "website": "http://www.vintonvet.com/"
+    },
+    {
+      "id": "",
+      "name": "Seiler Animal Hospital",
+      "city": "Fort Lauderdale",
+      "province": "Florida",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 25,
+        "emergency": 6,
+        "services": 7,
+        "transparency": 10,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "+1 954-491-1222",
+      "email": "seileranimalhospital@comcast.net",
+      "website": "https://seileranimalhospital.com/"
+    },
+    {
+      "id": "",
+      "name": "Pet Express Animal Hospital",
+      "city": "Davie",
+      "province": "Florida",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 25,
+        "emergency": 10,
+        "services": 4,
+        "transparency": 12,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "+1 954-653-6868",
+      "email": "info@954pet.com",
+      "website": "http://954pet.com/"
+    },
+    {
+      "id": "",
+      "name": "Tall Grass Animal Hospital",
+      "city": "Aurora",
+      "province": "Colorado",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 6,
+        "services": 7,
+        "transparency": 14,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "+1 720-420-9922",
+      "email": "admin@tallgrassanimalhospital.com",
+      "website": "https://tallgrassanimalhospital.com/"
+    },
+    {
+      "id": "",
+      "name": "Pet Vet Animal Clinic & Mobile Practice",
+      "city": "Huntley",
+      "province": "Illinois",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 16,
+        "services": 4,
+        "transparency": 11,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "+1 847-669-6635",
+      "email": "info@petvetac.com",
+      "website": "http://petvetac.com/"
+    },
+    {
+      "id": "",
+      "name": "Columbia Equine Hospital",
+      "city": "Gresham",
+      "province": "Oregon",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 22,
+        "emergency": 26,
+        "services": 0,
+        "transparency": 7,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 503-663-1515",
+      "email": "",
+      "website": "https://columbiaequine.com/"
+    },
+    {
+      "id": "",
+      "name": "Michelle Hewitt, D.V.M.",
+      "city": "Tranquility",
+      "province": "New Jersey",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 16,
+        "emergency": 11,
+        "services": 7,
+        "transparency": 19,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "+1 908-852-7800",
+      "email": "",
+      "website": "http://www.tranquilityvet.com/"
+    },
+    {
+      "id": "",
+      "name": "Valet Vet Mobile Veterinary Services",
+      "city": "Chandler",
+      "province": "Arizona",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 25,
+        "emergency": 10,
+        "services": 7,
+        "transparency": 8,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "+1 602-833-7063",
+      "email": "admin@valetvet.com",
+      "website": "https://valetvet.com/"
+    },
+    {
+      "id": "",
+      "name": "Crittenden County Animal Clinic",
+      "city": "Marion",
+      "province": "Kentucky",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 13,
+        "emergency": 26,
+        "services": 4,
+        "transparency": 6,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "+1 270-965-2257",
+      "email": "office@madduxequine.com",
+      "website": "https://crittendencountyanimalclinic.com/"
+    },
+    {
+      "id": "",
+      "name": "Pet Urgent Care of Wesley Chapel",
+      "city": "Wesley Chapel",
+      "province": "Florida",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 25,
+        "emergency": 16,
+        "services": 4,
+        "transparency": 11,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 813-279-6500",
+      "email": "clientcare@urgentpetcareofwesleychapel.com",
+      "website": "http://www.urgentpetcareofwesleychapel.com/?cp=8132796500"
+    },
+    {
+      "id": "",
+      "name": "My Pet Animal Hospital Inc",
+      "city": "Palm Harbor",
+      "province": "Florida",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 6,
+        "services": 4,
+        "transparency": 18,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "+1 727-789-8272",
+      "email": "mypetpalmharbor@gmail.com,support@schedulista.com",
+      "website": "http://www.mypetpalmharbor.com/"
+    },
+    {
+      "id": "",
+      "name": "Animal Emergency And Urgent Care Center",
+      "city": "Deerfield Beach",
+      "province": "Florida",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 22,
+        "emergency": 16,
+        "services": 7,
+        "transparency": 9,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 954-428-9888",
+      "email": "",
+      "website": "https://www.animalemergencyurgentcare.com/"
+    },
+    {
+      "id": "",
+      "name": "Tanko Steve DVM",
+      "city": "Palm Harbor",
+      "province": "Florida",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 6,
+        "services": 7,
+        "transparency": 15,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "+1 727-789-8272",
+      "email": "mypetpalmharbor@gmail.com,support@schedulista.com",
+      "website": "https://www.mypetpalmharbor.com/"
+    },
+    {
+      "id": "",
+      "name": "Mount Laurel Animal Hospital",
+      "city": "Mt Laurel Township",
+      "province": "New Jersey",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 22,
+        "emergency": 21,
+        "services": 4,
+        "transparency": 7,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "+1 856-234-7626",
+      "email": "recruitment@mlahvet.com",
+      "website": "http://mlahvet.com/"
+    },
+    {
+      "id": "",
+      "name": "Dundee Animal Hospital",
+      "city": "East Dundee",
+      "province": "Illinois",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 17,
+        "availability": 22,
+        "emergency": 21,
+        "services": 7,
+        "transparency": 9,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 847-428-6114",
+      "email": "",
+      "website": "https://www.dundeeanimalhospital.com/locations/dundee/"
+    },
+    {
+      "id": "",
+      "name": "Veterinary Associates",
+      "city": "Hazel Green",
+      "province": "Wisconsin",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 16,
+        "emergency": 26,
+        "services": 7,
+        "transparency": 2,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 608-854-2283",
+      "email": "vetserviceshg@gmail.com,galenavetassociates@gmail.com",
+      "website": "https://www.vetassociatesgalena.com/"
+    },
+    {
+      "id": "",
+      "name": "Purdue University Farm Animal Hospital",
+      "city": "West Lafayette",
+      "province": "Indiana",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 25,
+        "emergency": 16,
+        "services": 4,
+        "transparency": 0,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "+1 765-494-8548",
+      "email": "pvmwebteam@purdue.edu,vetwebteam@purdue.edu",
+      "website": "https://vet.purdue.edu/hospital/farm-animal/"
+    },
+    {
+      "id": "",
+      "name": "Plauche Kristin DVM",
+      "city": "Lafayette",
+      "province": "Louisiana",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 25,
+        "emergency": 16,
+        "services": 7,
+        "transparency": 0,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "+1 337-984-7611",
+      "email": "",
+      "website": "http://lafayettevets.com/"
+    },
+    {
+      "id": "",
+      "name": "Emergency Veterinary Care Centers",
+      "city": "Holland",
+      "province": "Michigan",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 22,
+        "emergency": 16,
+        "services": 7,
+        "transparency": 9,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 616-344-5600",
+      "email": "",
+      "website": "https://evcc.com/holland/"
+    },
+    {
+      "id": "",
+      "name": "Hoffman Karen DVM",
+      "city": "Mt Laurel Township",
+      "province": "New Jersey",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 17,
+        "availability": 22,
+        "emergency": 21,
+        "services": 7,
+        "transparency": 7,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "+1 856-234-7626",
+      "email": "recruitment@mlahvet.com",
+      "website": "http://mlahvet.com/"
+    },
+    {
+      "id": "",
+      "name": "NewDay Veterinary Care",
+      "city": "Coconut Creek",
+      "province": "Florida",
+      "score": 75.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 22,
+        "emergency": 4,
+        "services": 7,
+        "transparency": 13,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "+1 954-406-0527",
+      "email": "coconutcreek@newdayvetcare.com",
+      "website": "https://newdayvetcare.com/location/coconut-creek-fl/"
+    },
+    {
+      "id": "",
+      "name": "Caladesi Animal Hospital",
+      "city": "Dunedin",
+      "province": "Florida",
+      "score": 75.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 6,
+        "services": 7,
+        "transparency": 16,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "+1 727-733-9395",
+      "email": "caladesianimal@tampabayvets.net",
+      "website": "http://caladesianimal.com/"
+    },
+    {
+      "id": "",
+      "name": "Animal Hospital of Towne Lake",
+      "city": "Woodstock",
+      "province": "Georgia",
+      "score": 75.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 22,
+        "emergency": 16,
+        "services": 7,
+        "transparency": 5,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 770-591-9500",
+      "email": "melussaboyd27@gmail.com",
+      "website": "https://www.townelakevets.com/"
+    },
+    {
+      "id": "",
+      "name": "Animal Emergency Hospital",
+      "city": "Bel Air",
+      "province": "Maryland",
+      "score": 75.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 25,
+        "emergency": 16,
+        "services": 4,
+        "transparency": 8,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 410-420-7297",
+      "email": "",
+      "website": "http://marylandpetemergency.com/"
+    },
+    {
+      "id": "",
+      "name": "Sumner Veterinary Hospital",
+      "city": "Sumner",
+      "province": "Washington",
+      "score": 75.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 22,
+        "emergency": 16,
+        "services": 4,
+        "transparency": 9,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "+1 253-863-2258",
+      "email": "hospital@sumnervet.com",
+      "website": "https://www.sumnervet.com/"
+    },
+    {
+      "id": "",
+      "name": "All City Pet Care Veterinary Emergency Hospital",
+      "city": "Sioux Falls",
+      "province": "South Dakota",
+      "score": 75.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 25,
+        "emergency": 16,
+        "services": 4,
+        "transparency": 5,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 605-335-4004",
+      "email": "barb.lange58@gmail.com,joann@pegasusofsd.com,grandmakaren13@yahoo.com,nswinfor@gmail.com,rgreen@ogknights.org",
+      "website": "https://www.allcitypetcareveh.com/"
+    },
+    {
+      "id": "",
+      "name": "Animal Clinic of Rapid City",
+      "city": "Rapid City",
+      "province": "South Dakota",
+      "score": 75.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 25,
+        "emergency": 16,
+        "services": 7,
+        "transparency": 5,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 605-342-1368",
+      "email": "",
+      "website": "https://www.animalclinicrc.com/"
+    },
+    {
+      "id": "",
+      "name": "CVETS - Columbia Veterinary Emergency Trauma and Specialty",
+      "city": "Columbia",
+      "province": "South Carolina",
+      "score": 75.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 22,
+        "emergency": 20,
+        "services": 7,
+        "transparency": 0,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "+1 803-995-8913",
+      "email": "info@cvets.net",
+      "website": "http://www.cvets.net/"
+    },
+    {
+      "id": "",
+      "name": "Thumb Veterinary Services",
+      "city": "Sandusky",
+      "province": "Michigan",
+      "score": 75.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 16,
+        "emergency": 26,
+        "services": 4,
+        "transparency": 4,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "+1 810-648-8230",
+      "email": "reception@thumbvets.com",
+      "website": "http://thumbvets.com/"
+    },
+    {
+      "id": "",
+      "name": "Iowa State Vet Field Services",
+      "city": "Ames",
+      "province": "Iowa",
+      "score": 75.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 19,
+        "emergency": 26,
+        "services": 4,
+        "transparency": 2,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "+1 515-294-7595",
+      "email": "",
+      "website": "https://vetmed.iastate.edu/vmc/large-animal/veterinary-field-services"
+    }
+  ],
+  "scoring_config": {
+    "essential": {
+      "phone_number": 5,
+      "address": 3,
+      "website": 4,
+      "email_address": 3,
+      "description": 2,
+      "detailed_description": 3,
+      "picture": 2,
+      "rating": 3,
+      "high_rating": 5
+    },
+    "availability": {
+      "has_hours": 3,
+      "days_open_5": 2,
+      "days_open_6": 4,
+      "days_open_7": 6,
+      "weekend_hours": 4,
+      "extended_hours": 3,
+      "accepts_new_patients": 2,
+      "walk_ins_welcome": 2,
+      "online_booking": 3
+    },
+    "emergency": {
+      "emergency_services": 6,
+      "emergency_24_hour": 10,
+      "after_hours_phone": 3,
+      "telehealth": 4,
+      "house_calls": 5,
+      "mobile_vet": 5
+    },
+    "services": {
+      "services_4_6": 2,
+      "services_7_9": 4,
+      "services_10_plus": 6,
+      "exotic_animals": 4,
+      "multiple_pet_types": 3,
+      "specialty_services": 2
+    },
+    "transparency": {
+      "has_pricing": 8,
+      "pricing_detailed": 4,
+      "accepts_insurance": 3,
+      "payment_plans": 3,
+      "year_established": 2,
+      "established_10_plus": 3,
+      "veterinarian_count": 2,
+      "accreditations": 4,
+      "languages": 3,
+      "languages_3_plus": 2
+    },
+    "digital": {
+      "social_facebook": 2,
+      "social_instagram": 2,
+      "social_multiple": 3,
+      "has_blog": 2,
+      "client_portal": 2,
+      "online_pharmacy": 2
+    },
+    "community": {
+      "claimed_listing": 5,
+      "verified_listing": 6,
+      "backlink_vetlist": 12,
+      "trusted_network_tier": 6,
+      "featured_network_tier": 9,
+      "military_discount": 2,
+      "senior_discount": 1,
+      "rescue_discount": 2,
+      "free_first_visit": 2
+    },
+    "multipliers": {
+      "claimed_listing": 1.12,
+      "backlink_vetlist": 1.18,
+      "verified": 1.08
+    },
+    "floors": {
+      "verified_tier": 48,
+      "trusted_network": 66,
+      "featured_network": 74
+    }
+  }
+}

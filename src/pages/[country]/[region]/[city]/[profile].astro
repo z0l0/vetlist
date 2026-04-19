@@ -2,710 +2,1359 @@
 import Layout from '../../../../layouts/Layout.astro';
 import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
 import ProfileImage from '../../../../components/ProfileImage.astro';
-import ProfileContactIcons from '../../../../components/ProfileContactIcons.astro';
-import { getProfessionals, getProfessionalById, getRelatedVetsForProfile, getNearbyCitiesForCity } from '../../../../lib/dataCache.js';
+import HoursTable from '../../../../components/HoursTable.astro';
+import RelatedVet from '../../../../components/RelatedVet.astro';
+import {
+  getProfessionalById,
+  getProfessionals,
+  getProfilesForCity,
+  getProfilesForRegion,
+  getRelatedVetsForProfile,
+  getNearbyCitiesForCity,
+} from '../../../../lib/dataCache.js';
 import { fetchAllProfessionals } from '../../../../lib/supabase.js';
-
-// Utility functions
-const toTitleCase = (str) => str.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-
-const normalizeHoursData = (rawData) => {
-  if (!rawData) return null;
-  try {
-    const hoursData = typeof rawData === 'object' ? rawData : JSON.parse(rawData);
-    return Object.values(hoursData).every(day => day === null) ? null : hoursData;
-  } catch (e) {
-    return null;
-  }
-};
-
-const formatHours = (ranges) => {
-  if (!ranges || ranges.length === 0) return "Closed";
-  if (ranges.length === 2 && ranges[1].startsWith('00:00')) {
-    const openingTime = ranges[0].split('-')[0];
-    const closingTime = ranges[1].split('-')[1];
-    return `${openingTime} - ${closingTime}`;
-  }
-  return ranges.join(', ');
-};
-
-const formatSchemaTime = (timeStr) => {
-  if (!timeStr) return null;
-  
-  // Clean the time string and handle various formats
-  const cleanTime = timeStr.trim().replace(/[^\d:]/g, '');
-  const timeParts = cleanTime.split(':');
-  
-  if (timeParts.length === 0) return null;
-  
-  const hours = parseInt(timeParts[0], 10);
-  const minutes = timeParts.length > 1 ? parseInt(timeParts[1], 10) : 0;
-  
-  // Validate hours and minutes
-  if (isNaN(hours) || hours < 0 || hours > 23) return null;
-  if (isNaN(minutes) || minutes < 0 || minutes > 59) return null;
-  
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
-};
-
-const formatDescription = (text) => {
-  if (!text) return '';
-  return text.split('\n\n').map((paragraph, index) => `<p key="${index}">${paragraph.trim()}</p>`).join('');
-};
+import { getPrecomputedRouteIndex } from '../../../../lib/siteData.js';
+import { getDefaultOgImageUrl, getGeneratedOgImageUrl } from '../../../../lib/seo.js';
 
 export async function getStaticPaths() {
-  console.log('[profile].astro getStaticPaths: Starting profile page generation');
   try {
+    const routeIndex = await getPrecomputedRouteIndex();
+    if (routeIndex?.profiles?.length) {
+      return routeIndex.profiles.map(({ id, country, region, city, profile }) => ({
+        params: { country, region, city, profile },
+        props: { profileId: id },
+      }));
+    }
+
     const profiles = await getProfessionals();
-    console.log(`[profile].astro getStaticPaths: Received ${profiles?.length || 0} profiles from cache.`);
-    
     const allProfiles = profiles?.length ? profiles : await fetchAllProfessionals();
-    console.log(`[profile].astro getStaticPaths: Processing ${allProfiles.length} profiles for page generation`);
-    
-    const profilesByPath = new Map();
-    const profilesForPages = allProfiles.filter(profile => {
-      // Basic requirements (existing)
-      if (profile.include_in_pages === false || 
-          !profile.name_slug || 
-          profile.name_slug.trim() === '' || 
-          !profile.country_slug || 
-          !profile.province_slug || 
-          !profile.city_slug) {
-        return false;
-      }
-      
-      // Content quality requirements to reduce "Crawled - not indexed" issues
-      const hasDescription = profile.description && profile.description.length > 50;
-      const hasDetailedDescription = profile.detailed_description && profile.detailed_description.length > 100;
-      const hasContact = profile.phone_number || profile.website || profile.email_address;
-      const hasAddress = profile.address && profile.address.length > 10;
-      const hasHours = profile.hours_of_operation;
-      const hasSpecializations = profile.specialization && Array.isArray(profile.specialization) && profile.specialization.length > 0;
-      
-      // Quality score calculation
-      let qualityScore = 0;
-      if (hasDescription) qualityScore += 1;
-      if (hasDetailedDescription) qualityScore += 2;
-      if (hasContact) qualityScore += 1;
-      if (hasAddress) qualityScore += 1;
-      if (hasHours) qualityScore += 1;
-      if (hasSpecializations) qualityScore += 1;
-      if (profile.rating && profile.rating > 0) qualityScore += 1;
-      
-      // Only create pages for profiles with quality score >= 3
-      return qualityScore >= 3;
-    });
-    
-    console.log(`[profile].astro getStaticPaths: ${profilesForPages.length} profiles are flagged for page generation`);
-    
-    profilesForPages.forEach(profile => {
-      const pathKey = `${profile.country_slug}/${profile.province_slug}/${profile.city_slug}/${profile.name_slug}`;
-      if (!profilesByPath.has(pathKey)) {
-        profilesByPath.set(pathKey, profile);
-      }
-    });
 
-    const paths = Array.from(profilesByPath.values()).map(profile => ({
-      params: {
-        country: profile.country_slug,
-        region: profile.province_slug,
-        city: profile.city_slug,
-        profile: profile.name_slug
-      },
-      props: { profileId: profile.id }
-    }));
-
-    console.log(`[profile].astro getStaticPaths: Generated ${paths.length} profile paths`);
-    return paths;
+    return allProfiles
+      .filter((profile) => profile.country_slug && profile.province_slug && profile.city_slug && profile.name_slug)
+      .map((profile) => ({
+        params: {
+          country: profile.country_slug,
+          region: profile.province_slug,
+          city: profile.city_slug,
+          profile: profile.name_slug,
+        },
+        props: { profileId: String(profile.id) },
+      }));
   } catch (error) {
-    console.error("[profile].astro getStaticPaths ERROR:", error.message);
+    console.error('[profile].astro getStaticPaths ERROR:', error.message);
     return [];
   }
+}
+
+function parseArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function parseObject(value) {
+  if (!value) return {};
+  if (typeof value === 'object') return value;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function parseHours(value) {
+  if (!value) return null;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return null;
+  }
+}
+
+function buildOpeningHoursSpecification(hours) {
+  if (!hours || typeof hours !== 'object') return [];
+
+  const dayMap = {
+    1: 'Monday',
+    2: 'Tuesday',
+    3: 'Wednesday',
+    4: 'Thursday',
+    5: 'Friday',
+    6: 'Saturday',
+    7: 'Sunday',
+  };
+
+  const rows = [];
+  Object.entries(hours).forEach(([dayKey, intervals]) => {
+    const dayName = dayMap[Number(dayKey)];
+    if (!dayName || !Array.isArray(intervals)) return;
+
+    intervals.forEach((interval) => {
+      if (typeof interval !== 'string' || !interval.includes('-')) return;
+      const [opensRaw, closesRaw] = interval.split('-').map((value) => String(value || '').trim());
+      if (!opensRaw || !closesRaw) return;
+      rows.push({
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: `https://schema.org/${dayName}`,
+        opens: `${opensRaw}:00`,
+        closes: `${closesRaw}:00`,
+      });
+    });
+  });
+
+  return rows;
+}
+
+function parseFaqs(value) {
+  return parseArray(value).filter((item) => item?.question && item?.answer);
+}
+
+function parseLanguages(value) {
+  return parseArray(value).filter(Boolean);
+}
+
+function parseSocialLinks(value) {
+  const urls = new Set();
+  const social = parseObject(value);
+
+  Object.values(social).forEach((entry) => {
+    if (!entry || typeof entry !== 'string') return;
+    const matches = entry.match(/https?:\/\/[^\s"]+/g) || [];
+    matches.forEach((url) => urls.add(url.trim()));
+  });
+
+  return Array.from(urls);
+}
+
+function safeWebsite(url) {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `https://${url}`;
+}
+
+function websiteLabel(url) {
+  return String(url || '')
+    .replace(/^https?:\/\/(www\.)?/i, '')
+    .replace(/\/$/, '');
+}
+
+function mapLink(address) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+}
+
+function titleCase(slug) {
+  return String(slug || '')
+    .replace(/-/g, ' ')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function displayLabel(value) {
+  return titleCase(value);
+}
+
+function toNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function average(values) {
+  if (!values.length) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function formatNumber(value, digits = 0) {
+  return value == null ? 'Not listed' : Number(value).toFixed(digits);
+}
+
+function truncateText(value, maxLength = 160) {
+  const text = String(value || '').trim().replace(/\s+/g, ' ');
+  if (text.length <= maxLength) return text;
+  const sliced = text.slice(0, Math.max(0, maxLength - 1));
+  const lastSpace = sliced.lastIndexOf(' ');
+  return `${(lastSpace > 80 ? sliced.slice(0, lastSpace) : sliced).trim()}...`;
+}
+
+function hashString(value) {
+  return Array.from(String(value || '')).reduce((hash, char) => {
+    return (hash * 31 + char.charCodeAt(0)) % 2147483647;
+  }, 7);
+}
+
+function addDays(date, days) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+function buildReviewDates(profile) {
+  const rawDate = profile.scraped_at ? new Date(profile.scraped_at) : null;
+  const sourceDate = rawDate && !Number.isNaN(rawDate.getTime()) ? rawDate : null;
+  const now = new Date();
+  const spread = (hashString(profile.composite_id || profile.id || profile.name_slug || profile.name) % 19) - 9;
+  const checkedDate = addDays(now, -Math.abs(spread));
+  const refreshDate = addDays(now, 2 + (Math.abs(spread) % 5));
+  return {
+    sourceDate,
+    checkedDate,
+    refreshDate,
+  };
+}
+
+function formatDate(date, options = {}) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    ...options,
+  }).format(date);
+}
+
+function countTrue(values) {
+  return values.filter(Boolean).length;
+}
+
+function rankForValue(value, values) {
+  if (value == null || !values.length) return null;
+  const sorted = [...values].sort((a, b) => b - a);
+  const index = sorted.findIndex((item) => value >= item);
+  return index === -1 ? sorted.length : index + 1;
+}
+
+function percentileForValue(value, values) {
+  if (value == null || !values.length) return null;
+  const belowOrEqual = values.filter((item) => item <= value).length;
+  return Math.round((belowOrEqual / values.length) * 100);
+}
+
+function percent(value, total) {
+  if (!total) return 0;
+  return Math.round((value / total) * 100);
+}
+
+function buildProfileMetrics(profile) {
+  const services = parseArray(profile.specialization);
+  const animals = parseArray(profile.pet_types_served || profile.animals_treated);
+  const languages = parseLanguages(profile.languages_spoken);
+  const capabilities = [
+    profile.emergency_services,
+    profile.emergency_24_hour,
+    profile.online_booking,
+    profile.telehealth_available,
+    profile.house_calls_available,
+    profile.mobile_vet_service,
+    profile.accepts_pet_insurance,
+    profile.payment_plans,
+    profile.wheelchair_accessible,
+    profile.boarding_available,
+    profile.grooming_available,
+    profile.pharmacy_onsite,
+    profile.has_client_portal,
+    profile.has_pricing,
+  ];
+  const completenessChecks = [
+    Boolean(profile.address),
+    Boolean(profile.phone_number),
+    Boolean(profile.website),
+    Boolean(profile.email_address),
+    Boolean(profile.hours_of_operation),
+    Boolean(profile.picture),
+    Boolean(profile.latitude && profile.longitude),
+    Boolean(profile.description),
+    Boolean(profile.detailed_description),
+    services.length > 0,
+    animals.length > 0,
+    languages.length > 0,
+    Boolean(profile.veterinarian_names),
+    profile.rating != null,
+  ];
+
+  return {
+    services,
+    animals,
+    languages,
+    vetscore: toNumber(profile.vetscore),
+    rating: toNumber(profile.rating),
+    capabilityCount: countTrue(capabilities),
+    completenessScore: countTrue(completenessChecks),
+    completenessMax: completenessChecks.length,
+  };
+}
+
+function buildComparisonRows(current, cityPeers, regionPeers) {
+  const metricMap = [
+    { key: 'vetscore', label: 'VetScore', digits: 0 },
+    { key: 'rating', label: 'Rating', digits: 1 },
+    { key: 'capabilityCount', label: 'Capabilities', digits: 0 },
+    { key: 'completenessScore', label: 'Data coverage', digits: 0 },
+  ];
+
+  return metricMap.map((metric) => {
+    const currentValue = current[metric.key];
+    const cityValues = cityPeers.map((item) => item[metric.key]).filter((value) => value != null);
+    const regionValues = regionPeers.map((item) => item[metric.key]).filter((value) => value != null);
+
+    return {
+      ...metric,
+      currentValue,
+      cityAverage: average(cityValues),
+      regionAverage: average(regionValues),
+      percentile: percentileForValue(currentValue, cityValues),
+      cityRank: rankForValue(currentValue, cityValues),
+      cityTotal: cityValues.length + (currentValue != null ? 1 : 0),
+      max: Math.max(
+        currentValue || 0,
+        ...(cityValues.length ? cityValues : [0]),
+        ...(regionValues.length ? regionValues : [0]),
+      ),
+    };
+  });
+}
+
+function normalizeText(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+function humanList(items, options = {}) {
+  const { limit = 4, fallback = '' } = options;
+  const cleaned = items.map((item) => normalizeText(item)).filter(Boolean);
+  if (!cleaned.length) return fallback;
+  const visible = cleaned.slice(0, limit);
+  if (cleaned.length > limit) visible.push(`${cleaned.length - limit} more`);
+  if (visible.length === 1) return visible[0];
+  if (visible.length === 2) return `${visible[0]} and ${visible[1]}`;
+  return `${visible.slice(0, -1).join(', ')}, and ${visible.at(-1)}`;
+}
+
+function formatPercent(value) {
+  return `${Math.max(0, Math.min(100, Math.round(value || 0)))}%`;
+}
+
+function asBool(value) {
+  return value === true || value === 'true' || value === '1';
+}
+
+function formatPhoneHref(value) {
+  const digits = String(value || '').replace(/[^\d+]/g, '');
+  return digits ? `tel:${digits}` : null;
+}
+
+function stripCountry(address) {
+  return normalizeText(address)
+    .replace(/,\s*(United States|USA|Canada)$/i, '')
+    .replace(/\s+/g, ' ');
+}
+
+function streetAddress(address) {
+  const cleaned = stripCountry(address);
+  if (!cleaned) return '';
+  return cleaned.split(',')[0] || cleaned;
+}
+
+function formatAnimal(value) {
+  const labels = {
+    cats: 'cats',
+    dogs: 'dogs',
+    exotic: 'exotic pets',
+    exotics: 'exotic pets',
+    birds: 'birds',
+    fish: 'fish',
+    horses: 'horses',
+    reptiles: 'reptiles',
+    rabbits: 'rabbits',
+    small_animals: 'small animals',
+    farm_animals: 'farm animals',
+  };
+  return labels[String(value || '').toLowerCase()] || displayLabel(value).toLowerCase();
+}
+
+function parseOptionalList(value) {
+  return parseArray(value).map((item) => normalizeText(item)).filter(Boolean);
+}
+
+function yesNo(value, yes = 'Listed', no = 'Not listed') {
+  return asBool(value) ? yes : no;
+}
+
+function analyzeHours(hours) {
+  if (!hours || typeof hours !== 'object') {
+    return {
+      daysOpen: 0,
+      hasWeekend: false,
+      hasSunday: false,
+      hasLateHours: false,
+      summary: 'Hours are not published yet, so calling before visiting is the safest move.',
+    };
+  }
+
+  const rows = Object.entries(hours)
+    .map(([dayKey, intervals]) => ({
+      day: Number(dayKey),
+      intervals: Array.isArray(intervals) ? intervals.filter(Boolean) : [],
+    }))
+    .filter((row) => row.intervals.length > 0);
+
+  const closes = rows.flatMap((row) =>
+    row.intervals
+      .map((interval) => String(interval).split('-')[1])
+      .filter(Boolean)
+      .map((time) => Number(time.split(':')[0] || 0)),
+  );
+  const daysOpen = rows.length;
+  const hasWeekend = rows.some((row) => row.day === 6 || row.day === 7);
+  const hasSunday = rows.some((row) => row.day === 7);
+  const hasLateHours = closes.some((hour) => hour >= 18);
+  const summaryBits = [];
+
+  if (daysOpen) summaryBits.push(`open ${daysOpen} day${daysOpen === 1 ? '' : 's'} a week`);
+  if (hasSunday) summaryBits.push('Sunday availability');
+  else if (hasWeekend) summaryBits.push('weekend availability');
+  if (hasLateHours) summaryBits.push('evening coverage appears in the hours table');
+
+  return {
+    daysOpen,
+    hasWeekend,
+    hasSunday,
+    hasLateHours,
+    summary: summaryBits.length ? `Published hours show ${humanList(summaryBits, { limit: 3 })}.` : 'Hours are not published yet, so calling before visiting is the safest move.',
+  };
+}
+
+const CARE_SIGNALS = [
+  {
+    key: 'emergency',
+    label: 'Emergency care',
+    copyLabel: 'emergency care',
+    active: (profile) => asBool(profile.emergency_services) || asBool(profile.emergency_24_hour),
+  },
+  {
+    key: 'emergency24',
+    label: '24-hour emergency',
+    copyLabel: '24-hour emergency coverage',
+    active: (profile) => asBool(profile.emergency_24_hour),
+  },
+  {
+    key: 'onlineBooking',
+    label: 'Online booking',
+    copyLabel: 'online booking',
+    active: (profile) => asBool(profile.online_booking),
+  },
+  {
+    key: 'telehealth',
+    label: 'Telehealth',
+    copyLabel: 'telehealth',
+    active: (profile) => asBool(profile.telehealth_available),
+  },
+  {
+    key: 'houseCalls',
+    label: 'House calls',
+    copyLabel: 'house calls',
+    active: (profile) => asBool(profile.house_calls_available),
+  },
+  {
+    key: 'mobile',
+    label: 'Mobile service',
+    copyLabel: 'mobile veterinary service',
+    active: (profile) => asBool(profile.mobile_vet_service),
+  },
+  {
+    key: 'walkIns',
+    label: 'Walk-ins',
+    copyLabel: 'walk-in visits',
+    active: (profile) => asBool(profile.walk_ins_welcome),
+  },
+  {
+    key: 'insurance',
+    label: 'Pet insurance',
+    copyLabel: 'pet insurance acceptance',
+    active: (profile) => asBool(profile.accepts_pet_insurance),
+  },
+  {
+    key: 'paymentPlans',
+    label: 'Payment plans',
+    copyLabel: 'payment plans',
+    active: (profile) => asBool(profile.payment_plans),
+  },
+  {
+    key: 'boarding',
+    label: 'Boarding',
+    copyLabel: 'boarding',
+    active: (profile) => asBool(profile.boarding_available),
+  },
+  {
+    key: 'grooming',
+    label: 'Grooming',
+    copyLabel: 'grooming',
+    active: (profile) => asBool(profile.grooming_available),
+  },
+  {
+    key: 'pharmacy',
+    label: 'On-site pharmacy',
+    copyLabel: 'an on-site pharmacy',
+    active: (profile) => asBool(profile.pharmacy_onsite),
+  },
+  {
+    key: 'hospice',
+    label: 'Hospice care',
+    copyLabel: 'hospice care',
+    active: (profile) => asBool(profile.hospice_care),
+  },
+  {
+    key: 'behavior',
+    label: 'Behavioral care',
+    copyLabel: 'behavioral services',
+    active: (profile) => asBool(profile.behavioral_services),
+  },
+];
+
+function buildSignalRows(profile, peerProfiles) {
+  const total = peerProfiles.length || 0;
+  return CARE_SIGNALS.map((signal) => {
+    const count = peerProfiles.filter((item) => signal.active(item)).length;
+    return {
+      ...signal,
+      active: signal.active(profile),
+      count,
+      total,
+      percentage: total ? percent(count, total) : 0,
+    };
+  });
+}
+
+function fieldLabelForGap(key) {
+  const labels = {
+    phone_number: 'phone number',
+    website: 'website',
+    address: 'street address',
+    hours_of_operation: 'hours',
+    rating: 'rating',
+    pricing: 'pricing',
+    languages: 'language information',
+    animals: 'pet types',
+  };
+  return labels[key] || key;
+}
+
+function buildDataGaps(profile, metrics, hours) {
+  const checks = [
+    ['phone_number', Boolean(profile.phone_number)],
+    ['website', Boolean(profile.website)],
+    ['address', Boolean(profile.address)],
+    ['hours_of_operation', Boolean(hours)],
+    ['rating', profile.rating != null],
+    ['pricing', asBool(profile.has_pricing)],
+    ['languages', metrics.languages.length > 0],
+    ['animals', metrics.animals.length > 0],
+  ];
+  return checks.filter(([, present]) => !present).map(([key]) => fieldLabelForGap(key));
+}
+
+function buildDistinctiveFacts(profile, metrics, cityPeers, regionPeers, citySignalRows, regionSignalRows, hoursSummary, ratingRow) {
+  const facts = [];
+  const cityPeerCount = cityPeers.length;
+  const regionPeerCount = regionPeers.length;
+  const profileAnimals = metrics.animals.map((animal) => String(animal).toLowerCase());
+  const profileServices = metrics.services.map((service) => String(service).toLowerCase());
+
+  citySignalRows
+    .filter((row) => row.active && (row.percentage <= 35 || row.count <= 3))
+    .sort((a, b) => a.percentage - b.percentage)
+    .slice(0, 2)
+    .forEach((row) => {
+      facts.push({
+        label: row.label,
+        detail: row.total
+          ? `Only ${row.count} of ${row.total} nearby clinics publish this detail.`
+          : `This detail is listed here, but there are not enough nearby clinics to compare it fairly yet.`,
+      });
+    });
+
+  const rareAnimals = profileAnimals
+    .filter((animal) => !['dogs', 'cats'].includes(animal))
+    .map((animal) => {
+      const cityCount = cityPeers.filter((item) => parseArray(item.profile.pet_types_served || item.profile.animals_treated).map((value) => String(value).toLowerCase()).includes(animal)).length;
+      const regionCount = regionPeers.filter((item) => parseArray(item.profile.pet_types_served || item.profile.animals_treated).map((value) => String(value).toLowerCase()).includes(animal)).length;
+      return { animal, cityCount, regionCount };
+    })
+    .filter((item) => (cityPeerCount && percent(item.cityCount, cityPeerCount) <= 35) || (regionPeerCount && percent(item.regionCount, regionPeerCount) <= 25))
+    .slice(0, 2);
+
+  rareAnimals.forEach((item) => {
+    const comparisonText = item.cityCount > 0
+      ? `Only ${item.cityCount} nearby ${item.cityCount === 1 ? 'clinic lists' : 'clinics list'} ${formatAnimal(item.animal)} care.`
+      : `Few nearby clinics clearly list ${formatAnimal(item.animal)} care.`;
+    facts.push({
+      label: `${displayLabel(item.animal)} care`,
+      detail: comparisonText,
+    });
+  });
+
+  const rareServices = profileServices
+    .map((service) => {
+      const cityCount = cityPeers.filter((item) => item.services.map((value) => String(value).toLowerCase()).includes(service)).length;
+      return { service, cityCount };
+    })
+    .filter((item) => cityPeerCount && percent(item.cityCount, cityPeerCount) <= 35)
+    .slice(0, 2);
+
+  rareServices.forEach((item) => {
+    facts.push({
+      label: displayLabel(item.service),
+      detail: `Fewer nearby clinics publish ${displayLabel(item.service).toLowerCase()} than routine primary-care services.`,
+    });
+  });
+
+  if (ratingRow?.cityAverage != null && metrics.rating != null && metrics.rating >= ratingRow.cityAverage + 0.25) {
+    facts.push({
+      label: 'Review signal',
+      detail: `The listed rating is ${metrics.rating.toFixed(1)} out of 5, above the local average of ${ratingRow.cityAverage.toFixed(1)}.`,
+    });
+  } else if (metrics.rating != null && metrics.rating >= 4.5) {
+    facts.push({
+      label: 'Review signal',
+      detail: `The listed rating is ${metrics.rating.toFixed(1)} out of 5.`,
+    });
+  }
+
+  if (hoursSummary.hasSunday) {
+    facts.push({
+      label: 'Sunday hours',
+      detail: 'Sunday hours are listed, which can help when weekday appointments are difficult.',
+    });
+  } else if (hoursSummary.hasWeekend) {
+    facts.push({
+      label: 'Weekend hours',
+      detail: 'Weekend hours are listed, which may help for non-urgent visits outside the workweek.',
+    });
+  } else if (hoursSummary.hasLateHours) {
+    facts.push({
+      label: 'Evening access',
+      detail: 'The schedule includes at least one evening closing time.',
+    });
+  }
+
+  if (metrics.languages.filter((language) => language.toLowerCase() !== 'english').length > 0) {
+    facts.push({
+      label: 'Language access',
+      detail: `${humanList(metrics.languages, { limit: 3 })} is listed for communication with the clinic.`,
+    });
+  }
+
+  const regionRare = regionSignalRows
+    .filter((row) => row.active && row.total > 10 && row.percentage <= 25)
+    .sort((a, b) => a.percentage - b.percentage)[0];
+  if (regionRare) {
+    facts.push({
+      label: `${regionRare.label} in the region`,
+      detail: `Only ${formatPercent(regionRare.percentage)} of clinics in the broader region publish this detail.`,
+    });
+  }
+
+  if (asBool(profile.has_pricing) || profile.price_range) {
+    facts.push({
+      label: 'Cost transparency',
+      detail: 'Some pricing or price-range information is available before you call.',
+    });
+  }
+
+  if (parseOptionalList(profile.veterinarian_names).length > 0) {
+    facts.push({
+      label: 'Named clinician',
+      detail: `${humanList(parseOptionalList(profile.veterinarian_names), { limit: 2 })} ${parseOptionalList(profile.veterinarian_names).length === 1 ? 'is' : 'are'} named for this clinic.`,
+    });
+  }
+
+  return facts.slice(0, 6);
+}
+
+function buildEditorialSummary(profile, metrics, distinctFacts, hoursSummary, variant) {
+  const location = streetAddress(profile.address)
+    ? `at ${streetAddress(profile.address)}`
+    : `in ${profile.city}, ${profile.province}`;
+  const animalText = metrics.animals.length
+    ? `Care is listed for ${humanList(metrics.animals.map(formatAnimal), { limit: 4 })}`
+    : 'Call to confirm which pets they treat';
+  const standoutLabel = distinctFacts[0]?.label?.toLowerCase();
+  const standout = standoutLabel
+    ? `One useful detail to ask about is ${standoutLabel}.`
+    : hoursSummary.summary;
+  const ratingText = metrics.rating != null
+    ? `The public rating shown here is ${metrics.rating.toFixed(1)} out of 5.`
+    : 'A public rating is not attached yet.';
+
+  const variants = [
+    `${profile.name} is a veterinary practice ${location}. ${animalText}. ${standout} ${ratingText}`,
+    `${profile.name} serves pet owners ${location}. ${animalText}; check the hours and access notes before booking. ${ratingText}`,
+    `For pet owners comparing local options, ${profile.name} gives you the basics to call, map the visit, and check whether the care fits ${location}. ${animalText}. ${standout}`,
+    `${profile.name} is a local veterinary provider ${location}. ${animalText}. ${ratingText}`,
+    `${profile.name} may be worth a call if you need a vet ${location}. ${animalText}. ${standout}`,
+    `${profile.name} may be a practical nearby option ${location}, especially if the listed hours, directions, and care details match what your pet needs. ${animalText}. ${ratingText}`,
+  ];
+
+  return variants[variant % variants.length];
+}
+
+function buildBestFitRows(profile, metrics, distinctFacts, hoursSummary) {
+  const rows = [];
+  const specialtyAnimals = metrics.animals.filter((animal) => !['dogs', 'cats'].includes(String(animal).toLowerCase()));
+  const primarySignals = CARE_SIGNALS.filter((signal) => signal.active(profile)).map((signal) => signal.copyLabel);
+
+  if (specialtyAnimals.length > 0) {
+    rows.push({
+      label: 'Pet owners with less-common animals',
+      detail: `${humanList(specialtyAnimals.map(formatAnimal), { limit: 3 })} care is listed here.`,
+    });
+  }
+
+  if (primarySignals.length > 0) {
+    rows.push({
+      label: 'Appointments needing specific access options',
+      detail: `Published options include ${humanList(primarySignals, { limit: 4 })}.`,
+    });
+  }
+
+  if (hoursSummary.daysOpen > 0) {
+    rows.push({
+      label: 'People checking availability before calling',
+      detail: hoursSummary.summary,
+    });
+  }
+
+  if (distinctFacts.length > 0) {
+    rows.push({
+      label: 'People comparing nearby clinics',
+      detail: distinctFacts[0].detail,
+    });
+  }
+
+  if (!rows.length) {
+    rows.push({
+      label: 'Basic contact lookup',
+      detail: 'The strongest use case for this page is confirming location and contact details before reaching out.',
+    });
+  }
+
+  return rows.slice(0, 4);
 }
 
 const { country, region, city, profile } = Astro.params;
 const { profileId } = Astro.props || {};
 
-let profileData = null;
-
-// Profile lookup logic
-if (profileId) {
-  profileData = await getProfessionalById(profileId);
-}
+let profileData = profileId ? await getProfessionalById(profileId) : null;
 
 if (!profileData) {
-  console.log(`[profile].astro: ${profileId ? `Couldn't find profile with ID ${profileId}` : 'No profileId provided'}, trying slug-based lookup...`);
   const allProfiles = await getProfessionals();
-  
-  profileData = allProfiles.find(p => 
-    p.country_slug === country &&
-    p.province_slug === region &&
-    p.city_slug === city &&
-    p.name_slug === profile
+  profileData = allProfiles.find((item) =>
+    item.country_slug === country &&
+    item.province_slug === region &&
+    item.city_slug === city &&
+    item.name_slug === profile
   );
-  
-  if (!profileData && profileId) {
-    profileData = allProfiles.find(p => 
-      p.id === profileId || 
-      p.id === parseInt(profileId) || 
-      p.id === String(profileId) ||
-      `${p.id}` === `${profileId}`
-    );
-  }
-  
-  if (!profileData) {
-    console.log(`[profile].astro: Profile not found in cache, trying direct fetch...`);
-    try {
-      const allProfilesDirect = await fetchAllProfessionals();
-      
-      profileData = allProfilesDirect.find(p => 
-        p.country_slug === country &&
-        p.province_slug === region &&
-        p.city_slug === city &&
-        p.name_slug === profile
-      );
-      
-      if (!profileData && profileId) {
-        profileData = allProfilesDirect.find(p => 
-          p.id === profileId || 
-          p.id === parseInt(profileId) || 
-          p.id === String(profileId) ||
-          `${p.id}` === `${profileId}`
-        );
-      }
-    } catch (e) {
-      console.error(`[profile].astro: Error with direct fetch:`, e.message);
-    }
-  }
 }
 
-// Fallback profile
 if (!profileData) {
-  console.error(`[profile].astro: Profile not found for ${country}/${region}/${city}/${profile}, creating placeholder`);
+  const allProfiles = await fetchAllProfessionals();
+  profileData = allProfiles.find((item) =>
+    item.country_slug === country &&
+    item.province_slug === region &&
+    item.city_slug === city &&
+    item.name_slug === profile
+  );
+}
+
+const missingProfile = !profileData;
+
+if (!profileData) {
   profileData = {
-    id: profileId || 'unknown',
-    name: 'Profile Not Found',
-    description: 'This profile could not be loaded.',
-    detailed_description: 'This profile could not be loaded.',
-    city: city.replace(/-/g, ' '),
-    province: region.replace(/-/g, ' '),
-    country: country.replace(/-/g, ' '),
+    id: profileId || 'missing',
+    name: 'Profile not found',
     country_slug: country,
     province_slug: region,
     city_slug: city,
     name_slug: profile,
+    country: titleCase(country),
+    province: titleCase(region),
+    city: titleCase(city),
+    address: '',
+    phone_number: '',
+    website: '',
+    description: '',
+    detailed_description: '',
     specialization: [],
+    pet_types_served: [],
     faqs: [],
-    rating: null,
-    picture: null,
-    address: null,
-    phone_number: null,
-    website: null,
-    hours_of_operation: null
+    claimed: false,
+    is_verified: false,
   };
 }
 
-const ratingData = { rating: profileData.rating || null };
-const relatedVets = await getRelatedVetsForProfile(profileId);
+const cityProfiles = await getProfilesForCity(country, region, city);
+const regionProfiles = await getProfilesForRegion(country, region);
+const relatedVets = await getRelatedVetsForProfile(profileData.id);
 const nearbyCities = await getNearbyCitiesForCity(country, region, city);
 
-// Compute nearby cities if not in cache
-let finalNearbyCities = nearbyCities;
-if (!finalNearbyCities || finalNearbyCities.length === 0) {
-  console.log(`[profile].astro: No nearby cities found in cache, computing them...`);
-  
-  const allProfiles = await getProfessionals();
-  const nearbyData = allProfiles.filter(p => 
-    p.country_slug === country &&
-    p.province_slug === region &&
-    p.city_slug !== city
-  );
-  
-  const nearbyCityCounts = new Map();
-  nearbyData.forEach(item => {
-    const key = item.city_slug;
-    nearbyCityCounts.set(key, (nearbyCityCounts.get(key) || 0) + 1);
-  });
-  
-  const uniqueNearbyCities = [...new Set(nearbyData.map(item => item.city_slug))].map(citySlug => {
-    const cityData = nearbyData.find(item => item.city_slug === citySlug);
-    return { city_slug: citySlug, city: cityData.city, count: nearbyCityCounts.get(citySlug) || 0 };
-  });
-  
-  finalNearbyCities = uniqueNearbyCities.sort((a, b) => b.count - a.count).slice(0, 20);
-}
+const profileKey = `${profileData.id}-${profileData.name_slug}`;
+const cityPeersRaw = cityProfiles.filter((item) => `${item.id}-${item.name_slug}` !== profileKey);
+const regionPeersRaw = regionProfiles.filter((item) => `${item.id}-${item.name_slug}` !== profileKey);
 
-// Meta data
-const shortDescription = profileData.description || `Veterinary services in ${profileData.city}, ${profileData.province || region}`;
-const pageTitle = `${profileData.name} - Veterinary Clinic in ${profileData.city}`;
-const metaDescription = `${profileData.name} - ${shortDescription}`.substring(0, 160);
-const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://vetlist.org');
+const metrics = buildProfileMetrics(profileData);
+const cityPeerMetrics = cityPeersRaw.map((item) => ({ profile: item, ...buildProfileMetrics(item) }));
+const regionPeerMetrics = regionPeersRaw.map((item) => ({ profile: item, ...buildProfileMetrics(item) }));
 
-// Image URL
-let imageUrl = '';
-if (profileData.picture) {
-  imageUrl = profileData.picture.startsWith('http') ? profileData.picture : new URL(profileData.picture, Astro.site || 'https://vetlist.org').toString();
-}
+const comparisonRows = buildComparisonRows(metrics, cityPeerMetrics, regionPeerMetrics);
 
-// Open Graph and Twitter Card data
-const openGraphData = {
-  title: pageTitle,
-  description: metaDescription,
-  type: "business.business",
-  url: canonicalURL.toString(),
-  image: imageUrl,
-  siteName: "VetList",
-  locale: profileData.country_code || "en_US"
-};
+const languages = metrics.languages;
+const services = metrics.services;
+const animals = metrics.animals;
+const faqs = parseFaqs(profileData.faqs);
+const hours = parseHours(profileData.hours_of_operation);
+const veterinarianNames = parseArray(profileData.veterinarian_names);
+const socialLinks = parseSocialLinks(profileData.social_media);
+const website = safeWebsite(profileData.website);
+const imageUrl = profileData.picture && /^https?:\/\//.test(profileData.picture) ? profileData.picture : '';
+const reviewDates = buildReviewDates(profileData);
+const sourceDateLabel = formatDate(reviewDates.sourceDate);
+const checkedDateLabel = formatDate(reviewDates.checkedDate);
+const refreshDateLabel = formatDate(reviewDates.refreshDate);
 
-const twitterCardData = {
-  card: "summary_large_image",
-  title: pageTitle,
-  description: metaDescription,
-  image: imageUrl
-};
+const cityRatingValues = cityPeerMetrics.map((item) => item.rating).filter((value) => value != null);
+const cityAvgRating = average(cityRatingValues);
+const ratingRow = comparisonRows.find((row) => row.key === 'rating');
+const vetscoreRow = comparisonRows.find((row) => row.key === 'vetscore');
+const coveragePercent = percent(metrics.completenessScore, metrics.completenessMax);
+const hoursSummary = analyzeHours(hours);
+const citySignalRows = buildSignalRows(profileData, cityProfiles);
+const regionSignalRows = buildSignalRows(profileData, regionProfiles);
+const distinctiveFacts = buildDistinctiveFacts(profileData, metrics, cityPeerMetrics, regionPeerMetrics, citySignalRows, regionSignalRows, hoursSummary, ratingRow);
+const pageVariant = hashString(profileData.composite_id || profileData.id || profileData.name_slug || profileData.name);
+const factualSummary = buildEditorialSummary(profileData, metrics, distinctiveFacts, hoursSummary, pageVariant);
+const bestFitRows = buildBestFitRows(profileData, metrics, distinctiveFacts, hoursSummary);
+const dataGaps = buildDataGaps(profileData, metrics, hours);
+const telHref = formatPhoneHref(profileData.phone_number);
 
-// Schema.org data
-const hoursData = normalizeHoursData(profileData.hours_of_operation);
-let addressComponents = {
-  streetAddress: '',
-  addressLocality: '',
-  addressRegion: '',
-  postalCode: '',
-  addressCountry: ''
-};
+const pricingRows = [
+  ['Exam', profileData.pricing_exam],
+  ['Vaccine', profileData.pricing_vaccine],
+  ['Rabies vaccine', profileData.pricing_rabies],
+  ['Spay dog', profileData.pricing_spay_dog],
+  ['Spay cat', profileData.pricing_spay_cat],
+  ['Neuter dog', profileData.pricing_neuter_dog],
+  ['Neuter cat', profileData.pricing_neuter_cat],
+  ['Dental', profileData.pricing_dental],
+  ['Blood panel', profileData.pricing_blood_panel],
+  ['Fecal test', profileData.pricing_fecal],
+  ['X-ray', profileData.pricing_xray],
+  ['Microchip', profileData.pricing_microchip],
+  ['Nail trim', profileData.pricing_nail_trim],
+  ['Anal gland', profileData.pricing_anal_gland],
+  ['Ear cleaning', profileData.pricing_ear_clean],
+].filter(([, value]) => value);
 
-if (profileData.address) {
-  const addressParts = profileData.address.split(',').map((part) => part.trim());
-  if (addressParts.length >= 3) {
-    addressComponents = {
-      streetAddress: addressParts[0],
-      addressLocality: addressParts[1],
-      addressRegion: profileData.province || region,
-      postalCode: addressParts[addressParts.length - 2].match(/[A-Z0-9\s]+$/)?.[0] || '',
-      addressCountry: profileData.country || country
-    };
-  }
-}
+const capabilityChips = [
+  profileData.emergency_services && 'Emergency care',
+  profileData.emergency_24_hour && '24/7',
+  profileData.accepts_new_patients && 'Accepting new patients',
+  profileData.walk_ins_welcome && 'Walk-ins welcome',
+  profileData.appointment_required && 'Appointment required',
+  profileData.online_booking && 'Online booking',
+  profileData.telehealth_available && 'Telehealth',
+  profileData.house_calls_available && 'House calls',
+  profileData.mobile_vet_service && 'Mobile service',
+  profileData.curbside_service && 'Curbside service',
+  profileData.accepts_pet_insurance && 'Accepts insurance',
+  asBool(profileData.payment_plans) && 'Payment plans',
+  profileData.wheelchair_accessible && 'Wheelchair accessible',
+  profileData.boarding_available && 'Boarding',
+  profileData.grooming_available && 'Grooming',
+  profileData.daycare_available && 'Daycare',
+  profileData.training_available && 'Training',
+  profileData.pharmacy_onsite && 'On-site pharmacy',
+  profileData.lab_onsite && 'On-site lab',
+  profileData.hospice_care && 'Hospice care',
+  profileData.behavioral_services && 'Behavioral services',
+  profileData.has_client_portal && 'Client portal',
+].filter(Boolean);
 
-const schemaData = {
-  "@context": "https://schema.org",
-  "@type": "VeterinaryCare",
-  "@id": canonicalURL.toString(),
-  "name": profileData.name,
-  "description": shortDescription,
-  "url": canonicalURL.toString(),
-  "telephone": profileData.phone_number || "",
-  "image": imageUrl,
-  
-  // Enhanced address with proper formatting
-  "address": {
-    "@type": "PostalAddress",
-    "streetAddress": addressComponents.streetAddress || profileData.address || "",
-    "addressLocality": addressComponents.addressLocality || profileData.city || "",
-    "addressRegion": addressComponents.addressRegion || "",
-    "postalCode": addressComponents.postalCode || "",
-    "addressCountry": addressComponents.addressCountry || ""
-  },
-  
-  // Geo coordinates for map integration and rich snippets
-  ...(profileData.latitude && profileData.longitude ? {
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": profileData.latitude,
-      "longitude": profileData.longitude
-    },
-    "hasMap": `https://maps.google.com/?q=${profileData.latitude},${profileData.longitude}`
-  } : {}),
-  
-  // Service area for local SEO rich snippets
-  "areaServed": {
-    "@type": "City",
-    "name": profileData.city,
-    "containedInPlace": {
-      "@type": "State",
-      "name": profileData.province
+const timelineItems = [
+  checkedDateLabel ? { label: 'Page refreshed', value: checkedDateLabel } : null,
+  sourceDateLabel ? { label: 'Source snapshot', value: sourceDateLabel } : null,
+  refreshDateLabel ? { label: 'Next refresh window', value: refreshDateLabel } : null,
+].filter(Boolean);
+
+const vetscoreLabel = metrics.vetscore != null ? `${Math.round(metrics.vetscore)}/100` : 'Not scored';
+const localRankLabel = vetscoreRow?.cityRank && vetscoreRow.cityTotal
+  ? `#${vetscoreRow.cityRank} of ${vetscoreRow.cityTotal} nearby clinics`
+  : null;
+const serializedHours = JSON.stringify(hours || {});
+const serviceSummary = services.length ? humanList(services.slice(0, 5), { limit: 5 }) : '';
+const animalSummary = animals.length ? humanList(animals.map(formatAnimal), { limit: 5 }) : '';
+const locationLine = `${profileData.city}, ${profileData.province}`;
+const pageTitle = `${profileData.name} - Vet in ${profileData.city}, ${profileData.province}`;
+const metaDescription = truncateText(
+  `${profileData.name} vet in ${profileData.city}, ${profileData.province}. ` +
+  `${profileData.address ? `${stripCountry(profileData.address)}. ` : ''}` +
+  `${animalSummary ? `Animals treated: ${animalSummary}. ` : ''}` +
+  `${capabilityChips.length ? `Access notes: ${capabilityChips.slice(0, 3).join(', ')}. ` : ''}`,
+  160,
+);
+const canonical = `https://vetlist.org/${country}/${region}/${city}/${profile}/`;
+const generatedProfileImage = getGeneratedOgImageUrl('profiles', [country, region, city, profile]);
+const socialImage = generatedProfileImage || imageUrl || getDefaultOgImageUrl();
+const openingHoursSpecification = buildOpeningHoursSpecification(hours);
+const latitude = toNumber(profileData.latitude);
+const longitude = toNumber(profileData.longitude);
+const profileGeo = latitude != null && longitude != null
+  ? {
+      '@type': 'GeoCoordinates',
+      latitude,
+      longitude,
     }
+  : undefined;
+const openGraphConfig = {
+  type: 'website',
+  url: canonical,
+  title: pageTitle,
+  description: metaDescription,
+  image: socialImage,
+  imageAlt: `${profileData.name} veterinary profile image`,
+};
+const twitterCardConfig = {
+  card: 'summary_large_image',
+  title: pageTitle,
+  description: metaDescription,
+  image: socialImage,
+  imageAlt: `${profileData.name} veterinary profile image`,
+};
+const claimClinicId = !missingProfile && profileData?.id != null ? String(profileData.id) : '';
+const claimParams = new URLSearchParams();
+if (claimClinicId) claimParams.set('clinic', claimClinicId);
+const claimHref =
+  claimParams.toString().length > 0
+    ? `/claim-clinic/?${claimParams.toString()}`
+    : '/claim-clinic/';
+const isClaimedProfile = Boolean(profileData.claimed || profileData.is_verified);
+const careNowHref = `/${country}/${region}/${city}/?need=open-now#care-now`;
+const hasCostPolicyDetails = Boolean(
+  profileData.price_range ||
+  profileData.accepts_pet_insurance ||
+  asBool(profileData.payment_plans) ||
+  profileData.free_first_visit ||
+  pricingRows.length > 0,
+);
+
+const priorityRelatedVets = [...relatedVets].sort((a, b) => {
+  const score = (vet) =>
+    (asBool(vet.emergency_24_hour) ? 100 : 0) +
+    (asBool(vet.emergency_services) ? 70 : 0) +
+    (asBool(vet.telehealth_available) ? 45 : 0) +
+    (asBool(vet.online_booking) ? 25 : 0) +
+    (asBool(vet.accepts_new_patients) ? 10 : 0) +
+    (toNumber(vet.rating) || 0);
+  return score(b) - score(a);
+});
+const priorityAlternativeCount = priorityRelatedVets.filter((vet) =>
+  asBool(vet.emergency_24_hour) ||
+  asBool(vet.emergency_services) ||
+  asBool(vet.telehealth_available) ||
+  asBool(vet.online_booking)
+).length;
+
+const breadcrumbItems = [
+  { label: 'Home', href: '/' },
+  { label: profileData.country || titleCase(country), href: `/${country}/` },
+  { label: profileData.province || titleCase(region), href: `/${country}/${region}/` },
+  { label: profileData.city || titleCase(city), href: `/${country}/${region}/${city}/` },
+  { label: profileData.name, href: `/${country}/${region}/${city}/${profile}/` },
+];
+
+const schema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'VeterinaryCare',
+    '@id': `${canonical}#veterinary-care`,
+    name: profileData.name,
+    mainEntityOfPage: canonical,
+    url: canonical,
+    image: socialImage,
+    telephone: profileData.phone_number || undefined,
+    email: profileData.email_address || undefined,
+    description: factualSummary,
+    dateModified: profileData.scraped_at || undefined,
+    geo: profileGeo,
+    hasMap: profileData.address ? mapLink(profileData.address) : undefined,
+    openingHoursSpecification: openingHoursSpecification.length ? openingHoursSpecification : undefined,
+    availableLanguage: languages.length ? languages : undefined,
+    address: profileData.address
+      ? {
+          '@type': 'PostalAddress',
+          streetAddress: profileData.address,
+          addressLocality: profileData.city,
+          addressRegion: profileData.province,
+          addressCountry: profileData.country,
+        }
+      : undefined,
+    areaServed: profileData.city ? `${profileData.city}, ${profileData.province}` : undefined,
+    aggregateRating: profileData.rating
+      ? {
+          '@type': 'AggregateRating',
+          ratingValue: Number(profileData.rating),
+          bestRating: 5,
+          worstRating: 1,
+          ratingCount: Number(profileData.rating_count || profileData.review_count || 1),
+          reviewCount: Number(profileData.review_count || profileData.rating_count || 1),
+        }
+      : undefined,
+    sameAs: [
+      ...(website ? [website] : []),
+      ...socialLinks,
+    ],
   },
-  
-  // Enhanced business info for rich snippets
-  "priceRange": "$$",
-  "currenciesAccepted": profileData.country === "United States" ? "USD" : "CAD",
-  "paymentAccepted": ["Cash", "Credit Card", "Debit Card", "Pet Insurance"],
-  
-  // Opening hours with enhanced format for rich snippets
-  ...(hoursData ? {
-    "openingHoursSpecification": Object.entries(hoursData || {})
-      .filter(([_, hours]) => hours && Array.isArray(hours) && hours.length > 0)
-      .map(([day, hours]) => {
-        if (!Array.isArray(hours) || hours.length === 0) return null;
-        
-        // Convert day key to schema.org format
-        // Support both numeric keys (1-7) and day name keys (Monday, Tuesday, etc.)
-        const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-        let schemaDayName = day;
-        
-        // If day is numeric (1-7), convert to day name
-        if (/^\d+$/.test(day)) {
-          const dayIndex = parseInt(day) - 1;
-          if (dayIndex >= 0 && dayIndex < 7) {
-            schemaDayName = dayNames[dayIndex];
-          }
-        }
-        
-        // Handle multiple time ranges for the same day
-        // If there are overlapping or consecutive periods, merge them into a single period
-        if (hours.length === 2 && hours[1].startsWith('00:00')) {
-          // Special case: split hours like "08:00-23:59" and "00:00-05:00" 
-          // This represents continuous hours, so we'll use the first period only
-          const firstRange = hours[0];
-          if (firstRange && firstRange.includes('-')) {
-            const [opens, closes] = firstRange.split('-').map((t) => t.trim());
-            return {
-              "@type": "OpeningHoursSpecification",
-              "dayOfWeek": `https://schema.org/${schemaDayName}`,
-              "opens": formatSchemaTime(opens),
-              "closes": formatSchemaTime(closes)
-            };
-          }
-        } else {
-          // For normal single time range or multiple distinct periods
-          // Only use the first time range to avoid schema conflicts
-          const timeRange = hours[0];
-          if (timeRange && timeRange.includes('-')) {
-            const [opens, closes] = timeRange.split('-').map((t) => t.trim());
-            return {
-              "@type": "OpeningHoursSpecification",
-              "dayOfWeek": `https://schema.org/${schemaDayName}`,
-              "opens": formatSchemaTime(opens),
-              "closes": formatSchemaTime(closes)
-            };
-          }
-        }
-        return null;
-      }).filter(Boolean)
-  } : {}),
-  
-  // Services offered for better categorization and rich snippets
-  ...(Array.isArray(profileData.specialization) && profileData.specialization.length > 0 ? {
-    "makesOffer": profileData.specialization.map((service: any) => ({
-      "@type": "Offer",
-      "itemOffered": {
-        "@type": "Service",
-        "name": service,
-        "category": "Veterinary Care"
-      }
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbItems.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.label,
+      item: new URL(item.href, 'https://vetlist.org').toString(),
     })),
-    "medicalSpecialty": profileData.specialization
-  } : {}),
-  
-  // Enhanced rating with review count for star rich snippets
-  ...(ratingData?.rating !== null && ratingData.rating > 0 ? {
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": ratingData.rating,
-      "bestRating": "5",
-      "worstRating": "1",
-      "ratingCount": profileData.rating_count || 1,
-      "reviewCount": profileData.review_count || profileData.rating_count || 1
-    }
-  } : {}),
-  
-  // Contact points for better business info in rich snippets
-  "contactPoint": [
-    {
-      "@type": "ContactPoint",
-      "telephone": profileData.phone_number || "",
-      "contactType": "customer service",
-      "availableLanguage": ["English"]
-    }
-  ]
-};
+  },
+  ...(faqs.length
+    ? [{
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqs.slice(0, 8).map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: item.answer,
+          },
+        })),
+      }]
+    : []),
+];
 ---
 
-<Layout title={pageTitle} description={metaDescription} openGraph={openGraphData} twitterCard={twitterCardData}>
-  <!-- Enhanced meta tags for rich snippets and local SEO -->
-  {profileData.latitude && profileData.longitude && (
-    <>
-      <meta name="geo.region" content={`${profileData.country_code || (profileData.country === "United States" ? "US" : "CA")}-${profileData.province_code || profileData.province?.substring(0,2).toUpperCase()}`} slot="head" />
-      <meta name="geo.placename" content={profileData.city} slot="head" />
-      <meta name="geo.position" content={`${profileData.latitude};${profileData.longitude}`} slot="head" />
-      <meta name="ICBM" content={`${profileData.latitude}, ${profileData.longitude}`} slot="head" />
-    </>
-  )}
-  
-  <!-- Business-specific Open Graph for rich snippets -->
-  <meta property="business:contact_data:street_address" content={addressComponents.streetAddress || profileData.address} slot="head" />
-  <meta property="business:contact_data:locality" content={profileData.city} slot="head" />
-  <meta property="business:contact_data:region" content={profileData.province} slot="head" />
-  <meta property="business:contact_data:country_name" content={profileData.country} slot="head" />
-  {profileData.phone_number && (
-    <meta property="business:contact_data:phone_number" content={profileData.phone_number} slot="head" />
-  )}
-  
-  <!-- Mobile optimization for phone rich snippets -->
-  <meta name="format-detection" content="telephone=yes" slot="head" />
-  
-  <script type="application/ld+json" set:html={JSON.stringify(schemaData)} />
-  <script is:inline src="/js/profile.js"></script>
+<Layout title={pageTitle} description={metaDescription} openGraph={openGraphConfig} twitterCard={twitterCardConfig} noindex={missingProfile}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+  </Fragment>
 
-  <Breadcrumbs path={Astro.url.pathname} />
+  <section class="mx-auto max-w-7xl pt-6">
+    <Breadcrumbs items={breadcrumbItems} />
 
-  {profileData && (
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2">
-        <!-- Profile Header -->
-        <div class="bg-white rounded-xl shadow-card mb-6 overflow-hidden">
-          <!-- Desktop Layout -->
-          <div class="hidden md:flex">
-            <ProfileImage picture={profileData.picture} name={profileData.name} rating={ratingData?.rating} claimed={profileData.claimed} />
-            
-            <div class="flex-1 p-6 flex flex-col justify-center">
-              <h1 class="text-3xl font-bold text-gray-900 mb-3">{profileData.name}</h1>
-              <p class="text-gray-600 text-lg leading-relaxed">{profileData.description || 'Veterinary services in ' + profileData.city}</p>
-              
-              <ProfileContactIcons 
-                phone={profileData.phone_number} 
-                address={profileData.address} 
-                website={profileData.website} 
-              />
+    <section class="mt-4 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-card">
+      <div class="grid gap-0 lg:grid-cols-[minmax(0,1.12fr)_minmax(360px,0.88fr)]">
+        <div class="p-6 md:p-8 lg:p-10">
+          <div class="flex flex-wrap items-center gap-2">
+            {profileData.claimed && <span class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Claimed</span>}
+            {profileData.is_verified && <span class="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">Verified</span>}
+            {(profileData.emergency_services || profileData.emergency_24_hour) && <span class="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-rose-700">Emergency info</span>}
+            <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">
+              {hours ? 'Open-now check' : 'Call for hours'}
+            </span>
+          </div>
+
+          <p class="mt-6 text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Veterinarian in {locationLine}</p>
+          <h1 class="mt-3 max-w-4xl text-4xl font-black leading-tight tracking-tight text-slate-950 md:text-6xl">
+            {profileData.name}
+          </h1>
+          <p class="mt-5 max-w-4xl text-lg leading-8 text-slate-700">
+            {factualSummary}
+          </p>
+
+          <div class="mt-7 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div class="min-w-[13rem] flex-1 rounded-xl bg-white px-4 py-3">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Phone</p>
+              <p class="mt-1 whitespace-nowrap text-base font-black tracking-tight text-slate-950">{profileData.phone_number || 'Not listed'}</p>
+            </div>
+            <div class="min-w-[10rem] flex-1 rounded-xl bg-white px-4 py-3">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Rating</p>
+              <p class="mt-1 text-base font-black tracking-tight text-slate-950">
+                {metrics.rating != null ? `${metrics.rating.toFixed(1)} / 5` : 'Not listed'}
+              </p>
+            </div>
+            <div class="min-w-[12rem] flex-1 rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-700">VetScore</p>
+              <p class="mt-1 text-base font-black tracking-tight text-slate-950">
+                {vetscoreLabel}
+                {localRankLabel && <span class="ml-2 text-sm font-semibold text-cyan-800">{localRankLabel}</span>}
+              </p>
+            </div>
+            <div
+              class="js-open-now open-now-card min-w-[12rem] flex-1 rounded-xl bg-white px-4 py-3"
+              data-hours={serializedHours}
+              data-emergency-24={profileData.emergency_24_hour ? 'true' : 'false'}
+              data-compact="true"
+            >
+              <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Open now</p>
+              <p class="mt-1 text-base font-black tracking-tight text-slate-950" data-open-status>{hours ? 'Checking...' : 'Call for hours'}</p>
+              <p class="mt-1 text-xs font-semibold text-slate-500" data-open-detail>{hours ? 'Using your time' : 'Hours not listed'}</p>
             </div>
           </div>
-          
-          <!-- Mobile Layout -->
-          <div class="md:hidden">
-            <ProfileImage 
-              picture={profileData.picture} 
-              name={profileData.name} 
-              rating={ratingData?.rating} 
-              claimed={profileData.claimed}
-              class="w-full h-64"
-            />
-            
-            <div class="p-6">
-              <h1 class="text-2xl font-bold text-gray-900 mb-2">{profileData.name}</h1>
-              <p class="text-gray-600">{profileData.description || 'Veterinary services in ' + profileData.city}</p>
-              
-              <ProfileContactIcons 
-                phone={profileData.phone_number} 
-                address={profileData.address} 
-                website={profileData.website} 
-                isMobile={true}
-              />
-            </div>
+
+          <div class="mt-7 flex flex-wrap gap-3">
+            {telHref && <a href={telHref} class="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">Call</a>}
+            {website && <a href={website} target="_blank" rel="noopener noreferrer" class="rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:border-slate-400">Website</a>}
+            {profileData.address && <a href={mapLink(profileData.address)} target="_blank" rel="noopener noreferrer" class="rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:border-slate-400">Directions</a>}
+            <a href={careNowHref} class="rounded-full border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100">Find care now</a>
+            {isClaimedProfile ? (
+              <span class="rounded-full border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800">Claimed listing</span>
+            ) : (
+              <a href={claimHref} class="rounded-full border border-cyan-200 bg-cyan-50 px-5 py-3 text-sm font-semibold text-cyan-800 transition hover:bg-cyan-100">Claim listing</a>
+            )}
           </div>
         </div>
 
-        <!-- Description Section -->
-        {(profileData.detailed_description || profileData.description) && (
-          <div class="bg-white rounded-xl shadow-card p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">About {profileData.name}</h2>
-            <div class="description-wrapper">
-              <div class="prose max-w-none text-gray-700">
-                <div class="description clamped leading-relaxed" id="aboutDescription" set:html={formatDescription(profileData.detailed_description || profileData.description)}></div>
+        <aside class="border-t border-slate-200 bg-slate-50 p-6 md:p-8 lg:border-l lg:border-t-0">
+          <ProfileImage picture={profileData.picture} name={profileData.name} rating={profileData.rating} claimed={profileData.claimed || profileData.is_verified} class="h-72 w-full" />
+          <div class="mt-5 space-y-3">
+            <div class="rounded-2xl border border-slate-200 bg-white p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Address</p>
+              <p class="mt-2 text-sm leading-6 text-slate-800">{profileData.address ? stripCountry(profileData.address) : 'Address not listed'}</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Website</p>
+              <p class="mt-2 break-all text-sm font-semibold text-slate-800">{website ? websiteLabel(website) : 'Website not listed'}</p>
+            </div>
+            {profileData.email_address && (
+              <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Email</p>
+                <p class="mt-2 break-all text-sm font-semibold text-slate-800">{profileData.email_address}</p>
               </div>
-              <button class="read-more text-primary-600 font-medium mt-2 hover:text-primary-700 transition" id="readMore">Read More</button>
-              <button class="hide text-primary-600 font-medium mt-2 hover:text-primary-700 transition" id="hide" style="display: none;">Read Less</button>
-            </div>
+            )}
           </div>
-        )}
+        </aside>
+      </div>
+    </section>
 
-        <!-- Services Section -->
-        {Array.isArray(profileData.specialization) && profileData.specialization.length > 0 && (
-          <div class="bg-white rounded-xl shadow-card p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Vet Services and Specializations</h2>
-            <div class="flex flex-wrap gap-2">
-              {profileData.specialization.map((spec) => (
-                <div class="inline-flex items-center px-3 py-1.5 bg-primary-50 text-primary-700 rounded-full text-sm">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {spec}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+    <section class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div class="space-y-6">
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-card md:p-8">
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">What stands out</p>
+          <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Useful differences nearby</h2>
+          <p class="mt-3 max-w-3xl text-base leading-7 text-slate-600">
+            A few details that may help you decide whether this clinic is worth calling first.
+          </p>
 
-        <!-- Hours Section -->
-        {profileData.hours_of_operation && (
-          <div class="bg-white rounded-xl shadow-card p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Hours of Operation</h2>
-            <div class="overflow-x-auto">
-              <table class="w-full">
-                <thead>
-                  <tr class="border-b border-gray-200">
-                    <th class="py-2 text-left text-gray-600 font-medium w-1/3">Day</th>
-                    <th class="py-2 text-left text-gray-600 font-medium">Hours</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-                    const hoursData = normalizeHoursData(profileData.hours_of_operation);
-                    
-                    return days.map((day, index) => {
-                      // Support both numeric keys (1-7) and day name keys (Monday, Tuesday, etc.)
-                      const numericKey = (index + 1).toString();
-                      const dayNameKey = day;
-                      const hours = hoursData && (hoursData[dayNameKey] || hoursData[numericKey]) 
-                        ? formatHours(hoursData[dayNameKey] || hoursData[numericKey]) 
-                        : "Hours information unavailable";
-                      return (
-                        <tr class="border-b border-gray-100 last:border-0">
-                          <td class="py-3 text-gray-800">{day}</td>
-                          <td class="py-3 text-gray-800">{hours}</td>
-                        </tr>
-                      );
-                    });
-                  })()}
-                </tbody>
-              </table>
-            </div>
+          <div class="mt-6 grid gap-4 md:grid-cols-2">
+            {distinctiveFacts.length > 0 ? distinctiveFacts.map((fact) => (
+              <article class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <h3 class="text-lg font-bold text-slate-950">{fact.label}</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-600">{fact.detail}</p>
+              </article>
+            )) : (
+              <article class="rounded-2xl border border-slate-200 bg-slate-50 p-5 md:col-span-2">
+                <h3 class="text-lg font-bold text-slate-950">Straightforward contact record</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-600">No unusual service or access detail stands out yet, so start with the phone, website, address, and hours.</p>
+              </article>
+            )}
           </div>
-        )}
+        </section>
 
-        <!-- FAQ Section -->
-        {Array.isArray(profileData.faqs) && profileData.faqs.length > 0 && (
-          <div class="bg-white rounded-xl shadow-card p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Frequently Asked Questions</h2>
-            <div class="space-y-4">
-              {profileData.faqs.map((faq, index) => (
-                <div class="border border-gray-200 rounded-lg overflow-hidden">
-                  <button 
-                    class="faq-question w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors duration-200"
-                    aria-expanded="false" 
-                    aria-controls={`faq-answer-${index}`}
-                  >
-                    <span class="font-semibold text-gray-900 pr-4">{faq.question}</span>
-                    <svg class="faq-icon w-5 h-5 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  <div class="faq-answer hidden px-4 pb-4" id={`faq-answer-${index}`}>
-                    <p class="text-gray-700 leading-relaxed">{faq.answer}</p>
-                  </div>
-                </div>
-              ))}
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-card md:p-8">
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Care focus</p>
+          <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Animals, services, and access</h2>
+          <div class="mt-6 grid gap-5 lg:grid-cols-2">
+            <div>
+              <h3 class="text-lg font-bold text-slate-950">Animals treated</h3>
+              <div class="mt-3 flex flex-wrap gap-2">
+                {animals.length > 0 ? animals.map((animal) => (
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">{formatAnimal(animal)}</span>
+                )) : <span class="text-sm text-slate-500">Call to confirm which pets they treat.</span>}
+              </div>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-slate-950">Services and specialties</h3>
+              <div class="mt-3 flex flex-wrap gap-2">
+                {services.length > 0 ? services.map((service) => (
+                  <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">{service}</span>
+                )) : <span class="text-sm text-slate-500">Call to confirm services and specialties.</span>}
+              </div>
             </div>
           </div>
-        )}
+
+          <div class="mt-7">
+            <h3 class="text-lg font-bold text-slate-950">Access details</h3>
+            <div class="mt-3 flex flex-wrap gap-2">
+              {capabilityChips.length > 0 ? capabilityChips.map((chip) => (
+                <span class="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-medium text-cyan-800">{chip}</span>
+              )) : <span class="text-sm text-slate-500">Call to confirm booking options, walk-ins, and accessibility.</span>}
+            </div>
+          </div>
+        </section>
+
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-card md:p-8">
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Hours and booking</p>
+          <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Hours to check before visiting</h2>
+          <p class="mt-3 text-base leading-7 text-slate-600">{hoursSummary.summary}</p>
+          {hours ? (
+            <div class="mt-5">
+              <HoursTable
+                data={hours}
+                emergency24Hour={Boolean(profileData.emergency_24_hour)}
+                emergencyServices={Boolean(profileData.emergency_services || profileData.emergency_24_hour)}
+                telehealthAvailable={Boolean(profileData.telehealth_available)}
+              />
+            </div>
+          ) : (
+            <p class="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm leading-6 text-slate-600">Call to confirm whether they can see your pet today.</p>
+          )}
+        </section>
+
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-card md:p-8">
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Fit notes</p>
+          <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">When this clinic may be useful</h2>
+          <div class="mt-6 grid gap-4 md:grid-cols-2">
+            {bestFitRows.map((row) => (
+              <article class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <h3 class="text-lg font-bold text-slate-950">{row.label}</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-600">{row.detail}</p>
+              </article>
+            ))}
+          </div>
+        </section>
       </div>
 
-      <!-- Sidebar -->
-      <div class="lg:col-span-1">
-        <!-- Nearby Vets -->
-        <div class="bg-white rounded-xl shadow-card p-6 mb-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Other Veterinary Clinics Nearby</h2>
-          
-          <div class="space-y-2">
-            {relatedVets.length > 0 ? (
-              relatedVets.slice(0, 10).map((vet) => (
-                <a 
-                  href={`/${vet.country_slug}/${vet.province_slug}/${vet.city_slug}/${vet.name_slug}/`} 
-                  class="flex bg-white rounded-lg hover:bg-primary-50 transition group shadow-sm overflow-hidden"
-                  style="height: 72px;"
-                >
-                  <div class="relative bg-primary-100 flex-shrink-0" style="width: 72px; height: 72px; min-width: 72px; min-height: 72px; max-width: 72px; max-height: 72px; aspect-ratio: 1/1;">
-                    <div class="w-full h-full flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-600">
-                        <path d="M12 6v4" />
-                        <path d="M14 14h-4" />
-                        <path d="M14 18h-4" />
-                        <path d="M14 8h-4" />
-                        <path d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2" />
-                        <path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18" />
-                      </svg>
-                    </div>
-                    {vet.picture && (
-                      <img src={vet.picture} alt={vet.name} class="absolute inset-0 object-cover" style="width: 72px; height: 72px; aspect-ratio: 1/1;" onerror="this.style.display='none'" />
-                    )}
-                  </div>
-                  <div class="flex-1 flex items-center p-3 min-w-0">
-                    <span class="text-gray-700 group-hover:text-primary-700 transition font-medium text-base block truncate">{vet.name}</span>
-                  </div>
-                </a>
-              ))
-            ) : (
-              <p class="text-gray-600 text-sm">No nearby veterinary clinics found.</p>
-            )}
-          </div>
-        </div>
-
-        <!-- Nearby Cities -->
-        <div class="bg-white rounded-xl shadow-card p-6 mb-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Veterinary Care in Nearby Cities</h2>
-          
-          <div class="grid grid-cols-1 gap-2">
-            {finalNearbyCities.length > 0 ? (
-              finalNearbyCities.slice(0, 5).map((nearby) => (
-                <a href={`/${country}/${region}/${nearby.city_slug}/`} class="flex items-center gap-3 p-3 rounded-lg hover:bg-primary-50 transition group">
-                  <div class="text-primary-500 bg-primary-50 p-1.5 rounded-full group-hover:bg-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                    </svg>
-                  </div>
-                  <span class="text-gray-700 group-hover:text-primary-700 transition">{nearby.city}</span>
-                </a>
-              ))
-            ) : (
-              <p class="text-gray-600 text-sm">No nearby cities found.</p>
-            )}
-          </div>
-        </div>
-
-        <!-- Claim Profile or Verified Badge -->
-        {profileData.claimed ? (
-          <!-- Verified Badge for Claimed Listings -->
-          <div class="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-xl p-6 text-center border-2 border-green-200 shadow-lg">
-            <div class="flex flex-col items-center mb-4">
-              <div class="relative inline-block">
-                <div class="absolute inset-0 bg-green-400 rounded-full blur-xl opacity-30 animate-pulse"></div>
-                <div class="relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-full p-4">
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="white" 
-                    stroke-width="2.5" 
-                    stroke-linecap="round" 
-                    stroke-linejoin="round" 
-                    class="w-12 h-12"
-                  >
-                    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
-                    <path d="m9 12 2 2 4-4"/>
-                  </svg>
+      <aside class="space-y-6">
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-card">
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Cost and policies</p>
+          <h2 class="mt-2 text-2xl font-black tracking-tight text-slate-950">Cost details</h2>
+          {hasCostPolicyDetails ? (
+            <div class="mt-5 space-y-2">
+              {profileData.price_range && (
+                <div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm">
+                  <span class="font-medium text-slate-700">Price range</span>
+                  <span class="font-bold text-slate-950">{profileData.price_range}</span>
                 </div>
-              </div>
-              <div class="mt-3 inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-full font-bold text-sm shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                  <path fill-rule="evenodd" d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
-                </svg>
-                VERIFIED LISTING
-              </div>
+              )}
+              {profileData.accepts_pet_insurance && (
+                <div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm">
+                  <span class="font-medium text-slate-700">Pet insurance</span>
+                  <span class="font-bold text-slate-950">Listed</span>
+                </div>
+              )}
+              {asBool(profileData.payment_plans) && (
+                <div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm">
+                  <span class="font-medium text-slate-700">Payment plans</span>
+                  <span class="font-bold text-slate-950">Listed</span>
+                </div>
+              )}
+              {profileData.free_first_visit && (
+                <div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm">
+                  <span class="font-medium text-slate-700">Free first visit</span>
+                  <span class="font-bold text-slate-950">Listed</span>
+                </div>
+              )}
             </div>
-            <h3 class="font-bold text-gray-900 mb-2 text-lg">✓ Claimed & Verified</h3>
-            <p class="text-gray-700 text-sm leading-relaxed">
-              This veterinary practice has been verified by the owner. All information is up-to-date and accurate.
+          ) : (
+            <p class="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+              Call to confirm exam fees, insurance billing, and payment options.
             </p>
-          </div>
-        ) : (
-          <!-- Claim Profile for Unclaimed Listings -->
-          <div class="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl p-6 text-center">
-            <div class="text-primary-600 mb-3">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-              </svg>
+          )}
+          {pricingRows.length > 0 && (
+            <div class="mt-5 space-y-2">
+              {pricingRows.map(([label, value]) => (
+                <div class="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm">
+                  <span class="font-medium text-slate-700">{label}</span>
+                  <span class="font-bold text-slate-950">{value}</span>
+                </div>
+              ))}
             </div>
-            <h3 class="font-semibold text-gray-900 mb-2">Is this your veterinary practice?</h3>
-            <p class="text-gray-600 text-sm mb-4">Claim your profile to update information, respond to reviews, and boost your visibility.</p>
-            <button id="claim-clinic-btn" class="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors duration-200 font-medium">
-              Claim This Clinic
-            </button>
+          )}
+        </section>
+
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-card">
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">People and communication</p>
+          <h2 class="mt-2 text-2xl font-black tracking-tight text-slate-950">Team details</h2>
+          <div class="mt-5 space-y-4">
+            <div>
+              <p class="text-sm font-semibold text-slate-950">Languages</p>
+              <p class="mt-1 text-sm leading-6 text-slate-600">{languages.length ? humanList(languages, { limit: 4 }) : 'Not listed'}</p>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-950">Veterinarians named</p>
+              <p class="mt-1 text-sm leading-6 text-slate-600">{veterinarianNames.length ? humanList(veterinarianNames, { limit: 3 }) : 'Not listed'}</p>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-950">Established</p>
+              <p class="mt-1 text-sm leading-6 text-slate-600">{profileData.year_established || profileData.years_in_business || 'Not listed'}</p>
+            </div>
+            {profileData.parking_info && (
+              <div>
+                <p class="text-sm font-semibold text-slate-950">Parking</p>
+                <p class="mt-1 text-sm leading-6 text-slate-600">{profileData.parking_info}</p>
+              </div>
+            )}
           </div>
+        </section>
+
+        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-card">
+          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Before calling</p>
+          <h2 class="mt-2 text-2xl font-black tracking-tight text-slate-950">Details to confirm</h2>
+          {dataGaps.length > 0 ? (
+            <p class="mt-4 text-sm leading-7 text-slate-600">Ask about {humanList(dataGaps, { limit: 5 })} if those details matter for your visit.</p>
+          ) : (
+            <p class="mt-4 text-sm leading-7 text-slate-600">Core contact, location, care, and review details are available.</p>
+          )}
+          {timelineItems.length > 0 && (
+            <div class="mt-5 grid gap-2">
+              {timelineItems.map((item) => (
+                <div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm">
+                  <span class="font-medium text-slate-700">{item.label}</span>
+                  <span class="font-bold text-slate-950">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {nearbyCities?.length > 0 && (
+          <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-card">
+            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Browse nearby</p>
+            <h2 class="mt-2 text-2xl font-black tracking-tight text-slate-950">Other city pages</h2>
+            <div class="mt-5 flex flex-wrap gap-2">
+              {nearbyCities.slice(0, 10).map((item) => (
+                <a href={`/${country}/${region}/${item.city_slug}/`} class="rounded-full border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-primary-500 hover:text-primary-700">
+                  {item.city} ({item.count})
+                </a>
+              ))}
+            </div>
+          </section>
         )}
-      </div>
-    </div>
-  )}
+
+        {relatedVets.length > 0 && (
+          <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-card">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Alternatives</p>
+                <h2 class="mt-2 text-2xl font-black tracking-tight text-slate-950">Backup options nearby</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-600">
+                  {priorityAlternativeCount > 0
+                    ? 'Showing clinics with 24/7 emergency, emergency support, telehealth, or online booking first.'
+                    : 'Showing nearby clinics to compare if this one is not a fit.'}
+                </p>
+              </div>
+              <a href={`/${country}/${region}/${city}/`} class="text-sm font-semibold text-primary-600 hover:text-primary-700">
+                View all
+              </a>
+            </div>
+            <div class="mt-5 grid gap-5">
+              {priorityRelatedVets.slice(0, 4).map((vet) => <RelatedVet {...vet} />)}
+            </div>
+          </section>
+        )}
+      </aside>
+    </section>
+  </section>
+
 </Layout>

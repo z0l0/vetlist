@@ -1,43 +1,31 @@
 ---
-import Layout from '../../layouts/Layout-optimized.astro';
+import Layout from '../../layouts/Layout.astro';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
 import { getProfessionals, getProfilesForCountry } from '../../lib/dataCache.js';
 import { fetchAllProfessionals } from '../../lib/supabase';
+import { getPrecomputedRouteIndex } from '../../lib/siteData.js';
+import { getDefaultOgImageUrl, getGeneratedOgImageUrl, pickFirstProfileImage } from '../../lib/seo.js';
 
-// Convert slug to title case
 function toTitleCase(str) {
-  return str
-    .replace(/-/g, ' ')
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+  return str.replace(/-/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
+function isTrue(value) {
+  return value === true || value === 'true' || value === 1 || value === '1';
 }
 
 export async function getStaticPaths() {
   try {
-    // Try to get from cache first
+    const routeIndex = await getPrecomputedRouteIndex();
+    if (routeIndex?.countries?.length) {
+      return routeIndex.countries.map(({ country }) => ({ params: { country } }));
+    }
+
     const profiles = await getProfessionals();
-    console.log(`[country].astro getStaticPaths: Received ${profiles?.length || 0} profiles from cache.`);
-    
-    // If cache failed or is empty, fall back to direct fetch
     const allProfiles = profiles?.length ? profiles : await fetchAllProfessionals();
-    
-    // Filter out profiles with missing or empty country_slug
-    const validProfiles = allProfiles.filter(profile => 
-      profile.country_slug && 
-      profile.country_slug.trim() !== ''
-    );
-    
-    console.log(`[country].astro getStaticPaths: ${validProfiles.length} valid profiles after filtering`);
-    
+    const validProfiles = allProfiles.filter(profile => profile.country_slug && profile.country_slug.trim() !== '');
     const countries = new Set(validProfiles.map(profile => profile.country_slug));
-    
-    const paths = Array.from(countries).map(country => ({
-      params: { country }
-    }));
-    
-    console.log(`[country].astro getStaticPaths: Generated ${paths.length} country paths`);
-    return paths;
+    return Array.from(countries).map(country => ({ params: { country } }));
   } catch (error) {
     console.error("[country].astro getStaticPaths ERROR:", error.message);
     return [];
@@ -45,390 +33,392 @@ export async function getStaticPaths() {
 }
 
 const { country } = Astro.params;
+let profiles = await getProfilesForCountry(country);
 
-// Attempt to use the cached data first
-let profiles: any[] = [];
-
-// Get profiles for this country from cache
-profiles = await getProfilesForCountry(country);
-
-// If no profiles found in cache, fetch all profiles and filter
 if (!profiles || profiles.length === 0) {
-  console.log(`[country].astro: No profiles found in cache for ${country}, trying direct fetch...`);
   try {
     const allProfiles = await getProfessionals();
     profiles = allProfiles.filter(p => p.country_slug === country);
   } catch (e) {
-    console.error(`[country].astro: Error fetching profiles from cache:`, e.message);
-    
-    // Try direct fetch as last resort
     try {
       const allProfiles = await fetchAllProfessionals();
       profiles = allProfiles.filter(p => p.country_slug === country);
     } catch (directFetchError) {
-      console.error(`[country].astro: Direct fetch also failed:`, directFetchError.message);
       profiles = [];
     }
   }
 }
 
-console.log(`[country].astro: Fetched ${profiles.length} profiles for ${country}`);
-
 const countryName = profiles[0]?.country || toTitleCase(country);
+const countryEmoji = country === 'united-states' ? '🇺🇸' : country === 'canada' ? '🇨🇦' : '🌍';
 
-// Generate regions dynamically for the current country
-const regions = Array.from(new Set(profiles.map(profile => profile.province_slug)))
-  .map(regionSlug => {
-    const profile = profiles.find(p => p.province_slug === regionSlug);
-    return {
-      name: profile.province,
-      slug: `/${country}/${regionSlug}/`
-    };
-  })
-  .sort((a, b) => a.name.localeCompare(b.name));
+// Generate regions with counts
+const regionCounts = {};
+profiles.forEach(p => {
+  if (p.province_slug && p.province) {
+    if (!regionCounts[p.province_slug]) {
+      regionCounts[p.province_slug] = { name: p.province, slug: p.province_slug, count: 0 };
+    }
+    regionCounts[p.province_slug].count++;
+  }
+});
 
-// Get total number of vets
+const regions = Object.values(regionCounts).sort((a, b) => b.count - a.count);
 const totalVets = profiles.length;
+const uniqueCities = new Set(profiles.filter(p => p.city).map(p => p.city)).size;
 
-// Get unique cities
-const uniqueCities = new Set(profiles.filter(profile => profile.city).map(profile => profile.city)).size;
+// Calculate insights
+const withEmergency = profiles.filter(p => isTrue(p.emergency_services) || isTrue(p.emergency_24_hour)).length;
+const withOnlineBooking = profiles.filter(p => isTrue(p.online_booking)).length;
+const withTelehealth = profiles.filter(p => isTrue(p.telehealth_available)).length;
+const withPricing = profiles.filter(p => isTrue(p.has_pricing)).length;
 
-// Get sample cities (up to 3)
-const cities = [...new Set(profiles.filter(profile => profile.city).map(profile => profile.city))];
-const sampleCities = cities.length > 0 
-  ? cities.slice(0, Math.min(3, cities.length)).join(', ')
-  : 'various locations';
+// Ratings
+const ratingsData = profiles.filter(p => p.rating && !isNaN(parseFloat(p.rating)));
+const avgRating = ratingsData.length > 0 ? (ratingsData.reduce((sum, p) => sum + parseFloat(p.rating), 0) / ratingsData.length).toFixed(1) : null;
 
-// Get top specializations
-const specializationCounts = profiles.reduce((acc, profile) => {
-  if (profile.specialization && Array.isArray(profile.specialization)) {
-    profile.specialization.forEach(spec => {
-      if (spec) {
-        acc[spec] = (acc[spec] || 0) + 1;
+// Pricing analysis
+const pricesExam = profiles.filter(p => p.pricing_exam).map(p => {
+  const match = p.pricing_exam.match(/\$(\d+)/);
+  return match ? parseInt(match[1]) : null;
+}).filter(Boolean);
+const pricesVaccine = profiles.filter(p => p.pricing_vaccine).map(p => {
+  const match = p.pricing_vaccine.match(/\$(\d+)/);
+  return match ? parseInt(match[1]) : null;
+}).filter(Boolean);
+const pricesDental = profiles.filter(p => p.pricing_dental).map(p => {
+  const match = p.pricing_dental.match(/\$(\d+)/);
+  return match ? parseInt(match[1]) : null;
+}).filter(Boolean);
+const pricesSpay = profiles.filter(p => p.pricing_spay_dog).map(p => {
+  const match = p.pricing_spay_dog.match(/\$(\d+)/);
+  return match ? parseInt(match[1]) : null;
+}).filter(Boolean);
+
+const avgExamPrice = pricesExam.length > 0 ? Math.round(pricesExam.reduce((a, b) => a + b, 0) / pricesExam.length) : null;
+const avgVaccinePrice = pricesVaccine.length > 0 ? Math.round(pricesVaccine.reduce((a, b) => a + b, 0) / pricesVaccine.length) : null;
+const avgDentalPrice = pricesDental.length > 0 ? Math.round(pricesDental.reduce((a, b) => a + b, 0) / pricesDental.length) : null;
+const avgSpayPrice = pricesSpay.length > 0 ? Math.round(pricesSpay.reduce((a, b) => a + b, 0) / pricesSpay.length) : null;
+
+// Languages
+const allLanguages = new Set();
+profiles.forEach(p => {
+  if (p.languages_spoken && p.languages_spoken !== '[]') {
+    try {
+      const langs = typeof p.languages_spoken === 'string' ? JSON.parse(p.languages_spoken) : p.languages_spoken;
+      if (Array.isArray(langs)) {
+        langs.filter(l => l.toLowerCase() !== 'english').forEach(l => allLanguages.add(l));
       }
-    });
+    } catch {}
   }
-  return acc;
-}, {});
+});
+const withLanguages = profiles.filter(p => {
+  if (!p.languages_spoken || p.languages_spoken === '[]') return false;
+  try {
+    const langs = typeof p.languages_spoken === 'string' ? JSON.parse(p.languages_spoken) : p.languages_spoken;
+    return Array.isArray(langs) && langs.some(l => l.toLowerCase() !== 'english');
+  } catch { return false; }
+}).length;
 
-// Default specializations in case none are found
-const defaultSpecializations = ['Pet Care', 'Animal Health', 'Veterinary Medicine'];
+// Year established
+const currentYear = new Date().getFullYear();
+const newestClinics = profiles.filter(p => p.year_established && parseInt(p.year_established) >= currentYear - 3).length;
 
-const topSpecializations = Object.keys(specializationCounts).length > 0 
-  ? Object.entries(specializationCounts)
-      .sort((a, b) => (b[1] as number) - (a[1] as number))
-      .slice(0, 3)
-      .map(([spec]) => spec)
-  : defaultSpecializations;
+// Top regions by different metrics
+const regionStats = regions.map(r => {
+  const regionProfiles = profiles.filter(p => p.province_slug === r.slug);
+  const rated = regionProfiles.filter(p => p.rating && !isNaN(parseFloat(p.rating)));
+  const emergency = regionProfiles.filter(p => isTrue(p.emergency_services) || isTrue(p.emergency_24_hour)).length;
+  const online = regionProfiles.filter(p => isTrue(p.online_booking)).length;
+  const telehealth = regionProfiles.filter(p => isTrue(p.telehealth_available)).length;
+  return {
+    ...r,
+    emergency,
+    online,
+    telehealth,
+    digitalAccess: online + telehealth,
+    avgRating: rated.length > 0 ? (rated.reduce((s, p) => s + parseFloat(p.rating), 0) / rated.length).toFixed(1) : null,
+  };
+});
 
-// Generate some insights
-let insight1 = 'a wide network of veterinary professionals';
-if (uniqueCities > 0 && regions.length > 0) {
-  const coverage = Math.round((regions.length / uniqueCities) * 100);
-  if (coverage > 0 && coverage < 100) {
-    insight1 = `veterinary services available in ${coverage}% of regions`;
-  } else {
-    insight1 = 'extensive veterinary coverage across regions';
-  }
-}
+const mostClinics = regionStats[0];
+const bestEmergency = [...regionStats].filter(r => r.emergency > 0).sort((a, b) => b.emergency - a.emergency)[0] || null;
+const mostDigital = [...regionStats].filter(r => r.digitalAccess > 0).sort((a, b) => b.digitalAccess - a.digitalAccess)[0] || null;
+const highestRated = [...regionStats].filter(r => r.avgRating).sort((a, b) => parseFloat(b.avgRating) - parseFloat(a.avgRating))[0];
 
-const insight2 = topSpecializations.length > 0 
-  ? `veterinarians specializing in ${topSpecializations[0]}`
-  : 'veterinarians with diverse specializations';
+const regionType = country === 'united-states' ? 'states' : 'provinces';
+const regionTypeSingular = country === 'united-states' ? 'state' : 'province';
+const countryOverviewParts = [
+  `Compare ${totalVets.toLocaleString()} vet clinics and animal hospitals across ${regions.length.toLocaleString()} ${regionType} in ${countryName}.`,
+  `${uniqueCities.toLocaleString()} cities are covered.`,
+  withEmergency > 0 ? `${withEmergency.toLocaleString()} clinics list emergency or 24/7 care.` : '',
+  withOnlineBooking > 0 ? `${withOnlineBooking.toLocaleString()} list online booking.` : '',
+  withTelehealth > 0 ? `${withTelehealth.toLocaleString()} list telehealth.` : '',
+  withPricing > 0 ? `${withPricing.toLocaleString()} include pricing details.` : '',
+].filter(Boolean);
+const countryOverview = `${countryOverviewParts.join(' ')} Use the ${regionTypeSingular} cards to compare clinic counts, access options, ratings, and pricing before choosing where to look next.`;
+const generatedCountryImage = getGeneratedOgImageUrl('countries', [country]);
+const socialImage = generatedCountryImage || pickFirstProfileImage(profiles) || getDefaultOgImageUrl();
 
-const path = Astro.url.pathname;
+const metaDescription = `Compare ${totalVets.toLocaleString()} vet clinics and animal hospitals across ${regions.length} ${regionType} in ${countryName}, with hours, phone numbers, emergency care, services, and clinic profiles.`;
 
-// Meta description
-const metaDescription = `Find trusted ${countryName} veterinarians, animal hospitals, and vet clinics across ${regions.length} regions. Browse our directory of ${totalVets}+ veterinary professionals specializing in ${topSpecializations.join(', ')} and more.`;
+// SEO-optimized title
+const pageTitle = `Veterinary Services in ${countryName} | ${totalVets.toLocaleString()} Vet Clinics & Animal Hospitals`;
 
-// Meta keywords - simplified for better SEO focus
-const metaKeywords = `${countryName} veterinarians, vet clinics in ${countryName}, animal hospitals in ${countryName}, pet care, veterinary services, find vets in ${countryName}`;
+// Canonical URL
+const canonicalURL = `https://vetlist.org/${country}/`;
 
-// Open Graph data
-const ogTitle = `${countryName} Veterinarians - Vetlist.org`;
-const ogDescription = metaDescription;
-const ogUrl = Astro.url.href;
-// No custom OG image - social platforms will generate preview from page content
-
-// Create structured Open Graph data
-const openGraphData = {
-  title: ogTitle,
-  description: ogDescription,
-  type: "website",
-  url: ogUrl,
-  siteName: "Vetlist.org"
+// OpenGraph config
+const openGraphConfig = {
+  type: 'website',
+  url: canonicalURL,
+  title: pageTitle,
+  description: metaDescription,
+  siteName: 'VetList.org',
+  locale: 'en_US',
+  image: socialImage,
+  imageAlt: `Veterinary services directory for ${countryName}`,
 };
 
-// Create Twitter Card data
-const twitterCardData = {
-  card: "summary",
-  title: ogTitle,
-  description: ogDescription
+// Twitter Card config
+const twitterCardConfig = {
+  card: 'summary_large_image',
+  title: pageTitle,
+  description: metaDescription,
+  image: socialImage,
+  imageAlt: `Veterinary services directory for ${countryName}`,
 };
+
+const countryIntentKeywords = [
+  `veterinary services ${countryName}`,
+  `veterinary hospital ${countryName}`,
+  `vet clinic ${countryName}`,
+  `animal hospital ${countryName}`,
+  `veterinarian ${countryName}`,
+];
+
+const breadcrumbItems = [
+  { label: 'Home', href: '/' },
+  { label: countryName, href: `/${country}/` },
+];
 ---
 
-<Layout title={`${countryName} Veterinarians`} description={metaDescription} openGraph={openGraphData} twitterCard={twitterCardData}>
-  <meta name="keywords" content={metaKeywords} slot="head" />
-
-  <!-- Schema.org markup for Google -->
+<Layout title={pageTitle} description={metaDescription} openGraph={openGraphConfig} twitterCard={twitterCardConfig}>
+  <!-- Schema.org structured data with breadcrumbs -->
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    "name": `${countryName} Veterinarians - Vetlist.org`,
+    "name": `${countryName} Veterinarians`,
     "description": metaDescription,
-    "url": ogUrl,
+    "url": canonicalURL,
+    "about": countryIntentKeywords,
+    "image": socialImage,
     "mainEntity": {
       "@type": "ItemList",
-      "itemListElement": regions.map((region, index) => ({
+      "name": `Veterinary Clinics in ${countryName}`,
+      "numberOfItems": totalVets,
+      "itemListOrder": "https://schema.org/ItemListOrderDescending",
+      "itemListElement": regions.slice(0, 10).map((region, index) => ({
         "@type": "ListItem",
         "position": index + 1,
         "item": {
           "@type": "WebPage",
           "name": `${region.name} Veterinarians`,
-          "url": new URL(`${country}/${region.name.toLowerCase().replace(/\s+/g, '-')}`, 'https://vetlist.org/').href
+          "url": `https://vetlist.org/${country}/${region.slug}/`,
+          "description": `${region.count} veterinary clinics in ${region.name}, ${countryName}`
         }
       }))
     },
-    "specialty": topSpecializations,
-    "provider": {
-      "@type": "Organization",
-      "name": "Vetlist.org",
-      "url": "https://vetlist.org"
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://vetlist.org/" },
+        { "@type": "ListItem", "position": 2, "name": countryName, "item": canonicalURL }
+      ]
     }
   })} />
 
-  <Breadcrumbs path={path} />
-  
-  <!-- Hero Section with Disappearing Logic -->
-  <section class="relative overflow-hidden bg-gradient-to-br from-primary-700 via-primary-800 to-primary-900 pt-4 pb-4 md:pt-6 md:pb-6 mb-2" style="margin-left: calc(-50vw + 50%); margin-right: calc(-50vw + 50%); width: 100vw;">
-    <!-- Subtle background elements -->
-    <div class="absolute inset-0 overflow-hidden">
-      <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
-      <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"></div>
-    </div>
+  <Fragment slot="head">
+    <meta property="business:contact_data:country_name" content={countryName} />
+  </Fragment>
 
-    <div class="container mx-auto px-4 md:px-8 lg:px-12 max-w-6xl relative">
-      <!-- Header Container with Dynamic Height -->
-      <div
-        id="hero-header-container"
-        class="text-center transition-all duration-500 ease-out overflow-hidden"
-        style="margin-bottom: 0.5rem;"
-      >
-        <!-- Main Header -->
-        <div id="hero-header" class="transition-all duration-500 ease-out">
-          <h1 class="text-lg md:text-xl xl:text-2xl font-medium text-white/85 mb-1.5 leading-tight tracking-wide">
-            {countryName} Veterinarians
-          </h1>
-          <p class="text-sm xl:text-base text-primary-100/70 leading-relaxed max-w-5xl mx-auto font-light">
-            Discover top veterinary clinics across {countryName} in {regions.length} regions including cities like {sampleCities}! 
-            Explore a network of {totalVets} veterinarians serving {uniqueCities} cities, specializing in 
-            {topSpecializations.length > 0 ? ` ${topSpecializations.join(', ')}` : ' various veterinary services'}. 
-            {countryName} offers exceptional pet care with {insight1} and {insight2}.
-          </p>
+  <div class="mx-auto max-w-7xl py-6 md:py-8">
+    <Breadcrumbs items={breadcrumbItems} />
+
+    <section class="mt-4 overflow-hidden rounded-[32px] border border-slate-200 bg-slate-950 text-white shadow-2xl">
+      <div class="bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.26),_transparent_26%),radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.16),_transparent_24%)] px-5 py-6 md:px-8 md:py-8">
+        <div class="flex flex-col gap-6 xl:flex-row xl:items-stretch xl:justify-between">
+          <div class="max-w-4xl">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">Country directory</p>
+            <h1 class="mt-3 text-4xl font-black tracking-tight text-white md:text-5xl">{countryEmoji} Veterinary services in {countryName}</h1>
+            <p class="mt-4 max-w-3xl text-lg leading-8 text-slate-200">
+              Compare vet clinics across {regions.length.toLocaleString()} {regionType} in {countryName}, with hours, phone numbers, emergency care, services, and clinic profiles.
+            </p>
+            <div class="mt-5 flex flex-wrap gap-2">
+              <span class="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-slate-100">{totalVets.toLocaleString()} clinics</span>
+              <span class="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-slate-100">{uniqueCities.toLocaleString()} cities covered</span>
+              {withEmergency > 0 && <span class="rounded-full border border-red-400/20 bg-red-400/10 px-4 py-2 text-sm text-red-100">{withEmergency.toLocaleString()} emergency listings</span>}
+              {withOnlineBooking > 0 && <span class="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm text-cyan-100">{withOnlineBooking.toLocaleString()} with online booking</span>}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:h-full xl:min-h-[260px] xl:w-[420px] xl:grid-rows-2">
+            <div class="flex h-full min-h-[150px] flex-col rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">Emergency</p>
+              <p class="mt-auto whitespace-nowrap text-[2.875rem] font-black leading-none tabular-nums text-red-300 drop-shadow-[0_10px_28px_rgba(252,165,165,0.24)]">{withEmergency.toLocaleString()}</p>
+              <p class="mt-2 text-sm text-slate-300">urgent care listed</p>
+            </div>
+            <div class="flex h-full min-h-[150px] flex-col rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{country === 'united-states' ? 'States' : 'Provinces'}</p>
+              <p class="mt-auto whitespace-nowrap text-[2.875rem] font-black leading-none tabular-nums text-emerald-300 drop-shadow-[0_10px_28px_rgba(110,231,183,0.23)]">{regions.length.toLocaleString()}</p>
+              <p class="mt-2 text-sm text-slate-300">regions covered</p>
+            </div>
+            <div class="flex h-full min-h-[150px] flex-col rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">Book online</p>
+              <p class="mt-auto whitespace-nowrap text-[2.875rem] font-black leading-none tabular-nums text-cyan-300 drop-shadow-[0_10px_28px_rgba(103,232,249,0.25)]">{withOnlineBooking.toLocaleString()}</p>
+              <p class="mt-2 text-sm text-slate-300">booking listed</p>
+            </div>
+            <div class="flex h-full min-h-[150px] flex-col rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">Avg rating</p>
+              <p class="mt-auto whitespace-nowrap text-[2.875rem] font-black leading-none tabular-nums text-amber-300 drop-shadow-[0_10px_28px_rgba(252,211,77,0.24)]">{avgRating || 'NA'}</p>
+              <p class="mt-2 text-sm text-slate-300">public rating</p>
+            </div>
+          </div>
         </div>
+      </div>
+    </section>
 
-        <!-- Ultra-minimal Header State - Behind Content -->
-        <div
-          id="hero-header-mini"
-          class="transition-all duration-500 ease-out opacity-0 scale-90 pointer-events-none fixed inset-x-0 z-40"
-          style="top: -10px;"
-        >
-          <div class="container mx-auto px-4 md:px-8 lg:px-12 max-w-6xl">
-            <button
-              id="header-expand-btn"
-              class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-white/70 hover:text-white/90 hover:bg-white/20 transition-all text-xs font-light shadow-lg"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1"
-                stroke="currentColor"
-                class="w-3 h-3"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M19.5 8.25l-7.5 7.5-7.5-7.5"></path>
-              </svg>
-              <span>{countryName} Veterinarians</span>
-            </button>
+    <section class="mt-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Market snapshot</p>
+        <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div>
+            <p class="text-sm text-slate-500">Emergency coverage</p>
+            <p class="mt-1 text-3xl font-black text-slate-950">{withEmergency.toLocaleString()}</p>
+            <p class="text-sm text-slate-600">clinics listing urgent access</p>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500">Transparent pricing</p>
+            <p class="mt-1 text-3xl font-black text-slate-950">{withPricing.toLocaleString()}</p>
+            <p class="text-sm text-slate-600">with pricing listed</p>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500">Multilingual care</p>
+            <p class="mt-1 text-3xl font-black text-slate-950">{withLanguages.toLocaleString()}</p>
+            <p class="text-sm text-slate-600">clinics listing additional languages</p>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500">Average rating</p>
+            <p class="mt-1 text-3xl font-black text-slate-950">{avgRating || 'Not listed'}</p>
+            <p class="text-sm text-slate-600">{ratingsData.length.toLocaleString()} clinics with rating data</p>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500">Average exam</p>
+            <p class="mt-1 text-3xl font-black text-slate-950">{avgExamPrice ? `$${avgExamPrice}` : 'Not listed'}</p>
+            <p class="text-sm text-slate-600">published exam pricing</p>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500">Newest clinics</p>
+            <p class="mt-1 text-3xl font-black text-slate-950">{newestClinics.toLocaleString()}</p>
+            <p class="text-sm text-slate-600">opened in the last three years</p>
           </div>
         </div>
       </div>
 
-
-    </div>
-  </section>
-    
-  <!-- Optimized Regions Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" role="list" aria-label={`Veterinary regions in ${countryName}`}>
-    {regions.map(region => (
-      <a 
-        href={region.slug}
-        class="flex items-center gap-3 p-4 bg-white rounded-xl shadow-card hover:shadow-lg transition-shadow group"
-        data-region-name={region.name.toLowerCase()}
-        role="listitem" 
-        aria-label={`${region.name} veterinarians`}
-      > 
-        <div class="text-primary-500 bg-primary-50 p-2 rounded-full group-hover:bg-primary-100 transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-          </svg>
+      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Signals that matter</p>
+        <div class="mt-4 space-y-4 text-sm text-slate-600">
+          {mostClinics && <p><span class="font-semibold text-slate-950">{mostClinics.name}</span> has the most clinics, with {mostClinics.count.toLocaleString()} listings.</p>}
+          {bestEmergency && bestEmergency.emergency > 0 && <p><span class="font-semibold text-slate-950">{bestEmergency.name}</span> has the most clinics listing emergency or 24/7 care, with {bestEmergency.emergency} options.</p>}
+          {mostDigital && mostDigital.digitalAccess > 0 && <p><span class="font-semibold text-slate-950">{mostDigital.name}</span> has {mostDigital.digitalAccess} clinics listing online booking or telehealth.</p>}
+          {highestRated && highestRated.avgRating && <p><span class="font-semibold text-slate-950">{highestRated.name}</span> has the strongest average rating at {highestRated.avgRating}/5.</p>}
+          {allLanguages.size > 0 && <p>{allLanguages.size} non-English languages appear across clinic profiles in {countryName}.</p>}
         </div>
-        <span class="text-gray-700 group-hover:text-primary-700 transition-colors font-medium">
-          {toTitleCase(region.name)}
-        </span>
-      </a>
-    ))}
-  </div>
+      </div>
+    </section>
+
+    {(avgExamPrice || avgVaccinePrice || avgDentalPrice || avgSpayPrice || allLanguages.size > 0) && (
+      <section class="mt-8 grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+        <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pricing context</p>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            {avgExamPrice && <div class="rounded-2xl bg-slate-50 p-4"><div class="text-sm text-slate-500">Exam</div><div class="mt-1 text-2xl font-black text-slate-950">${avgExamPrice}</div></div>}
+            {avgVaccinePrice && <div class="rounded-2xl bg-slate-50 p-4"><div class="text-sm text-slate-500">Vaccine</div><div class="mt-1 text-2xl font-black text-slate-950">${avgVaccinePrice}</div></div>}
+            {avgDentalPrice && <div class="rounded-2xl bg-slate-50 p-4"><div class="text-sm text-slate-500">Dental</div><div class="mt-1 text-2xl font-black text-slate-950">${avgDentalPrice}</div></div>}
+            {avgSpayPrice && <div class="rounded-2xl bg-slate-50 p-4"><div class="text-sm text-slate-500">Spay</div><div class="mt-1 text-2xl font-black text-slate-950">${avgSpayPrice}</div></div>}
+          </div>
+        </div>
+
+        <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Published languages</p>
+          <div class="mt-4 flex flex-wrap gap-3">
+            {withLanguages > 0 && <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">{withLanguages.toLocaleString()} multilingual profiles</span>}
+            {[...allLanguages].slice(0, 14).map((language) => (
+              <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">{language}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <section class="mt-8">
+      <div class="mb-4 flex items-end justify-between gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Browse locations</p>
+          <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Browse {regionType} in {countryName}</h2>
+        </div>
+      </div>
+      <div id="regions-grid" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {regionStats.map((entry) => (
+          <a
+            href={`/${country}/${entry.slug}/`}
+            class="region-card group rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)] transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/70 hover:shadow-[0_24px_60px_rgba(15,23,42,0.12)]"
+            data-region-name={entry.name.toLowerCase()}
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{country === 'united-states' ? 'State' : 'Province'}</p>
+                <h3 class="mt-2 text-2xl font-black tracking-tight text-slate-950 transition group-hover:text-cyan-700">{entry.name}</h3>
+              </div>
+              <span class="rounded-full bg-slate-950 px-3 py-1 text-sm font-semibold text-white">{entry.count.toLocaleString()}</span>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-2 text-sm text-slate-600">
+              {entry.emergency > 0 && <span class="rounded-full bg-red-50 px-3 py-1 text-red-700">{entry.emergency} emergency</span>}
+              {entry.online > 0 && <span class="rounded-full bg-cyan-50 px-3 py-1 text-cyan-700">{entry.online} book online</span>}
+              {entry.telehealth > 0 && <span class="rounded-full bg-purple-50 px-3 py-1 text-purple-700">{entry.telehealth} telehealth</span>}
+              {entry.avgRating && <span class="rounded-full bg-amber-50 px-3 py-1 text-amber-800">{entry.avgRating} / 5 avg</span>}
+            </div>
+            <div class="mt-5 flex items-center justify-between text-sm text-slate-600">
+              <span>Open region directory</span>
+              <span class="font-semibold text-cyan-700 transition group-hover:translate-x-1">View</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <section class="mt-8 grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">About this directory</p>
+        <div class="mt-4 space-y-3 text-sm leading-7 text-slate-600">
+          <p>{countryOverview}</p>
+          <p>
+            In {countryName}, <span class="font-semibold text-slate-950">{withEmergency.toLocaleString()}</span> clinics list emergency care,
+            <span class="font-semibold text-slate-950"> {withOnlineBooking.toLocaleString()}</span> list online booking,
+            <span class="font-semibold text-slate-950"> {withTelehealth.toLocaleString()}</span> list telehealth, and
+            <span class="font-semibold text-slate-950"> {withPricing.toLocaleString()}</span> include pricing details.
+          </p>
+        </div>
+      </div>
+
+      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Useful starting points</p>
+        <div class="mt-4 flex flex-wrap gap-3">
+          {bestEmergency && <a href={`/${country}/${bestEmergency.slug}/`} class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">Emergency: {bestEmergency.name}</a>}
+          {mostDigital && <a href={`/${country}/${mostDigital.slug}/`} class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">Booking or telehealth: {mostDigital.name}</a>}
+          {highestRated && <a href={`/${country}/${highestRated.slug}/`} class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">Highest rating: {highestRated.name}</a>}
+          <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">{totalVets.toLocaleString()} clinic profiles</span>
+        </div>
+      </div>
+    </section>
 </Layout>
-
-<script>
-  // Hero header collapse/expand functionality
-  document.addEventListener("DOMContentLoaded", function () {
-    const heroHeaderContainer = document.getElementById("hero-header-container");
-    const heroHeader = document.getElementById("hero-header");
-    const heroHeaderMini = document.getElementById("hero-header-mini");
-    const expandBtn = document.getElementById("header-expand-btn");
-
-    let isCollapsed = false;
-    let autoCollapseTimeout: any;
-    let userHasExpanded = false;
-
-    // Auto-collapse after 3 seconds (only if user hasn't manually expanded)
-    function startAutoCollapse() {
-      autoCollapseTimeout = setTimeout(function () {
-        if (!isCollapsed && !userHasExpanded) {
-          collapseHeader();
-        }
-      }, 3000);
-    }
-
-    // Cancel auto-collapse
-    function cancelAutoCollapse() {
-      if (autoCollapseTimeout) {
-        clearTimeout(autoCollapseTimeout);
-      }
-    }
-
-    // Collapse header
-    function collapseHeader() {
-      if (isCollapsed || !heroHeader || !heroHeaderMini || !heroHeaderContainer)
-        return;
-
-      isCollapsed = true;
-
-      // Get current height and set it explicitly for smooth transition
-      const currentHeight = heroHeaderContainer.offsetHeight;
-      heroHeaderContainer.style.height = currentHeight + "px";
-
-      // Animate out main header
-      heroHeader.style.opacity = "0";
-      heroHeader.style.transform = "translateY(-10px) scale(0.98)";
-      heroHeader.style.pointerEvents = "none";
-
-      // Animate in mini header and collapse container height
-      setTimeout(function () {
-        if (heroHeaderMini && heroHeaderContainer) {
-          // Position mini header between the collapsed header space and the search bar
-          const heroSection = heroHeaderContainer.closest("section");
-          if (heroSection) {
-            const rect = heroSection.getBoundingClientRect();
-            heroHeaderMini.style.top = rect.top + window.scrollY + 10 + "px";
-          }
-
-          heroHeaderMini.style.opacity = "1";
-          heroHeaderMini.style.transform = "scale(1)";
-          heroHeaderMini.style.pointerEvents = "auto";
-
-          // Collapse to mini header height and move content up more
-          heroHeaderContainer.style.height = "0px";
-          heroHeaderContainer.style.marginBottom = "0rem";
-        }
-      }, 250);
-    }
-
-    // Expand header
-    function expandHeader() {
-      if (!isCollapsed || !heroHeader || !heroHeaderMini || !heroHeaderContainer)
-        return;
-
-      isCollapsed = false;
-      userHasExpanded = true; // Mark that user has manually expanded
-
-      // Animate out mini header
-      heroHeaderMini.style.opacity = "0";
-      heroHeaderMini.style.transform = "scale(0.9)";
-      heroHeaderMini.style.pointerEvents = "none";
-
-      // Restore container height and margin
-      heroHeaderContainer.style.height = "auto";
-      heroHeaderContainer.style.marginBottom = "0.5rem";
-
-      // Animate in main header
-      setTimeout(function () {
-        if (heroHeader) {
-          heroHeader.style.opacity = "1";
-          heroHeader.style.transform = "translateY(0) scale(1)";
-          heroHeader.style.pointerEvents = "auto";
-        }
-      }, 250);
-
-      // Don't restart auto-collapse timer since user manually expanded
-    }
-
-    // Event listeners
-    if (expandBtn) {
-      expandBtn.addEventListener("click", expandHeader);
-    }
-
-    // Cancel auto-collapse on user interaction with header container
-    if (heroHeaderContainer) {
-      heroHeaderContainer.addEventListener("mouseenter", cancelAutoCollapse);
-      heroHeaderContainer.addEventListener("mouseleave", function () {
-        // Only restart timer if user hasn't manually expanded
-        if (!userHasExpanded) {
-          autoCollapseTimeout = setTimeout(function () {
-            if (!isCollapsed) {
-              collapseHeader();
-            }
-          }, 2000);
-        }
-      });
-    }
-
-    // Reposition mini header on scroll when collapsed
-    function repositionMiniHeader() {
-      if (isCollapsed && heroHeaderMini && heroHeaderContainer) {
-        const heroSection = heroHeaderContainer.closest("section");
-        if (heroSection) {
-          const rect = heroSection.getBoundingClientRect();
-          
-          // Hide the mini header if the hero section is completely scrolled past
-          if (rect.bottom < 0) {
-            heroHeaderMini.style.opacity = "0";
-            heroHeaderMini.style.pointerEvents = "none";
-          } else {
-            heroHeaderMini.style.opacity = "1";
-            heroHeaderMini.style.pointerEvents = "auto";
-            heroHeaderMini.style.top =
-              Math.max(10, rect.top + window.scrollY + 10) + "px";
-          }
-        }
-      }
-    }
-
-    window.addEventListener("scroll", repositionMiniHeader);
-    window.addEventListener("resize", repositionMiniHeader);
-
-    // Start auto-collapse timer
-    startAutoCollapse();
-  });
-
-
-</script>
-
-
-

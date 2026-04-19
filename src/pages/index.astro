@@ -1,128 +1,1636 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Hero from '../components/home/Hero.astro';
-import Features from '../components/home/Features.astro';
-import FAQ from '../components/home/FAQ.astro';
-import Testimonials from '../components/home/Testimonials.astro';
-import { fetchAllProfessionals, fetchPopularVets, fetchClaimedVets } from '../lib/supabase';
+import { fetchAllProfessionals } from '../lib/supabase';
+import { getDefaultOgImageUrl } from '../lib/seo.js';
 
-// Fetch cities with vet data from CSV
+function isTrue(value) {
+  return value === true || value === 'true' || value === 1 || value === '1';
+}
+
+function parseArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeToken(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function profileLanguages(profile) {
+  return parseArray(profile.languages_spoken)
+    .map(normalizeToken)
+    .filter((lang) => lang && lang !== 'english' && lang !== 'en');
+}
+
+const exoticKeywords = ['exotic', 'avian', 'bird', 'reptile', 'amphib', 'rabbit', 'ferret', 'small mammal', 'pocket', 'guinea pig'];
+
+function profilePetTypes(profile) {
+  return parseArray(profile.pet_types_served || profile.animals_treated)
+    .map(normalizeToken)
+    .filter(Boolean);
+}
+
+function profileHasExoticCare(profile) {
+  const petTypes = profilePetTypes(profile);
+  return petTypes.some((item) => exoticKeywords.some((keyword) => item.includes(keyword)));
+}
+
+function buildHomepageInsights(profiles) {
+  let emergency = 0;
+  let emergency24 = 0;
+  let onlineBooking = 0;
+  let telehealth = 0;
+  let digitalAccess = 0;
+  let pricing = 0;
+  let multilingual = 0;
+  let exotic = 0;
+
+  for (const profile of profiles) {
+    if (isTrue(profile.emergency_services) || isTrue(profile.emergency_24_hour)) emergency += 1;
+    if (isTrue(profile.emergency_24_hour)) emergency24 += 1;
+    if (isTrue(profile.online_booking)) onlineBooking += 1;
+    if (isTrue(profile.telehealth_available)) telehealth += 1;
+    if (isTrue(profile.online_booking) || isTrue(profile.telehealth_available)) digitalAccess += 1;
+    if (isTrue(profile.has_pricing)) pricing += 1;
+
+    const languages = profileLanguages(profile);
+    if (languages.length) multilingual += 1;
+    if (profileHasExoticCare(profile)) exotic += 1;
+  }
+
+  return {
+    total: profiles.length,
+    emergency,
+    emergency24,
+    onlineBooking,
+    telehealth,
+    digitalAccess,
+    pricing,
+    multilingual,
+    exotic,
+  };
+}
+
 const allProfiles = await fetchAllProfessionals();
+const totalVets = allProfiles.length;
+const uniqueCities = new Set(
+  allProfiles
+    .filter((profile) => profile.city && profile.province && profile.country)
+    .map((profile) => `${profile.city}|${profile.province}|${profile.country}`),
+).size;
 
-// Aggregate cities by vet count and prepare the popularCities array
-const popularCities = allProfiles
-  ? (() => {
-      // Count vets per city (exclude invalid cities)
-      const cityCounts = allProfiles.reduce((acc, item) => {
-        // Skip records with invalid or placeholder city names
-        if (!item.city || item.city.trim() === '' || item.city === 'N/A' || item.city === 'null') {
-          return acc;
-        }
-        
-        const key = `${item.city}|${item.city_slug}|${item.province_slug}|${item.country_slug}`;
-        if (!acc[key]) {
-          acc[key] = {
-            name: item.city,
-            slug: `/${item.country_slug}/${item.province_slug}/${item.city_slug}/`,
-            count: 0
-          };
-        }
-        acc[key].count += 1;
-        return acc;
-      }, {});
-      // Convert to array and sort by vet count (descending), then alphabetically
-      return Object.values(cityCounts)
-        .sort((a: any, b: any) => {
-          // First sort by count (descending)
-          const countDiff = b.count - a.count;
-          if (countDiff !== 0) return countDiff;
-          
-          // Then sort alphabetically, handling null/undefined names
-          const nameA = a.name || '';
-          const nameB = b.name || '';
-          return nameA.localeCompare(nameB);
-        })
-        .slice(0, 6); // Take top 6 for the hero section
-    })()
-  : [];
+const usProfiles = allProfiles.filter((profile) => profile.country_slug === 'united-states');
+const caProfiles = allProfiles.filter((profile) => profile.country_slug === 'canada');
 
-// Fallback static list if no cities are fetched
-const fallbackCities = [
-  { name: 'Fort Worth', slug: '/united-states/texas/fort-worth/' },
-  { name: 'Dallas', slug: '/united-states/texas/dallas/' },
-  { name: 'Houston', slug: '/united-states/texas/houston/' },
-  { name: 'Austin', slug: '/united-states/texas/austin/' },
-  { name: 'San Antonio', slug: '/united-states/texas/san-antonio/' },
-  { name: 'Arlington', slug: '/united-states/texas/arlington/' }
+const regionStats = {};
+allProfiles.forEach((profile) => {
+  if (!profile.country_slug || !profile.province_slug || !profile.province) return;
+  const key = `${profile.country_slug}/${profile.province_slug}`;
+  if (!regionStats[key]) {
+    regionStats[key] = { country: profile.country_slug, slug: profile.province_slug, name: profile.province, count: 0 };
+  }
+  regionStats[key].count += 1;
+});
+const topRegions = Object.values(regionStats).sort((a, b) => b.count - a.count).slice(0, 10);
+
+const cityStats = {};
+allProfiles.forEach((profile) => {
+  if (!profile.country_slug || !profile.province_slug || !profile.city_slug || !profile.city) return;
+  const key = `${profile.country_slug}/${profile.province_slug}/${profile.city_slug}`;
+  if (!cityStats[key]) {
+    cityStats[key] = {
+      country: profile.country_slug,
+      region: profile.province_slug,
+      slug: profile.city_slug,
+      name: profile.city,
+      province: profile.province,
+      count: 0,
+    };
+  }
+  cityStats[key].count += 1;
+});
+
+const topCities = Object.values(cityStats).sort((a, b) => b.count - a.count).slice(0, 14);
+const topUsCities = Object.values(cityStats)
+  .filter((city) => city.country === 'united-states')
+  .sort((a, b) => b.count - a.count)
+  .slice(0, 8);
+const topCanadaCities = Object.values(cityStats)
+  .filter((city) => city.country === 'canada')
+  .sort((a, b) => b.count - a.count)
+  .slice(0, 8);
+const usCityCount = Object.values(cityStats).filter((city) => city.country === 'united-states').length;
+const canadaCityCount = Object.values(cityStats).filter((city) => city.country === 'canada').length;
+
+const topScoredClinics = allProfiles
+  .filter((profile) => Number.parseFloat(profile.vetscore) > 0 && profile.country_slug && profile.province_slug && profile.city_slug && profile.name_slug)
+  .sort((a, b) => (Number.parseFloat(b.vetscore) || 0) - (Number.parseFloat(a.vetscore) || 0))
+  .slice(0, 7);
+
+const verifiedClinics = allProfiles
+  .filter((profile) =>
+    (profile.claimed === true || profile.claimed === 'true' || profile.is_verified === true || profile.is_verified === 'true') &&
+    profile.country_slug &&
+    profile.province_slug &&
+    profile.city_slug &&
+    profile.name_slug,
+  )
+  .sort((a, b) =>
+    (Number.parseFloat(b.rating) || 0) - (Number.parseFloat(a.rating) || 0) ||
+    (Number.parseFloat(b.vetscore) || 0) - (Number.parseFloat(a.vetscore) || 0),
+  )
+  .slice(0, 7);
+
+function buildClinicBadge(profile) {
+  const rating = Number.parseFloat(profile.rating);
+  if (Number.isFinite(rating) && rating > 0 && rating <= 5) {
+    return { label: `${rating.toFixed(1)}★`, title: 'Public rating' };
+  }
+
+  const score = Number.parseFloat(profile.vetscore);
+  if (Number.isFinite(score) && score > 0) {
+    return { label: `${Math.round(score)}/100`, title: 'VetScore' };
+  }
+
+  return null;
+}
+
+const verifiedLane = (verifiedClinics.length ? verifiedClinics : topScoredClinics).map((clinic) => ({
+  ...clinic,
+  badge: buildClinicBadge(clinic),
+}));
+
+const priorityCityPages = topCities.slice(0, 10).map((city) => ({
+  cityLabel: `${city.name}, ${city.province}`,
+  linkLabel: `Vet clinics in ${city.name}`,
+  url: `/${city.country}/${city.region}/${city.slug}/`,
+}));
+
+const northAmericaInsights = buildHomepageInsights(allProfiles);
+
+const cityInsightMap = {};
+for (const profile of allProfiles) {
+  if (!profile.country_slug || !profile.province_slug || !profile.city_slug || !profile.city) continue;
+  const key = `${profile.country_slug}/${profile.province_slug}/${profile.city_slug}`;
+  if (!cityInsightMap[key]) {
+    cityInsightMap[key] = {
+      name: profile.city,
+      region: profile.province,
+      regionSlug: profile.province_slug,
+      country: profile.country_slug,
+      slug: profile.city_slug,
+      total: 0,
+      multilingual: 0,
+      exotic: 0,
+      emergency: 0,
+      emergency24: 0,
+      onlineBooking: 0,
+      telehealth: 0,
+      pricing: 0,
+    };
+  }
+  cityInsightMap[key].total += 1;
+  if (profileLanguages(profile).length) cityInsightMap[key].multilingual += 1;
+  if (profileHasExoticCare(profile)) cityInsightMap[key].exotic += 1;
+  if (isTrue(profile.emergency_services) || isTrue(profile.emergency_24_hour)) cityInsightMap[key].emergency += 1;
+  if (isTrue(profile.emergency_24_hour)) cityInsightMap[key].emergency24 += 1;
+  if (isTrue(profile.online_booking)) cityInsightMap[key].onlineBooking += 1;
+  if (isTrue(profile.telehealth_available)) cityInsightMap[key].telehealth += 1;
+  if (isTrue(profile.has_pricing)) cityInsightMap[key].pricing += 1;
+}
+
+const cityInsights = Object.values(cityInsightMap);
+const topExoticCities = cityInsights
+  .filter((city) => city.exotic > 0)
+  .sort((a, b) => b.exotic - a.exotic)
+  .slice(0, 6);
+const topMultilingualCities = cityInsights
+  .filter((city) => city.multilingual > 0)
+  .sort((a, b) => b.multilingual - a.multilingual)
+  .slice(0, 6);
+const topEmergencyCities = cityInsights
+  .filter((city) => city.emergency > 0)
+  .sort((a, b) => b.emergency - a.emergency)
+  .slice(0, 6);
+const topOnlineCities = cityInsights
+  .filter((city) => city.onlineBooking > 0 || city.telehealth > 0)
+  .map((city) => ({ ...city, digitalAccess: city.onlineBooking + city.telehealth }))
+  .sort((a, b) => (b.onlineBooking + b.telehealth) - (a.onlineBooking + a.telehealth))
+  .slice(0, 6);
+const topPricingCities = cityInsights
+  .filter((city) => city.pricing > 0)
+  .sort((a, b) => b.pricing - a.pricing)
+  .slice(0, 6);
+
+function cityUrl(city) {
+  return `/${city.country}/${city.regionSlug || city.region}/${city.slug}/`;
+}
+
+function cityName(city) {
+  return `${city.name}, ${city.province || city.region}`;
+}
+
+function cityLinks(cities, countKey, singularLabel, pluralLabel = `${singularLabel}s`) {
+  return (cities.length ? cities : topCities)
+    .slice(0, 4)
+    .map((city) => ({
+      href: cityUrl(city),
+      label: cityName(city),
+      detail: city[countKey]
+        ? `${city[countKey]} ${city[countKey] === 1 ? singularLabel : pluralLabel}`
+        : `${city.count.toLocaleString()} clinics`,
+    }));
+}
+
+const careNeedCards = [
+  {
+    label: 'Need care now or after hours',
+    description: 'These cities have the most clinics listing emergency or 24/7 care. Always call before leaving.',
+    href: topEmergencyCities[0] ? cityUrl(topEmergencyCities[0]) : priorityCityPages[0]?.url || '/canada/',
+    links: cityLinks(topEmergencyCities, 'emergency', 'emergency option'),
+  },
+  {
+    label: 'Want online booking or telehealth',
+    description: 'Look for clinics that list self-serve booking or remote-care options before you pick up the phone.',
+    href: topOnlineCities[0] ? cityUrl(topOnlineCities[0]) : priorityCityPages[0]?.url || '/canada/',
+    links: cityLinks(topOnlineCities, 'digitalAccess', 'digital access option'),
+  },
+  {
+    label: 'Have an exotic or less-common pet',
+    description: 'Look for cities with clinics that mention birds, reptiles, rabbits, farm animals, or other specialty pet types.',
+    href: topExoticCities[0] ? cityUrl(topExoticCities[0]) : priorityCityPages[0]?.url || '/canada/',
+    links: cityLinks(topExoticCities, 'exotic', 'exotic-care option'),
+  },
+  {
+    label: 'Need language support',
+    description: 'Check cities with clinics that list non-English language support before you call.',
+    href: topMultilingualCities[0] ? cityUrl(topMultilingualCities[0]) : priorityCityPages[0]?.url || '/canada/',
+    links: cityLinks(topMultilingualCities, 'multilingual', 'multilingual option'),
+  },
 ];
 
-// Use fetched cities if available, otherwise fallback
-const citiesToDisplay = popularCities.length > 0 ? popularCities : fallbackCities;
+const dataProofCards = [
+  {
+    value: northAmericaInsights.emergency.toLocaleString(),
+    label: 'clinics list emergency care',
+    detail: topEmergencyCities[0] ? `Start in ${cityName(topEmergencyCities[0])}` : 'Browse emergency signals by city',
+    href: topEmergencyCities[0] ? cityUrl(topEmergencyCities[0]) : priorityCityPages[0]?.url || '/canada/',
+  },
+  {
+    value: northAmericaInsights.digitalAccess.toLocaleString(),
+    label: 'clinics list online booking or telehealth',
+    detail: topOnlineCities[0] ? `Compare ${cityName(topOnlineCities[0])}` : 'Browse digital access by city',
+    href: topOnlineCities[0] ? cityUrl(topOnlineCities[0]) : priorityCityPages[0]?.url || '/canada/',
+  },
+  {
+    value: uniqueCities.toLocaleString(),
+    label: 'city directories across the U.S. and Canada',
+    detail: 'Browse popular city pages',
+    href: '/united-states/',
+  },
+  {
+    value: northAmericaInsights.pricing.toLocaleString(),
+    label: 'clinic profiles include pricing details',
+    detail: topPricingCities[0] ? `See ${cityName(topPricingCities[0])}` : 'Check pricing fields on profiles',
+    href: topPricingCities[0] ? cityUrl(topPricingCities[0]) : priorityCityPages[0]?.url || '/canada/',
+  },
+];
 
-// Get claimed vets (latest 10) - these will appear in the Popular Veterinarians section
-const claimedVets = await fetchClaimedVets();
+const aiTickerItems = [
+  {
+    label: `${northAmericaInsights.emergency24.toLocaleString()} clinics mention 24/7 emergency`,
+    href: topEmergencyCities[0] ? cityUrl(topEmergencyCities[0]) : '/canada/',
+  },
+  {
+    label: `${northAmericaInsights.digitalAccess.toLocaleString()} clinics list online booking or telehealth`,
+    href: topOnlineCities[0] ? cityUrl(topOnlineCities[0]) : '/united-states/',
+  },
+  {
+    label: `${northAmericaInsights.exotic.toLocaleString()} profiles mention exotic or specialty care`,
+    href: topExoticCities[0] ? cityUrl(topExoticCities[0]) : '/canada/',
+  },
+  {
+    label: `${northAmericaInsights.multilingual.toLocaleString()} clinics list language support`,
+    href: topMultilingualCities[0] ? cityUrl(topMultilingualCities[0]) : '/united-states/',
+  },
+  {
+    label: `${uniqueCities.toLocaleString()} city pages across the U.S. and Canada`,
+    href: '/',
+  },
+];
 
-// Fallback to popular vets if no claimed vets exist
-const popularVets = claimedVets.length > 0 ? claimedVets : await fetchPopularVets();
+const getCityName = (list, index, fallback) => list[index] ? list[index].name : fallback;
 
-// Get statistics for hero section
-const totalVets = allProfiles ? allProfiles.length : 0;
-const uniqueCities = allProfiles ? new Set(allProfiles.map(p => p.city)).size : 0;
-const allSpecializations = new Set();
-if (allProfiles) {
-  allProfiles.forEach(p => {
-    if (Array.isArray(p.specialization)) {
-      p.specialization.forEach(spec => allSpecializations.add(spec));
-    } else if (p.specialization) {
-      allSpecializations.add(p.specialization);
-    }
+const aiMarqueeRows = [
+  [
+    { text: `Emergency vet ${getCityName(topEmergencyCities, 0, 'Toronto')}`, icon: 'Urgent' },
+    { text: `Exotic vet ${getCityName(topExoticCities, 0, 'Miami')}`, icon: 'Exotic' },
+    { text: `24/7 animal hospital ${getCityName(topEmergencyCities, 1, 'Vancouver')}`, icon: '24/7' },
+    { text: `Best vet clinics in ${getCityName(topCities, 0, 'Los Angeles')}`, icon: 'Top' },
+    { text: `Spanish speaking vet ${getCityName(topMultilingualCities, 0, 'Chicago')}`, icon: 'Language' },
+    { text: `Online booking vet ${getCityName(topOnlineCities, 0, 'Seattle')}`, icon: 'Booking' },
+  ],
+  [
+    { text: `Find a vet in ${getCityName(topCities, 1, 'Dallas')}`, icon: 'City' },
+    { text: `Cat specialist ${getCityName(topCities, 2, 'New York')}`, icon: 'Cats' },
+    { text: `Emergency animal hospital ${getCityName(topEmergencyCities, 2, 'Calgary')}`, icon: 'Care' },
+    { text: `Rabbit vet ${getCityName(topExoticCities, 1, 'Seattle')}`, icon: 'Small pets' },
+    { text: `Bird vet ${getCityName(topExoticCities, 2, 'Denver')}`, icon: 'Avian' },
+    { text: `Reptile vet ${getCityName(topExoticCities, 3, 'Phoenix')}`, icon: 'Exotic' },
+  ],
+  [
+    { text: `Vet clinics in ${getCityName(topRegions, 0, 'Ontario')}`, icon: 'Region' },
+    { text: 'Emergency vet near me', icon: 'Fast' },
+    { text: `Bird vet ${getCityName(topExoticCities, 4, 'Montreal')}`, icon: 'Avian' },
+    { text: `French speaking vet ${getCityName(topMultilingualCities, 1, 'Quebec')}`, icon: 'Language' },
+    { text: `Telehealth vet ${getCityName(topOnlineCities, 1, 'Austin')}`, icon: 'Virtual' },
+    { text: `Verified vet clinic ${getCityName(topCities, 3, 'Boston')}`, icon: 'Verified' },
+  ],
+];
+
+const aiPlaceholderPhrases = [
+  'Is my dog eating grass because he knows something I don\'t?',
+  'Why does my cat stare at the wall at 3 AM like she sees a ghost?',
+  'My dog ate an entire stick of butter — is this an emergency or is he just living his best life?',
+  'Can a vet tell me why my cat judges me every time I eat?',
+  'Why does my dog reverse-sneeze like a demon is leaving his body?',
+  'Is it normal for my cat to sprint across the house at exactly 4:17 AM every single night?',
+  'My parrot learned a swear word from my neighbor — can a vet fix this?',
+  'Why does my dog act like the vacuum cleaner is his personal arch-nemesis?',
+  'My cat knocked my laptop off the desk — is this aggression or a cry for help?',
+  'Can a vet explain why my dog eats homework but refuses actual dog food?',
+  'My hamster escaped and I found him in the fridge — should I be worried?',
+  'Why does my dog howl every time I FaceTime my mom?',
+];
+
+const aiOnboardingActions = [
+  {
+    label: '🇺🇸 Looking for a vet in the US?',
+    detail: 'Browse top popular US cities',
+    href: '/united-states/',
+    className: 'is-blue',
+  },
+  {
+    label: '🇨🇦 Looking for a vet in Canada?',
+    detail: 'Browse top popular Canadian cities',
+    href: '/canada/',
+    className: 'is-red',
+  },
+];
+
+const aiCityRouteMap = new Map();
+for (const city of [...Object.values(cityStats).sort((a, b) => b.count - a.count).slice(0, 50), ...topEmergencyCities, ...topExoticCities, ...topOnlineCities, ...topMultilingualCities]) {
+  const url = cityUrl(city);
+  if (aiCityRouteMap.has(url)) continue;
+
+  aiCityRouteMap.set(url, {
+    label: cityName(city),
+    url,
+    tokens: [
+      normalizeToken(city.name),
+      normalizeToken(`${city.name} ${city.province || city.region}`)
+    ],
   });
 }
-const topSpecializations = Array.from(allSpecializations).slice(0, 8) as string[];
+
+const aiCityRoutes = Array.from(aiCityRouteMap.values()).sort((a, b) => b.count - a.count);
+const aiRegionRoutes = topRegions.map((region) => ({
+  label: region.name,
+  country: region.country,
+  url: `/${region.country}/${region.slug}/`,
+  count: region.count,
+  tokens: [normalizeToken(region.name)],
+}));
+
+const verifiedClinicHref = verifiedLane[0]
+  ? `/${verifiedLane[0].country_slug}/${verifiedLane[0].province_slug}/${verifiedLane[0].city_slug}/${verifiedLane[0].name_slug}/`
+  : '/united-states/';
+
+const homepageAiData = {
+  placeholders: aiPlaceholderPhrases,
+  onboardingActions: aiOnboardingActions,
+  cityRoutes: aiCityRoutes,
+  regionRoutes: aiRegionRoutes,
+  defaults: {
+    emergencyUrl: topEmergencyCities[0] ? cityUrl(topEmergencyCities[0]) : '/canada/',
+    onlineUrl: topOnlineCities[0] ? cityUrl(topOnlineCities[0]) : '/united-states/',
+    exoticUrl: topExoticCities[0] ? cityUrl(topExoticCities[0]) : '/canada/',
+    multilingualUrl: topMultilingualCities[0] ? cityUrl(topMultilingualCities[0]) : '/united-states/',
+    countryCanadaUrl: '/canada/',
+    countryUsUrl: '/united-states/',
+    verifiedUrl: verifiedClinicHref,
+    ownerUrl: '/claim-clinic/',
+    addUrl: '/add-vet/',
+    fallbackUrl: priorityCityPages[0]?.url || '/canada/',
+  },
+};
+
+const pageTitle = 'Best Veterinarians in U.S. & Canada — Vet Clinics | VetList';
+const pageDescription = `Compare ${totalVets.toLocaleString()} vet clinics across the U.S. and Canada, with city pages for hours, phone numbers, emergency care, services, and clinic profiles.`;
+const socialImage = getDefaultOgImageUrl();
+const openGraphConfig = {
+  type: 'website',
+  url: 'https://vetlist.org/',
+  title: pageTitle,
+  description: pageDescription,
+  siteName: 'VetList.org',
+  locale: 'en_US',
+  image: socialImage,
+  imageAlt: 'VetList veterinary directory overview',
+};
+const twitterCardConfig = {
+  card: 'summary_large_image',
+  title: pageTitle,
+  description: pageDescription,
+  image: socialImage,
+  imageAlt: 'VetList veterinary directory overview',
+};
+
+const faqEntries = [
+  {
+    question: 'How do I find an emergency vet near me?',
+    answer: 'Start with your city page and look for emergency, 24/7 emergency, open-now, and phone details. Always call before leaving, especially for urgent symptoms or after-hours care.',
+  },
+  {
+    question: 'How do I know if a vet clinic is open right now?',
+    answer: 'City and profile pages use the published hours on each profile to calculate open-now status in your browser from your device time. Hours can change, so call to confirm before visiting.',
+  },
+  {
+    question: 'What should I check before choosing a veterinarian?',
+    answer: 'Check the clinic address, phone number, hours, services, emergency availability, pet types treated, and whether online booking or telehealth is listed.',
+  },
+  {
+    question: 'Can I find vets for exotic pets or less-common animals?',
+    answer: `Yes. VetList includes ${northAmericaInsights.exotic.toLocaleString()} clinic profiles with specialty or exotic-pet signals, including clinics that mention birds, reptiles, rabbits, farm animals, or other less-common pets.`,
+  },
+  {
+    question: 'Can I find clinics with online booking or telehealth?',
+    answer: `Yes. Some profiles include online booking or telehealth fields, and the homepage highlights city pages where those options appear more often.`,
+  },
+  {
+    question: 'What is shown on each clinic profile?',
+    answer: 'Profiles focus on practical visit details: phone, website, directions, hours, open-now status, emergency signals, services, pet types, and nearby backup options.',
+  },
+];
+
+const structuredData = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'VetList.org',
+    url: 'https://vetlist.org/',
+    description: pageDescription,
+    inLanguage: 'en-US',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: 'https://vetlist.org/?q={search_term_string}',
+      'query-input': 'required name=search_term_string',
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'VetList.org',
+    url: 'https://vetlist.org/',
+    logo: getDefaultOgImageUrl(),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Veterinary Services Directory',
+    description: pageDescription,
+    url: 'https://vetlist.org/',
+    about: ['Veterinary services', 'Vet clinics', 'Animal hospitals', 'Emergency vet care'],
+    mainEntity: {
+      '@type': 'ItemList',
+      name: 'Popular city veterinary pages',
+      numberOfItems: priorityCityPages.length,
+      itemListOrder: 'https://schema.org/ItemListOrderDescending',
+      itemListElement: priorityCityPages.slice(0, 10).map((city, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        item: {
+          '@type': 'WebPage',
+          name: city.linkLabel,
+          url: `https://vetlist.org${city.url}`,
+        },
+      })),
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqEntries.map((entry) => ({
+      '@type': 'Question',
+      name: entry.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: entry.answer,
+      },
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'VetList AI',
+    applicationCategory: 'BrowserApplication',
+    operatingSystem: 'Any',
+    description: 'AI-powered veterinarian search and clinic discovery tool mapping the U.S. and Canada.',
+    url: 'https://vetlist.org/'
+  },
+];
 ---
 
-<Layout title="Find Top Rated Veterinarians Near You | VetList.org">
-  <!-- Organization schema for brand rich snippets -->
-  <script type="application/ld+json" set:html={JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "VetList.org",
-    "url": "https://vetlist.org",
-    "logo": "https://vetlist.org/favicon.svg",
-    "description": "Find the best veterinarians and animal hospitals near you. Browse our comprehensive directory of veterinary professionals across North America.",
-    "foundingDate": "2024",
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "contactType": "customer service",
-      "availableLanguage": ["English"]
-    },
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": {
-        "@type": "EntryPoint",
-        "urlTemplate": "https://vetlist.org/search?q={search_term_string}"
-      },
-      "query-input": "required name=search_term_string"
-    },
-    "mainEntity": {
-      "@type": "WebSite",
-      "name": "VetList.org",
-      "url": "https://vetlist.org",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://vetlist.org/search?q={search_term_string}",
-        "query-input": "required name=search_term_string"
+<Layout title={pageTitle} description={pageDescription} openGraph={openGraphConfig} twitterCard={twitterCardConfig}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+    <script id="vetlist-home-ai-data" type="application/json" set:html={JSON.stringify(homepageAiData)} />
+    <style is:global>
+      .vl-ai-shell {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.34);
+        border-radius: 32px;
+        background:
+          radial-gradient(circle at 15% 20%, rgba(34, 211, 238, 0.16), transparent 24%),
+          radial-gradient(circle at 85% 18%, rgba(59, 130, 246, 0.16), transparent 22%),
+          linear-gradient(140deg, rgba(255, 255, 255, 0.92) 0%, rgba(239, 246, 255, 0.95) 50%, rgba(248, 250, 252, 0.98) 100%);
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
       }
-    }
-  })} />
-  
-  <Hero 
-    cities={citiesToDisplay} 
-    popularVets={popularVets}
-    totalVets={totalVets}
-    totalCities={uniqueCities}
-  />
-  <Features />
-  <Testimonials />
-  <FAQ />
+
+      .vl-ai-noise {
+        position: absolute;
+        inset: 0;
+        opacity: 0.03;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        background-size: 256px 256px;
+      }
+
+      .vl-ai-glow {
+        position: absolute;
+        border-radius: 999px;
+        filter: blur(48px);
+        opacity: 0.8;
+        pointer-events: none;
+      }
+
+      .vl-ai-glow-one {
+        top: -4rem;
+        left: -4rem;
+        width: 18rem;
+        height: 18rem;
+        background: rgba(34, 211, 238, 0.2);
+      }
+
+      .vl-ai-glow-two {
+        right: -3rem;
+        top: 5rem;
+        width: 16rem;
+        height: 16rem;
+        background: rgba(59, 130, 246, 0.18);
+      }
+
+      .vl-ai-ticker {
+        position: relative;
+        overflow: hidden;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+        background: rgba(255, 255, 255, 0.62);
+        backdrop-filter: blur(18px);
+      }
+
+      .vl-ai-ticker-track {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        width: max-content;
+        padding: 0.9rem 1.25rem;
+        animation: vlTickerScroll 34s linear infinite;
+      }
+
+      .vl-ai-ticker-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        white-space: nowrap;
+        color: rgb(51 65 85);
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .vl-ai-ticker-dot {
+        width: 0.38rem;
+        height: 0.38rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, rgb(6 182 212), rgb(37 99 235));
+        box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+      }
+
+      .vl-ai-marquee {
+        position: relative;
+        overflow: hidden;
+        mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+        -webkit-mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+      }
+
+      .vl-ai-marquee-track {
+        display: flex;
+        gap: 0.75rem;
+        width: max-content;
+        padding: 0.25rem 0;
+      }
+
+      .vl-ai-marquee-track-left {
+        animation: vlMarqueeLeft 32s linear infinite;
+      }
+
+      .vl-ai-marquee-track-right {
+        animation: vlMarqueeRight 34s linear infinite;
+      }
+
+      .vl-ai-marquee-track-slow {
+        animation: vlMarqueeLeft 40s linear infinite;
+      }
+
+      .vl-ai-marquee:hover .vl-ai-marquee-track {
+        animation-play-state: paused;
+      }
+
+      .vl-ai-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.8);
+        color: rgb(51 65 85);
+        padding: 0.58rem 0.9rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .vl-ai-chip:hover {
+        transform: translateY(-1px);
+        border-color: rgba(6, 182, 212, 0.38);
+        box-shadow: 0 14px 28px rgba(14, 116, 144, 0.12);
+      }
+
+      .vl-ai-chip-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.45rem;
+        height: 1.45rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, rgba(34, 211, 238, 0.14), rgba(59, 130, 246, 0.14));
+        color: rgb(14 116 144);
+        font-size: 0.62rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .vl-ai-search-frame {
+        position: relative;
+        border-radius: 28px;
+        padding: 1px;
+        background: linear-gradient(135deg, rgba(34, 211, 238, 0.32), rgba(59, 130, 246, 0.32), rgba(14, 165, 233, 0.18));
+        box-shadow: 0 28px 60px rgba(15, 23, 42, 0.12);
+      }
+
+      .vl-ai-search-panel {
+        position: relative;
+        border-radius: 27px;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(20px);
+        padding: 1.15rem;
+      }
+
+      .vl-ai-input-wrap {
+        position: relative;
+        min-height: 5.5rem;
+      }
+
+      .vl-ai-placeholder {
+        position: absolute;
+        inset: 0;
+        color: rgb(100 116 139);
+        font-size: 1.1rem;
+        line-height: 1.7;
+        pointer-events: none;
+        padding-right: 0.5rem;
+      }
+
+      .vl-ai-placeholder.is-hidden {
+        opacity: 0;
+      }
+
+      .vl-ai-placeholder-text::after {
+        content: '|';
+        margin-left: 2px;
+        animation: vlBlink 1s step-end infinite;
+      }
+
+      .vl-ai-input {
+        width: 100%;
+        min-height: 5.5rem;
+        max-height: 14rem;
+        resize: none;
+        background: transparent;
+        border: 0;
+        outline: 0;
+        color: rgb(15 23 42);
+        font-size: 1.1rem;
+        line-height: 1.7;
+        padding: 0;
+      }
+
+      .vl-ai-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding-top: 0.95rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.18);
+      }
+
+      .vl-ai-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.76rem;
+        color: rgb(71 85 105);
+      }
+
+      .vl-ai-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.34rem 0.62rem;
+        border-radius: 999px;
+        background: rgb(15 23 42);
+        color: rgb(207 250 254);
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        font-size: 0.67rem;
+      }
+
+      .vl-ai-badge-dot {
+        width: 0.42rem;
+        height: 0.42rem;
+        border-radius: 999px;
+        background: rgb(34 211 238);
+      }
+
+      .vl-ai-submit {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3rem;
+        height: 3rem;
+        border: 0;
+        border-radius: 1rem;
+        background: linear-gradient(135deg, rgb(6 182 212), rgb(37 99 235));
+        color: white;
+        box-shadow: 0 14px 28px rgba(37, 99, 235, 0.24);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .vl-ai-submit:hover {
+        transform: translateY(-1px) scale(1.02);
+        box-shadow: 0 18px 34px rgba(37, 99, 235, 0.28);
+      }
+
+      .vl-ai-submit-label {
+        display: none;
+      }
+
+      .vl-ai-typing,
+      .vl-ai-response {
+        margin-top: 1rem;
+        border-radius: 24px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(255, 255, 255, 0.78);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      }
+
+      .vl-ai-typing {
+        display: none;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.1rem;
+      }
+
+      .vl-ai-typing.is-active {
+        display: flex;
+      }
+
+      .vl-ai-typing-dots {
+        display: inline-flex;
+        gap: 0.25rem;
+      }
+
+      .vl-ai-typing-dot {
+        width: 0.42rem;
+        height: 0.42rem;
+        border-radius: 999px;
+        background: rgb(6 182 212);
+        animation: vlTypingBounce 1.3s ease-in-out infinite;
+      }
+
+      .vl-ai-typing-dot:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+
+      .vl-ai-typing-dot:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+
+      .vl-ai-response {
+        padding: 1.15rem;
+      }
+
+      .vl-ai-hidden {
+        display: none;
+      }
+
+      .vl-ai-response-eyebrow {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgb(14 116 144);
+      }
+
+      .vl-ai-response-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+        margin-top: 1rem;
+      }
+
+      .vl-ai-primary-link,
+      .vl-ai-secondary-button,
+      .vl-ai-suggestion {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        font-weight: 700;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .vl-ai-primary-link {
+        background: linear-gradient(135deg, rgb(6 182 212), rgb(37 99 235));
+        color: white;
+        padding: 0.85rem 1.2rem;
+        box-shadow: 0 14px 24px rgba(37, 99, 235, 0.2);
+      }
+
+      .vl-ai-secondary-button {
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        background: white;
+        color: rgb(30 41 59);
+        padding: 0.85rem 1.1rem;
+      }
+
+      .vl-ai-primary-link:hover,
+      .vl-ai-secondary-button:hover,
+      .vl-ai-suggestion:hover {
+        transform: translateY(-1px);
+      }
+
+      .vl-ai-suggestions {
+        display: grid;
+        gap: 0.75rem;
+        margin-top: 1rem;
+      }
+
+      .vl-ai-suggestion {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        text-align: left;
+        gap: 0.75rem;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 16px;
+        background: rgba(248, 250, 252, 0.92);
+        color: rgb(15 23 42);
+        padding: 0.9rem 1.25rem;
+        transition: all 0.2s ease;
+      }
+
+      .vl-ai-suggestion.is-blue {
+        border-color: rgba(59, 130, 246, 0.25);
+        background: rgba(239, 246, 255, 0.85);
+      }
+      .vl-ai-suggestion.is-blue:hover {
+        border-color: rgba(59, 130, 246, 0.4);
+        background: rgba(219, 234, 254, 0.95);
+      }
+
+      .vl-ai-suggestion.is-red {
+        border-color: rgba(239, 68, 68, 0.25);
+        background: rgba(254, 242, 242, 0.85);
+      }
+      .vl-ai-suggestion.is-red:hover {
+        border-color: rgba(239, 68, 68, 0.4);
+        background: rgba(254, 226, 226, 0.95);
+      }
+
+      .vl-ai-suggestion span {
+        display: block;
+      }
+
+      .vl-ai-suggestion-label {
+        font-size: 0.86rem;
+        font-weight: 800;
+      }
+
+      .vl-ai-suggestion-detail {
+        margin-top: 0.2rem;
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: rgb(100 116 139);
+      }
+
+      .vl-ai-proof-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .vl-ai-proof-card {
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.74);
+        padding: 1.1rem;
+        box-shadow: 0 18px 32px rgba(15, 23, 42, 0.05);
+      }
+
+      .vl-ai-panel {
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.78);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 22px 48px rgba(15, 23, 42, 0.08);
+      }
+
+      @keyframes vlTickerScroll {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+
+      @keyframes vlMarqueeLeft {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+
+      @keyframes vlMarqueeRight {
+        0% { transform: translateX(-50%); }
+        100% { transform: translateX(0); }
+      }
+
+      @keyframes vlBlink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+      }
+
+      @keyframes vlTypingBounce {
+        0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+        30% { transform: translateY(-4px); opacity: 1; }
+      }
+
+      @media (max-width: 960px) {
+        .vl-ai-proof-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .vl-ai-ticker-track {
+          padding: 0.55rem 1rem;
+        }
+
+        .vl-ai-chip {
+          padding: 0.5rem 0.8rem;
+          font-size: 0.72rem;
+        }
+
+        .vl-ai-input-wrap {
+          min-height: 4.5rem;
+        }
+
+        .vl-ai-input {
+          min-height: 4.5rem;
+        }
+
+        .vl-ai-placeholder,
+        .vl-ai-input {
+          font-size: 1rem;
+        }
+
+        .vl-ai-search-panel {
+          padding: 0.85rem;
+        }
+
+        .vl-ai-footer {
+          align-items: flex-start;
+          flex-direction: column;
+          margin-top: 0.65rem;
+          padding-top: 0.65rem;
+        }
+
+        .vl-ai-submit {
+          width: 100%;
+          height: 3rem;
+          border-radius: 1rem;
+          gap: 0.5rem;
+        }
+
+        .vl-ai-submit-label {
+          display: inline;
+          font-size: 0.9rem;
+          font-weight: 800;
+        }
+
+        .vl-ai-search-frame {
+          border-radius: 22px;
+          margin-left: 0.25rem;
+          margin-right: 0.25rem;
+        }
+
+        .vl-ai-search-panel {
+          border-radius: 21px;
+        }
+
+        .vl-ai-shell {
+          border-radius: 24px;
+        }
+
+        .vl-ai-shell-content {
+          padding-left: 0.5rem;
+          padding-right: 0.5rem;
+          padding-top: 3.5rem;
+          padding-bottom: 2.5rem;
+        }
+      }
+    </style>
+  </Fragment>
+
+  <div class="mx-auto max-w-7xl py-2 md:py-6">
+    <section class="vl-ai-shell">
+      <div class="vl-ai-noise"></div>
+      <div class="vl-ai-glow vl-ai-glow-one"></div>
+      <div class="vl-ai-glow vl-ai-glow-two"></div>
+
+      <div class="vl-ai-ticker">
+        <div class="vl-ai-ticker-track">
+          {[...aiTickerItems, ...aiTickerItems].map((item) => (
+            <a href={item.href} class="vl-ai-ticker-item">
+              <span class="vl-ai-ticker-dot"></span>
+              <span>{item.label}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div class="relative z-10 px-2 py-2 md:px-8 md:py-8 vl-ai-shell-content">
+        <div class="mx-auto max-w-4xl text-center">
+          <h1 class="text-4xl leading-[1.1] font-black tracking-tight text-slate-950 md:text-6xl md:leading-tight">
+            Your next veterinarian,
+            <span class="block bg-[linear-gradient(135deg,#0891b2,#2563eb)] bg-clip-text text-transparent mt-1 md:mt-2">one AI search away.</span>
+          </h1>
+
+          <p class="mx-auto mt-4 mb-6 max-w-2xl text-[15px] leading-relaxed text-slate-600 md:mt-4 md:mb-0 md:text-lg md:leading-8">
+            Search {totalVets.toLocaleString()} veterinarian clinics and animal hospitals across the U.S. and Canada to find the right vet for your pet.
+          </p>
+        </div>
+
+        <div class="vl-ai-marquee mx-auto mt-2 max-w-6xl md:mt-8">
+          <div class="vl-ai-marquee-track vl-ai-marquee-track-left">
+            {[...aiMarqueeRows[0], ...aiMarqueeRows[0]].map((item) => (
+              <button type="button" class="vl-ai-chip" data-ai-query={item.text}>
+                <span class="vl-ai-chip-icon">{item.icon}</span>
+                <span>{item.text}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div class="mx-auto mt-2 md:max-w-3xl md:mt-5">
+          <div class="vl-ai-search-frame">
+            <div class="vl-ai-search-panel">
+              <div class="vl-ai-input-wrap">
+                <div class="vl-ai-placeholder" id="vl-ai-placeholder">
+                  <span class="vl-ai-placeholder-text" id="vl-ai-placeholder-text"></span>
+                </div>
+                <textarea
+                  id="vl-ai-input"
+                  class="vl-ai-input"
+                  rows="1"
+                  aria-label="Ask VetList AI where to start"
+                ></textarea>
+              </div>
+
+              <div class="vl-ai-footer">
+                <div class="vl-ai-meta">
+                  <span class="vl-ai-badge">
+                    <span class="vl-ai-badge-dot"></span>
+                    VetList AI
+                  </span>
+                  <span>Smart search powered</span>
+                  <span>{totalVets.toLocaleString()} clinic profiles</span>
+                </div>
+
+                <button id="vl-ai-submit" class="vl-ai-submit" type="button" aria-label="Search">
+                  <span class="vl-ai-submit-label">Search with AI</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" class="h-5 w-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m12 5 7 7-7 7"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="vl-ai-typing" class="vl-ai-typing">
+            <div class="vl-ai-typing-dots">
+              <span class="vl-ai-typing-dot"></span>
+              <span class="vl-ai-typing-dot"></span>
+              <span class="vl-ai-typing-dot"></span>
+            </div>
+            <span class="text-sm font-semibold text-slate-600">Scanning local clinics to find your best match...</span>
+          </div>
+
+          <div id="vl-ai-response" class="vl-ai-response vl-ai-hidden">
+            <p id="vl-ai-response-eyebrow" class="vl-ai-response-eyebrow">Best starting point</p>
+            <p id="vl-ai-response-title" class="mt-2 text-2xl font-black tracking-tight text-slate-950"></p>
+            <p id="vl-ai-response-body" class="mt-3 text-sm leading-7 text-slate-600 md:text-base"></p>
+
+            <div class="vl-ai-response-links">
+              <a id="vl-ai-primary-link" class="vl-ai-primary-link" href="/">Open recommendation</a>
+              <button id="vl-ai-reset" class="vl-ai-secondary-button" type="button">Start over</button>
+            </div>
+
+            <div id="vl-ai-suggestions" class="vl-ai-suggestions"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="mx-auto mt-4 max-w-5xl hidden md:block">
+      <div class="vl-ai-proof-grid">
+        <div class="vl-ai-proof-card">
+          <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Coverage</p>
+          <p class="mt-2 text-3xl font-black tracking-tight text-slate-950">{uniqueCities.toLocaleString()}</p>
+          <p class="mt-2 text-sm leading-6 text-slate-600">City pages across the U.S. and Canada ready to browse from one prompt.</p>
+        </div>
+        <div class="vl-ai-proof-card">
+          <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Emergency Signals</p>
+          <p class="mt-2 text-3xl font-black tracking-tight text-slate-950">{northAmericaInsights.emergency.toLocaleString()}</p>
+          <p class="mt-2 text-sm leading-6 text-slate-600">Clinic profiles with emergency or after-hours clues surfaced into faster entry pages.</p>
+        </div>
+        <div class="vl-ai-proof-card">
+          <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Owner Paths</p>
+          <p class="mt-2 text-3xl font-black tracking-tight text-slate-950">{verifiedLane.length}</p>
+          <p class="mt-2 text-sm leading-6 text-slate-600">Verified clinic examples plus claim and add-listing flows woven into the prompt experience.</p>
+        </div>
+      </div>
+    </div>
+
+    <section class="mt-6 vl-ai-panel p-6">
+      <div class="mb-4">
+        <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Start With The Need</p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Find a clinic by what matters for the visit</h2>
+        <p class="mt-2 text-sm leading-7 text-slate-600">
+          Thousands of clinics list details like emergency care, hours, online booking, telehealth, pet types, and language support. Start with what matters most for your visit.
+        </p>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        {careNeedCards.map((card) => (
+          <article class="rounded-[24px] border border-slate-200/80 bg-white/85 p-5 shadow-[0_16px_34px_rgba(15,23,42,0.06)]">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h3 class="text-xl font-black tracking-tight text-slate-950">{card.label}</h3>
+                <p class="mt-2 text-sm leading-7 text-slate-600">{card.description}</p>
+              </div>
+              <a href={card.href} class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
+                →
+              </a>
+            </div>
+
+            <div class="mt-4 grid gap-2">
+              {card.links.map((link) => (
+                <a href={link.href} class="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/90 px-3 py-3 text-sm transition hover:border-cyan-300/40 hover:bg-white">
+                  <span class="font-semibold text-slate-900">{link.label}</span>
+                  <span class="shrink-0 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{link.detail}</span>
+                </a>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section id="popular-paths" class="mt-6 overflow-hidden rounded-[30px] border border-slate-800/20 bg-[linear-gradient(140deg,#0f172a_0%,#0f3b7a_42%,#2563eb_100%)] p-4 shadow-[0_28px_64px_rgba(15,23,42,0.24)] md:p-6">
+      <div class="grid gap-4 lg:grid-cols-3">
+        <div class="rounded-[28px] border border-white/15 bg-white/10 p-4 backdrop-blur">
+          <div class="flex items-center justify-between rounded-full border border-cyan-200/25 bg-cyan-300/15 px-4 py-2 text-sm font-bold text-white">
+            <span>Popular U.S. city pages</span>
+            <span class="text-xs font-semibold text-cyan-100">{usCityCount.toLocaleString()} total</span>
+          </div>
+          <div class="mt-3 space-y-2">
+            {topUsCities.map((city) => (
+              <a href={`/${city.country}/${city.region}/${city.slug}/`} class="block rounded-2xl bg-white/90 px-4 py-3 text-slate-900 transition hover:bg-white">
+                <span class="block text-base font-semibold">{city.name}</span>
+                <span class="mt-1 block text-sm text-slate-600">{city.province} · {city.count.toLocaleString()} clinics listed</span>
+              </a>
+            ))}
+            <a href="/united-states/" class="flex items-center justify-between rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-white transition hover:bg-white/15">
+              <span>
+                <span class="block text-xs font-extrabold uppercase tracking-[0.16em] text-cyan-100">Browse all</span>
+                <span class="block text-base font-semibold">United States regions and cities</span>
+              </span>
+              <span class="text-lg">→</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="rounded-[28px] border border-white/15 bg-white/10 p-4 backdrop-blur">
+          <div class="flex items-center justify-between rounded-full border border-red-200/25 bg-red-300/15 px-4 py-2 text-sm font-bold text-white">
+            <span>Popular Canadian city pages</span>
+            <span class="text-xs font-semibold text-red-100">{canadaCityCount.toLocaleString()} total</span>
+          </div>
+          <div class="mt-3 space-y-2">
+            {topCanadaCities.map((city) => (
+              <a href={`/${city.country}/${city.region}/${city.slug}/`} class="block rounded-2xl bg-white/90 px-4 py-3 text-slate-900 transition hover:bg-white">
+                <span class="block text-base font-semibold">{city.name}</span>
+                <span class="mt-1 block text-sm text-slate-600">{city.province} · {city.count.toLocaleString()} clinics listed</span>
+              </a>
+            ))}
+            <a href="/canada/" class="flex items-center justify-between rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-white transition hover:bg-white/15">
+              <span>
+                <span class="block text-xs font-extrabold uppercase tracking-[0.16em] text-red-100">Browse all</span>
+                <span class="block text-base font-semibold">Canada provinces and cities</span>
+              </span>
+              <span class="text-lg">→</span>
+            </a>
+          </div>
+        </div>
+
+        <div id="popular-vets" class="rounded-[28px] border border-white/15 bg-white/10 p-4 backdrop-blur">
+          <div class="flex items-center justify-between rounded-full border border-emerald-200/25 bg-emerald-300/15 px-4 py-2 text-sm font-bold text-white">
+            <span>Verified Clinics</span>
+            <span class="text-xs font-semibold text-emerald-100">{verifiedLane.length} picks</span>
+          </div>
+          <div class="mt-3 space-y-2">
+            {verifiedLane.map((clinic) => (
+              <a href={`/${clinic.country_slug}/${clinic.province_slug}/${clinic.city_slug}/${clinic.name_slug}/`} class="flex items-center justify-between gap-3 rounded-2xl bg-white/90 px-4 py-3 text-slate-900 transition hover:bg-white">
+                <span class="min-w-0">
+                  <span class="block text-xs font-extrabold uppercase tracking-[0.14em] text-emerald-700">Verified profile</span>
+                  <span class="block truncate text-base font-semibold">{clinic.name}</span>
+                  <span class="block truncate text-sm text-slate-600">{clinic.city}, {clinic.province}</span>
+                </span>
+                {clinic.badge && (
+                  <span class="shrink-0 rounded-xl bg-amber-300 px-2 py-1 text-sm font-black text-slate-900" title={clinic.badge.title}>{clinic.badge.label}</span>
+                )}
+              </a>
+            ))}
+            <div class="mt-2 flex gap-2">
+              <a href="/add-vet/" class="flex-1 flex items-center justify-center rounded-2xl border-2 border-emerald-300/50 bg-white/90 px-3 py-3 text-sm font-black text-slate-900 transition hover:bg-white text-center">
+                + Add Listing
+              </a>
+              <a href="/claim-clinic/" class="flex-1 flex items-center justify-center rounded-2xl border-2 border-slate-200/50 bg-white/90 px-3 py-3 text-sm font-black text-slate-900 transition hover:bg-white text-center">
+                Claim Profile
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-6 vl-ai-panel p-6">
+      <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">Directory Depth</p>
+          <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">What you can compare across clinics</h2>
+        </div>
+        <p class="max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
+          A few of the fields VetList uses to help people choose where to call first.
+        </p>
+      </div>
+
+      <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {dataProofCards.map((card) => (
+          <a href={card.href} class="rounded-[24px] border border-slate-200 bg-white/90 p-4 transition hover:border-cyan-300/40 hover:shadow-[0_14px_30px_rgba(15,23,42,0.08)]">
+            <span class="block text-3xl font-black tracking-tight text-slate-950">{card.value}</span>
+            <span class="mt-1 block text-sm font-bold leading-6 text-slate-900">{card.label}</span>
+            <span class="mt-2 block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">{card.detail}</span>
+          </a>
+        ))}
+      </div>
+
+      <div class="mt-6 grid gap-4 lg:grid-cols-2">
+        <div class="rounded-[24px] border border-slate-200 bg-slate-50/90 p-5">
+          <h3 class="text-2xl font-black tracking-tight text-slate-950">Browse by region</h3>
+          <div class="mt-4 grid gap-2">
+            {topRegions.map((region) => (
+              <a href={`/${region.country}/${region.slug}/`} class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm transition hover:border-cyan-300/40">
+                <span class="font-semibold text-slate-900">{region.name}</span>
+                <span class="text-slate-500">{region.count.toLocaleString()} clinics</span>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <div class="rounded-[24px] border border-slate-200 bg-slate-50/90 p-5">
+          <h3 class="text-2xl font-black tracking-tight text-slate-950">Browse by city</h3>
+          <div class="mt-4 grid gap-2">
+            {topCities.slice(0, 10).map((city) => (
+              <a href={`/${city.country}/${city.region}/${city.slug}/`} class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm transition hover:border-cyan-300/40">
+                <span class="font-semibold text-slate-900">{city.name}, {city.province}</span>
+                <span class="text-slate-500">{city.count.toLocaleString()} clinics</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-6 vl-ai-panel p-6">
+      <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">FAQ</p>
+      <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Questions people ask before choosing a vet</h2>
+      <div class="mt-4 grid gap-3">
+        {faqEntries.map((entry) => (
+          <details class="rounded-[22px] border border-slate-200 bg-slate-50/90 px-4 py-4">
+            <summary class="cursor-pointer text-sm font-bold text-slate-900 md:text-base">{entry.question}</summary>
+            <p class="mt-2 text-sm leading-7 text-slate-600 md:text-base">{entry.answer}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+  </div>
+
+  <script is:inline>
+    (() => {
+      const dataElement = document.getElementById('vetlist-home-ai-data');
+      const input = document.getElementById('vl-ai-input');
+      const submitButton = document.getElementById('vl-ai-submit');
+      const typing = document.getElementById('vl-ai-typing');
+      const response = document.getElementById('vl-ai-response');
+      const responseEyebrow = document.getElementById('vl-ai-response-eyebrow');
+      const responseTitle = document.getElementById('vl-ai-response-title');
+      const responseBody = document.getElementById('vl-ai-response-body');
+      const primaryLink = document.getElementById('vl-ai-primary-link');
+      const resetButton = document.getElementById('vl-ai-reset');
+      const suggestions = document.getElementById('vl-ai-suggestions');
+      const placeholder = document.getElementById('vl-ai-placeholder');
+      const placeholderText = document.getElementById('vl-ai-placeholder-text');
+
+      if (!dataElement || !input || !submitButton || !typing || !response || !responseEyebrow || !responseTitle || !responseBody || !primaryLink || !resetButton || !suggestions || !placeholder || !placeholderText) {
+        return;
+      }
+
+      const data = JSON.parse(dataElement.textContent || '{}');
+      const hiddenClass = 'vl-ai-hidden';
+      const placeholderPhrases = Array.isArray(data.placeholders) ? data.placeholders : [];
+
+      function normalize(value) {
+        return String(value || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      }
+
+      function containsAny(query, terms) {
+        return terms.some((term) => query.includes(term));
+      }
+
+      function autoResize() {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 224) + 'px';
+      }
+
+      function syncPlaceholder() {
+        placeholder.classList.toggle('is-hidden', input.value.trim().length > 0);
+      }
+
+      let phraseIndex = 0;
+      let charIndex = 0;
+      let deleting = false;
+      let typeTimer = null;
+      let firstPhraseShown = false;
+
+      function stopTypewriter() {
+        if (typeTimer) {
+          window.clearTimeout(typeTimer);
+          typeTimer = null;
+        }
+      }
+
+      function runTypewriter() {
+        if (!placeholderPhrases.length || input.value.trim().length > 0) return;
+
+        // Preload the first phrase instantly — no typing animation
+        if (!firstPhraseShown) {
+          firstPhraseShown = true;
+          placeholderText.textContent = placeholderPhrases[0];
+          charIndex = placeholderPhrases[0].length;
+          deleting = true;
+          typeTimer = window.setTimeout(runTypewriter, 2800);
+          return;
+        }
+
+        const current = placeholderPhrases[phraseIndex];
+
+        if (!deleting) {
+          charIndex += 1;
+          placeholderText.textContent = current.slice(0, charIndex);
+
+          if (charIndex >= current.length) {
+            deleting = true;
+            typeTimer = window.setTimeout(runTypewriter, 2200);
+            return;
+          }
+
+          typeTimer = window.setTimeout(runTypewriter, 38);
+          return;
+        }
+
+        charIndex -= 1;
+        placeholderText.textContent = current.slice(0, Math.max(charIndex, 0));
+
+        if (charIndex <= 0) {
+          deleting = false;
+          phraseIndex = (phraseIndex + 1) % placeholderPhrases.length;
+          typeTimer = window.setTimeout(runTypewriter, 320);
+          return;
+        }
+
+        typeTimer = window.setTimeout(runTypewriter, 18);
+      }
+
+      function startTypewriter() {
+        stopTypewriter();
+        if (input.value.trim().length > 0) return;
+        runTypewriter();
+      }
+
+      function renderSuggestions(items) {
+        suggestions.innerHTML = (items || [])
+          .map((item) => (
+            '<a class="vl-ai-suggestion ' + (item.className || '') + '" href="' + item.href + '">' +
+              '<span>' +
+                '<span class="vl-ai-suggestion-label">' + item.label + '</span>' +
+                '<span class="vl-ai-suggestion-detail">' + item.detail + '</span>' +
+              '</span>' +
+              '<span aria-hidden="true">→</span>' +
+            '</a>'
+          ))
+          .join('');
+      }
+
+      function showTyping() {
+        typing.classList.add('is-active');
+        response.classList.add(hiddenClass);
+      }
+
+      function showResponse(result) {
+        typing.classList.remove('is-active');
+        responseEyebrow.textContent = result.eyebrow;
+        responseTitle.textContent = result.title;
+        responseBody.textContent = result.body;
+        
+        if (result.linkLabel) {
+          primaryLink.textContent = result.linkLabel;
+          primaryLink.setAttribute('href', result.href);
+          primaryLink.style.display = '';
+        } else {
+          primaryLink.style.display = 'none';
+        }
+        
+        renderSuggestions(result.suggestions);
+        response.classList.remove(hiddenClass);
+      }
+
+      function findCityMatch(query) {
+        return (data.cityRoutes || []).find((route) => (route.tokens || []).some((token) => query.includes(token)));
+      }
+
+      function findRegionMatch(query) {
+        return (data.regionRoutes || []).find((route) => (route.tokens || []).some((token) => query.includes(token)));
+      }
+
+      function buildDefaultSuggestions() {
+        return (data.onboardingActions || []).slice(0, 4);
+      }
+
+      function routeQuery(rawQuery) {
+        const query = normalize(rawQuery);
+        const cityMatch = findCityMatch(query);
+        const regionMatch = findRegionMatch(query);
+        const defaults = data.defaults || {};
+        const suggestions = buildDefaultSuggestions();
+
+        if (cityMatch) {
+          return {
+            eyebrow: 'Location Match Found',
+            title: 'Starting search in ' + cityMatch.label + '...',
+            body: 'We found clinics matching your criteria in ' + cityMatch.label + '. Compiling clinic profiles, hours, contact details, and service offerings for this area.',
+            href: cityMatch.url,
+            linkLabel: 'View Results for ' + cityMatch.label,
+            suggestions,
+          };
+        }
+
+        // Generic fallback that looks cool but doesn't do much
+        return {
+          eyebrow: 'AI Search Initiated',
+          title: 'Searching across North America...',
+          body: 'We are analyzing thousands of clinic profiles. To narrow down the best results for your specific request, please select whether you are looking for a vet in the United States or Canada.',
+          href: '',
+          linkLabel: '', // This triggers the dynamic hide
+          suggestions: [
+            {
+              label: '🇺🇸 Search United States',
+              detail: 'Find clinics across all 50 states',
+              href: '/united-states/',
+              className: 'is-blue',
+            },
+            {
+              label: '🇨🇦 Search Canada',
+              detail: 'Find clinics across Canadian provinces',
+              href: '/canada/',
+              className: 'is-red',
+            }
+          ],
+        };
+      }
+
+      function handleSubmit() {
+        const query = input.value.trim();
+        showTyping();
+
+        window.setTimeout(() => {
+          showResponse(routeQuery(query));
+        }, 520 + Math.floor(Math.random() * 260));
+      }
+
+      document.querySelectorAll('[data-ai-query]').forEach((button) => {
+        button.addEventListener('click', () => {
+          input.value = button.getAttribute('data-ai-query') || '';
+          autoResize();
+          syncPlaceholder();
+          handleSubmit();
+        });
+      });
+
+      input.addEventListener('input', () => {
+        autoResize();
+        syncPlaceholder();
+      });
+
+      input.addEventListener('focus', () => {
+        stopTypewriter();
+        placeholderText.textContent = '';
+      });
+
+      input.addEventListener('blur', () => {
+        if (!input.value.trim()) {
+          startTypewriter();
+        }
+      });
+
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault();
+          handleSubmit();
+        }
+      });
+
+      submitButton.addEventListener('click', handleSubmit);
+      resetButton.addEventListener('click', () => {
+        input.value = '';
+        autoResize();
+        syncPlaceholder();
+        response.classList.add(hiddenClass);
+        input.focus();
+        startTypewriter();
+      });
+
+      autoResize();
+      syncPlaceholder();
+      startTypewriter();
+    })();
+  </script>
 </Layout>

@@ -7,73 +7,70 @@ export interface BreadcrumbItem {
 interface Props {
   items?: BreadcrumbItem[];
   path?: string;
+  className?: string;
 }
 
-const { items, path } = Astro.props;
+const { items, path, className = '' } = Astro.props;
 
 const breadcrumbItems = items || (() => {
   if (!path) return [];
-  
+
   const segments = path.split('/').filter(Boolean);
   let currentPath = '';
-  
+
   function toTitleCase(str: string) {
     if (str === 'united-states') return 'United States';
-    return str.replace(/-/g, ' ')
+    return str
+      .replace(/-/g, ' ')
       .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   }
-  
-  const generatedItems: BreadcrumbItem[] = [
-    { label: "Home", href: "/" }
-  ];
-  
+
+  const generatedItems: BreadcrumbItem[] = [{ label: 'Home', href: '/' }];
+
   segments.forEach((segment) => {
     currentPath += `/${segment}`;
     generatedItems.push({
       label: toTitleCase(segment),
-      href: currentPath + '/' // Ensure trailing slash for consistency
+      href: `${currentPath}/`,
     });
   });
-  
+
   return generatedItems;
 })();
 ---
 
-<nav aria-label="Breadcrumb" class="py-2">
-  <div class="overflow-x-auto scrollbar-hide">
-    <ol class="flex items-center gap-1 text-sm whitespace-nowrap min-w-max">
-      {breadcrumbItems.map((item, index) => (
-        <>
-          <li class="flex-shrink-0">
-            <a 
-              href={item.href} 
-              class={`hover:text-primary-600 ${index === breadcrumbItems.length - 1 ? 'font-medium text-red-600' : 'text-gray-600'}`}
-            >
-              {item.label}
-            </a>
-          </li>
-          
-          {index !== breadcrumbItems.length - 1 && (
-            <li class="text-gray-400 flex-shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-            </li>
-          )}
-        </>
-      ))}
-    </ol>
-  </div>
-</nav>
+{
+  breadcrumbItems.length > 0 && (
+    <nav aria-label="Breadcrumb" class={`overflow-x-auto ${className}`}>
+      <ol class="flex min-w-max items-center gap-2 rounded-full border border-slate-200/80 bg-white/78 px-3 py-2 text-sm text-slate-500 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur">
+        {breadcrumbItems.map((item, index) => {
+          const isLast = index === breadcrumbItems.length - 1;
 
-<style>
-  .scrollbar-hide {
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
-  }
-  .scrollbar-hide::-webkit-scrollbar { 
-    display: none;  /* Safari and Chrome */
-  }
-</style>
+          return (
+            <>
+              <li class="flex-shrink-0">
+                {isLast ? (
+                  <span class="font-semibold text-slate-950">{item.label}</span>
+                ) : (
+                  <a href={item.href} class="transition hover:text-cyan-700">
+                    {item.label}
+                  </a>
+                )}
+              </li>
+
+              {!isLast && (
+                <li class="flex-shrink-0 text-slate-300" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                    <path fill-rule="evenodd" d="M7.22 4.22a.75.75 0 011.06 0l5.25 5.25a.75.75 0 010 1.06l-5.25 5.25a.75.75 0 11-1.06-1.06L11.94 10 7.22 5.28a.75.75 0 010-1.06z" clip-rule="evenodd" />
+                  </svg>
+                </li>
+              )}
+            </>
+          );
+        })}
+      </ol>
+    </nav>
+  )
+}

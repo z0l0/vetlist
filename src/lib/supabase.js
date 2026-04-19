@@ -7,9 +7,9 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// --- BUILD OPTIMIZATION SETTINGS ---
-// Set to true for faster builds (uses only 1 CSV file each), false for full production build
-const IS_FAST_BUILD = process.env.FAST_BUILD === 'true';
+function isFastBuildEnabled() {
+  return process.env.FAST_BUILD === 'true';
+}
 
 // Updated slugify function to properly handle trailing numbers
 function slugify(text) {
@@ -25,7 +25,7 @@ function slugify(text) {
 
 // Configuration options for data loading
 const DEFAULT_CONFIG = {
-  MAX_PROFILES_PER_FILE: process.env.MAX_PROFILES_PER_BUILD ? parseInt(process.env.MAX_PROFILES_PER_BUILD) : (IS_FAST_BUILD ? 100 : 5000), // Limit profiles for static page generation
+  MAX_PROFILES_PER_FILE: process.env.MAX_PROFILES_PER_BUILD ? parseInt(process.env.MAX_PROFILES_PER_BUILD) : (isFastBuildEnabled() ? 100 : 999999), // No limit for full builds
   LOAD_ALL_FOR_RELATIONSHIPS: false, // Whether to load all profiles for relationships
   CACHE_ENABLED: true,
   CACHE_TTL: 1000 * 60 * 60 // 1 hour in milliseconds
@@ -94,30 +94,25 @@ async function loadCsvFile(filePath) {
  * @returns {Promise<Array>} - Combined and processed professionals data
  */
 export async function fetchAllProfessionals(maxPerFile = DEFAULT_CONFIG.MAX_PROFILES_PER_FILE) {
+
   // Check cache first
   if (isCacheValid('professionals')) {
     return _cache.professionals.data;
   }
   
-  // File paths
+  const isFastBuild = isFastBuildEnabled();
+
+  // File paths - Canada and USA
   const dataDir = path.join(__dirname, '..', '..', 'data');
   const allFilePaths = [
-    path.join(dataDir, 'professionals.csv'),
-    path.join(dataDir, 'professionals2.csv'),
-    path.join(dataDir, 'professionals3.csv'),
-    path.join(dataDir, 'professionals4.csv'),
-    path.join(dataDir, 'professionals5.csv'),
-    path.join(dataDir, 'professionals6.csv'),
-    path.join(dataDir, 'professionals7.csv'),
-    path.join(dataDir, 'professionals8.csv'),
-    path.join(dataDir, 'professionals9.csv'),
-    path.join(dataDir, 'professionals10.csv')
+    path.join(dataDir, 'professionals-canada.csv'),
+    path.join(dataDir, 'professionals-usa.csv')
   ];
   
-  // Use only first file in fast build mode, all files in full build mode
-  const filePaths = IS_FAST_BUILD ? [allFilePaths[0]] : allFilePaths;
+  // Use only Canada file in fast build mode, both files in full build mode
+  const filePaths = isFastBuild ? [allFilePaths[0]] : allFilePaths;
   
-  console.log(`supabase.js: ${IS_FAST_BUILD ? 'FAST BUILD MODE' : 'FULL BUILD MODE'} - Using ${filePaths.length} professional files`);
+  console.log(`supabase.js: ${isFastBuild ? 'FAST BUILD MODE' : 'FULL BUILD MODE'} - Using ${filePaths.length} professional files`);
   
   // Step 1: Load all profiles for relationships if configured
   let allProfiles = [];
@@ -150,9 +145,11 @@ export async function fetchAllProfessionals(maxPerFile = DEFAULT_CONFIG.MAX_PROF
   
   console.log(`supabase.js: Total of ${allData.length} profiles will be used for page generation`);
   
-  // Count US profiles before normalization
-  const usProfiles = allData.filter(p => 
-    /^(us|usa|united\s*states(\s*of\s*america)?)$/i.test(p.country)
+  // Count US profiles before normalization (includes US states)
+  const usStates = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming', 'District of Columbia'];
+  const usProfiles = allData.filter(p =>
+    /^(us|usa|united\s*states(\s*of\s*america)?)$/i.test(p.country) ||
+    usStates.includes(p.country?.trim())
   );
   console.log(`supabase.js: Found ${usProfiles.length} US profiles for page generation`);
   
@@ -192,8 +189,9 @@ export async function fetchAllProfessionals(maxPerFile = DEFAULT_CONFIG.MAX_PROF
         if (!country) return '';
         country = country.trim();
         
-        // Normalize United States variants
-        if (/^(us|usa|united\s*states(\s*of\s*america)?)$/i.test(country)) {
+        // Normalize United States variants and US states
+        const usStates = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming', 'District of Columbia'];
+        if (/^(us|usa|united\s*states(\s*of\s*america)?)$/i.test(country) || usStates.includes(country)) {
             return 'united-states';
         }
         return slugify(country);
@@ -240,6 +238,39 @@ export async function fetchAllProfessionals(maxPerFile = DEFAULT_CONFIG.MAX_PROF
     // Generate a composite ID
     const compositeId = profileId || `${normalizedCountry}-${normalizedProvince}-${normalizedCitySlug}-${cleanNameSlug}`;
     
+    // Parse animals_treated JSON array - check pet_types_served first (enriched), then animals_treated (old)
+    let animalsTreated = [];
+    try {
+      const petData = profile.pet_types_served || profile.animals_treated || '[]';
+      animalsTreated = JSON.parse(petData);
+      // Ensure it's an array and clean/standardize values
+      if (Array.isArray(animalsTreated)) {
+        animalsTreated = animalsTreated.map(animal =>
+          typeof animal === 'string' ? animal.trim().toLowerCase() : animal
+        ).filter(Boolean);
+      } else {
+        animalsTreated = [];
+      }
+    } catch (e) {
+      animalsTreated = [];
+    }
+
+    // Parse and clean specializations
+    let specializations = [];
+    try {
+      specializations = JSON.parse(profile.specialization || '[]');
+      // Ensure it's an array and clean/standardize values
+      if (Array.isArray(specializations)) {
+        specializations = specializations.map(spec =>
+          typeof spec === 'string' ? spec.trim() : spec
+        ).filter(Boolean);
+      } else {
+        specializations = [];
+      }
+    } catch (e) {
+      specializations = [];
+    }
+
     return {
       id: profileId,
       composite_id: compositeId, // Add composite ID for flexible lookups
@@ -250,19 +281,99 @@ export async function fetchAllProfessionals(maxPerFile = DEFAULT_CONFIG.MAX_PROF
       name: profile.name,
       picture: profile.picture,
       description: profile.description,
-      specialization: JSON.parse(profile.specialization || '[]'), // Parse JSON string
+      specialization: specializations, // Parse JSON string with cleaning
+      animals_treated: animalsTreated, // Parse and clean animals_treated JSON array
+      pet_types_served: animalsTreated, // Also set for compatibility
       city: profile.city,
       province: profile.province, // Added for region-level pages
       country: profile.country, // Added for country-level pages
       detailed_description: profile.detailed_description, // Added for profile pages
       address: profile.address, // Added for profile pages
       phone_number: profile.phone_number, // Added for profile pages
+      email_address: profile.email_address || '',
       website: profile.website, // Added for profile pages
+      social_media: profile.social_media || '',
       hours_of_operation: profile.hours_of_operation, // Added for profile pages
       faqs: JSON.parse(profile.faqs || '[]'), // Added for profile pages, parsed as array
       rating: parseFloat(profile.rating) || null, // Added for profile pages, parsed as float
+      vetscore: parseFloat(profile.vetscore) || 0, // VetScore quality ranking
+      vetscore_breakdown: profile.vetscore_breakdown || '{}', // VetScore category breakdown
+      vetscore_multipliers: profile.vetscore_multipliers || '{}', // VetScore multipliers
+      latitude: parseFloat(profile.latitude) || null, // Added for map functionality
+      longitude: parseFloat(profile.longitude) || null, // Added for map functionality
       is_verified: profile.is_verified === 'true', // Added for related vets in profile pages
       claimed: profile.claimed === 'true' || profile.claimed === '1', // Added for claimed listings
+      // ENRICHED FIELDS from scraper
+      emergency_services: profile.emergency_services === 'true',
+      emergency_24_hour: profile.emergency_24_hour === 'true',
+      after_hours_emergency_phone: profile.after_hours_emergency_phone || '',
+      accepts_new_patients: profile.accepts_new_patients === 'true' || profile.accepts_new_patients === true,
+      appointment_required: profile.appointment_required === 'true' || profile.appointment_required === true,
+      walk_ins_welcome: profile.walk_ins_welcome === 'true' || profile.walk_ins_welcome === true,
+      online_booking: profile.online_booking === 'true',
+      online_booking_url: profile.online_booking_url || '',
+      telehealth_available: profile.telehealth_available === 'true',
+      year_established: profile.year_established || '',
+      years_in_business: profile.years_in_business || '',
+      email_scraped: profile.email_scraped || '',
+      fax_number: profile.fax_number || '',
+      has_blog: profile.has_blog === 'true',
+      blog_url: profile.blog_url || '',
+      payment_plans: profile.payment_plans || '',
+      accreditations: profile.accreditations || '',
+      // Additional enriched fields
+      languages_spoken: profile.languages_spoken || '',
+      wheelchair_accessible: profile.wheelchair_accessible === 'true',
+      parking_info: profile.parking_info || '',
+      accepts_pet_insurance: profile.accepts_pet_insurance === 'true',
+      price_range: profile.price_range || '',
+      free_first_visit: profile.free_first_visit === 'true' || profile.free_first_visit === true,
+      insurance_companies: profile.insurance_companies || '',
+      boarding_available: profile.boarding_available === 'true',
+      grooming_available: profile.grooming_available === 'true',
+      daycare_available: profile.daycare_available === 'true',
+      training_available: profile.training_available === 'true',
+      house_calls_available: profile.house_calls_available === 'true',
+      mobile_vet_service: profile.mobile_vet_service === 'true',
+      curbside_service: profile.curbside_service === 'true',
+      pharmacy_onsite: profile.pharmacy_onsite === 'true',
+      lab_onsite: profile.lab_onsite === 'true' || profile.lab_onsite === true,
+      pet_food_sales: profile.pet_food_sales === 'true' || profile.pet_food_sales === true,
+      cremation_services: profile.cremation_services === 'true',
+      hospice_care: profile.hospice_care === 'true',
+      behavioral_services: profile.behavioral_services === 'true',
+      has_client_portal: profile.has_client_portal === 'true',
+      client_portal_url: profile.client_portal_url || '',
+      online_pharmacy_url: profile.online_pharmacy_url || '',
+      payment_methods: profile.payment_methods || '',
+      military_discount: profile.military_discount === 'true',
+      senior_discount: profile.senior_discount === 'true',
+      rescue_discount: profile.rescue_discount === 'true',
+      veterinarian_count: profile.veterinarian_count || '',
+      total_staff: profile.total_staff || '',
+      veterinarian_names: profile.veterinarian_names || '',
+      social_facebook: profile.social_facebook || '',
+      social_instagram: profile.social_instagram || '',
+      profile_weight: profile.profile_weight || '',
+      scraped_at: profile.scraped_at || '',
+      // Pricing fields
+      has_pricing: profile.has_pricing === 'true' || profile.has_pricing === true,
+      pricing_exam: profile.pricing_exam || '',
+      pricing_vaccine: profile.pricing_vaccine || '',
+      pricing_rabies: profile.pricing_rabies || '',
+      pricing_spay_dog: profile.pricing_spay_dog || '',
+      pricing_spay_cat: profile.pricing_spay_cat || '',
+      pricing_neuter_dog: profile.pricing_neuter_dog || '',
+      pricing_neuter_cat: profile.pricing_neuter_cat || '',
+      pricing_dental: profile.pricing_dental || '',
+      pricing_blood_panel: profile.pricing_blood_panel || '',
+      pricing_fecal: profile.pricing_fecal || '',
+      pricing_microchip: profile.pricing_microchip || '',
+      pricing_xray: profile.pricing_xray || '',
+      pricing_nail_trim: profile.pricing_nail_trim || '',
+      pricing_anal_gland: profile.pricing_anal_gland || '',
+      pricing_ear_clean: profile.pricing_ear_clean || '',
+      pricing_other: profile.pricing_other || '',
       include_in_pages: DEFAULT_CONFIG.LOAD_ALL_FOR_RELATIONSHIPS ? 
         // When loading all for relationships, include profiles from the limited dataset
         allData.some(p => 
@@ -324,40 +435,12 @@ export async function fetchAllProfessionals(maxPerFile = DEFAULT_CONFIG.MAX_PROF
  * @returns {Promise<Array>} - Combined locations data
  */
 export async function fetchLocationsDetails() {
-  // Check cache first
   if (isCacheValid('locations')) {
     return _cache.locations.data;
   }
-  
-  // File paths
-  const dataDir = path.join(__dirname, '..', '..', 'data');
-  const allLocationFilePaths = [
-    path.join(dataDir, 'locations_details.csv'),
-    path.join(dataDir, 'locations_details2.csv'),
-    path.join(dataDir, 'locations_details3.csv'),
-    path.join(dataDir, 'locations_details4.csv'),
-    path.join(dataDir, 'locations_details5.csv'),
-    path.join(dataDir, 'locations_details6.csv'),
-    path.join(dataDir, 'locations_details7.csv'),
-    path.join(dataDir, 'locations_details8.csv'),
-    path.join(dataDir, 'locations_details9.csv')
-  ];
-  
-  // Use only first file in fast build mode, all files in full build mode
-  const filePaths = IS_FAST_BUILD ? [allLocationFilePaths[0]] : allLocationFilePaths;
-  
-  console.log(`supabase.js: ${IS_FAST_BUILD ? 'FAST BUILD MODE' : 'FULL BUILD MODE'} - Using ${filePaths.length} location files`);
-  
-  // Load and parse all files
+
   const allData = [];
-  for (const filePath of filePaths) {
-    const fileData = await loadCsvFile(filePath);
-    allData.push(...fileData);
-  }
-  
-  // Cache the result
   setCache('locations', allData);
-  
   return allData;
 }
 

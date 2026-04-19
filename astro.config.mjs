@@ -35,8 +35,14 @@ export default defineConfig({
       // Optional: Customize sitemap settings here
       changefreq: 'weekly', // Default change frequency for pages
       priority: 0.7, // Default priority (0.0 to 1.0)
-      // Exclude admin pages from sitemap
-      filter: (page) => !page.includes('/admin'),
+      // Exclude admin pages and API endpoints from sitemap
+      filter: (page) => {
+        // Exclude admin and API pages
+        const url = new URL(page);
+        if (url.pathname.startsWith('/admin')) return false;
+        if (url.pathname.startsWith('/api')) return false;
+        return !url.pathname.includes('/thank-you/');
+      },
       // Example: Add custom pages (uncomment if needed)
       // customPages: ['https://vetlist.org/external-page'],
     })

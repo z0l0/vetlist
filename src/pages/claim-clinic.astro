@@ -1,49 +1,700 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import UnifiedVetSearch from "../components/UnifiedVetSearch.astro";
+import { fetchAllProfessionals } from '../lib/supabase';
+
+function parseArrayValue(value) {
+    if (Array.isArray(value)) return value.filter(Boolean);
+    if (typeof value !== "string" || !value.trim()) return [];
+
+    try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch {
+        return [];
+    }
+}
+
+function parseObjectValue(value) {
+    if (value && typeof value === "object" && !Array.isArray(value)) return value;
+    if (typeof value !== "string" || !value.trim()) return null;
+
+    try {
+        const parsed = JSON.parse(value);
+        return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+            ? parsed
+            : null;
+    } catch {
+        return null;
+    }
+}
+
+const CLAIMED_MULTIPLIER = 1.12;
+const VERIFIED_MULTIPLIER = 1.08;
+const BACKLINK_MULTIPLIER = 1.18;
+const VERIFIED_TIER_FLOOR = 48;
+const TRUSTED_NETWORK_FLOOR = 66;
+const FEATURED_NETWORK_FLOOR = 74;
+
+function isTruthyValue(value) {
+    return value === true || value === "true";
+}
+
+function clampScore(value) {
+    if (!Number.isFinite(value)) return 0;
+    return Math.min(100, Math.round(value));
+}
+
+function applyTrustTierFloor(score, options = {}) {
+    const claimed = Boolean(options.includeClaimed);
+    const verified = Boolean(options.includeVerified);
+    const backlink = Boolean(options.includeBacklink);
+    let boostedScore = Number.parseFloat(score) || 0;
+
+    if (claimed && verified && backlink) {
+        boostedScore = Math.max(boostedScore, FEATURED_NETWORK_FLOOR);
+    } else if (verified && backlink) {
+        boostedScore = Math.max(boostedScore, TRUSTED_NETWORK_FLOOR);
+    } else if (claimed && verified) {
+        boostedScore = Math.max(boostedScore, VERIFIED_TIER_FLOOR);
+    }
+
+    return boostedScore;
+}
+
+function projectTrustScore(score, options = {}) {
+    let boostedScore = Number.parseFloat(score) || 0;
+
+    if (options.includeClaimed) {
+        boostedScore *= CLAIMED_MULTIPLIER;
+    }
+
+    if (options.includeVerified) {
+        boostedScore *= VERIFIED_MULTIPLIER;
+    }
+
+    if (options.includeBacklink) {
+        boostedScore *= BACKLINK_MULTIPLIER;
+    }
+
+    return clampScore(applyTrustTierFloor(boostedScore, options));
+}
+
+function calculateProfileDetailGain(record) {
+    let gain = 0;
+
+    if (!record?.website) gain += 2;
+    if (!Array.isArray(record?.services) || record.services.length === 0) gain += 2;
+    if (!Array.isArray(record?.animals) || record.animals.length === 0) gain += 1;
+    if (!hasOperationalHours(record?.hours)) gain += 2;
+
+    return gain;
+}
+
+function buildClaimRecord(profile) {
+    if (!profile || !profile.name) return null;
+
+    const record = {
+        practiceName: profile.name,
+        phone: profile.phone_number || profile.phone || "",
+        address: profile.address || "",
+        city: profile.city || "",
+        province: profile.province || "",
+        country: profile.country || "",
+        website: profile.website || "",
+        vetscore:
+            profile.vetscore != null && profile.vetscore !== ""
+                ? Number.parseFloat(profile.vetscore)
+                : null,
+        claimed:
+            profile.claimed === true ||
+            profile.claimed === false
+                ? profile.claimed
+                : profile.claimed === "true",
+        isVerified:
+            profile.is_verified === true ||
+            profile.is_verified === false
+                ? profile.is_verified
+                : profile.is_verified === "true",
+        hasBacklink:
+            profile.backlink_vetlist === true ||
+            profile.backlink_vetlist === false
+                ? profile.backlink_vetlist
+                : profile.backlink_vetlist === "true",
+        services: parseArrayValue(profile.specialization),
+        animals:
+            parseArrayValue(profile.pet_types_served).length > 0
+                ? parseArrayValue(profile.pet_types_served)
+                : parseArrayValue(profile.animals_treated),
+        hours: parseObjectValue(profile.hours_of_operation),
+        cityPageHref:
+            profile.country_slug && profile.province_slug && profile.city_slug
+                ? `/${profile.country_slug}/${profile.province_slug}/${profile.city_slug}/`
+                : "",
+    };
+
+    return record;
+}
+
+function hasOperationalHours(hoursValue) {
+    if (!hoursValue || typeof hoursValue !== "object") return false;
+
+    return Object.values(hoursValue).some((dayHours) => {
+        if (Array.isArray(dayHours)) {
+            return dayHours.some(
+                (entry) =>
+                    typeof entry === "string" &&
+                    entry.trim() &&
+                    !/^closed$/i.test(entry.trim()),
+            );
+        }
+
+        return (
+            typeof dayHours === "string" &&
+            dayHours.trim() &&
+            !/^closed$/i.test(dayHours.trim())
+        );
+    });
+}
+
+function getRankForScore(score, cityScores) {
+    if (!Array.isArray(cityScores) || cityScores.length === 0) return null;
+    const numericScore = Number.parseFloat(score) || 0;
+    return cityScores.filter((value) => (Number.parseFloat(value) || 0) > numericScore).length + 1;
+}
+
+function buildCityStats(profile, profiles) {
+    if (!profile?.country_slug || !profile?.province_slug || !profile?.city_slug) {
+        return null;
+    }
+
+    const cityProfiles = profiles
+        .filter(
+            (item) =>
+                item.country_slug === profile.country_slug &&
+                item.province_slug === profile.province_slug &&
+                item.city_slug === profile.city_slug,
+        )
+        .map((item) => ({
+            id: item.id != null ? String(item.id).trim() : "",
+            name: item.name || "",
+            score: Number.parseFloat(item.vetscore) || 0,
+        }))
+        .filter((item) => item.id);
+
+    if (!cityProfiles.length) return null;
+
+    cityProfiles.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+
+    const currentId = profile.id != null ? String(profile.id).trim() : "";
+    const currentIndex = cityProfiles.findIndex((item) => item.id === currentId);
+    const leader = cityProfiles[0] || null;
+
+    return {
+        cityRank: currentIndex >= 0 ? currentIndex + 1 : null,
+        cityTotal: cityProfiles.length,
+        cityScores: cityProfiles.map((item) => item.score),
+        cityLeaderName: leader?.name || "",
+        cityLeaderScore: leader ? Math.round(leader.score) : null,
+        cityPageHref: `/${profile.country_slug}/${profile.province_slug}/${profile.city_slug}/`,
+    };
+}
+
+function parseRequestJSON(value, fallback) {
+    if (!value) return fallback;
+
+    try {
+        return JSON.parse(value);
+    } catch {
+        try {
+            return JSON.parse(decodeURIComponent(value));
+        } catch {
+            return fallback;
+        }
+    }
+}
+
+// Get stats for FOMO
+const allProfiles = await fetchAllProfessionals();
+const totalClinics = allProfiles.length;
+const claimedCount = allProfiles.filter(p => p.claimed === true || p.claimed === 'true').length;
+const unclaimedCount = totalClinics - claimedCount;
+const showClaimedMomentum = claimedCount >= 25;
+const vetscores = allProfiles.map(p => parseFloat(p.vetscore) || 0).filter(s => s > 0);
+const avgVetScore = vetscores.length > 0 ? Math.round(vetscores.reduce((a, b) => a + b, 0) / vetscores.length) : 53;
+const topVetScore = vetscores.length > 0 ? Math.max(...vetscores) : 91;
+
+// Find clinics close to becoming #1 in their city
+const cityLeaders = {};
+allProfiles.forEach(p => {
+  if (!p.city || !p.vetscore) return;
+  const key = `${p.city}, ${p.province}`;
+  if (!cityLeaders[key] || parseFloat(p.vetscore) > parseFloat(cityLeaders[key].vetscore)) {
+    cityLeaders[key] = p;
+  }
+});
+const citiesWithOpportunity = Object.keys(cityLeaders).length;
 
 const title = "Claim Your Veterinary Practice | VetList.org";
 const description =
     "Claim and verify your veterinary practice profile to increase visibility and attract more pet owners.";
+const locationHierarchy = new Map();
+
+const requestedClinicId = Astro.url.searchParams.get("clinic")?.trim() || "";
+const matchedClinicProfile = requestedClinicId
+    ? allProfiles.find((profile) => String(profile.id || "").trim() === requestedClinicId)
+    : null;
+const matchedClinicRecord = buildClaimRecord(matchedClinicProfile);
+const matchedClinicCityStats = matchedClinicProfile
+    ? buildCityStats(matchedClinicProfile, allProfiles)
+    : null;
+
+const requestedServices = parseRequestJSON(
+    Astro.url.searchParams.get("services"),
+    matchedClinicRecord?.services || [],
+);
+const requestedAnimals = parseRequestJSON(
+    Astro.url.searchParams.get("animals"),
+    matchedClinicRecord?.animals || [],
+);
+const requestedHours = parseRequestJSON(
+    Astro.url.searchParams.get("hours"),
+    matchedClinicRecord?.hours || null,
+);
+
+const initialClaimRecord = {
+    practiceName:
+        Astro.url.searchParams.get("name") ||
+        matchedClinicRecord?.practiceName ||
+        "",
+    phone:
+        Astro.url.searchParams.get("phone") ||
+        matchedClinicRecord?.phone ||
+        "",
+    address:
+        Astro.url.searchParams.get("address") ||
+        matchedClinicRecord?.address ||
+        "",
+    city:
+        Astro.url.searchParams.get("city") ||
+        matchedClinicRecord?.city ||
+        "",
+    province:
+        Astro.url.searchParams.get("province") ||
+        matchedClinicRecord?.province ||
+        "",
+    country:
+        Astro.url.searchParams.get("country") ||
+        matchedClinicRecord?.country ||
+        "",
+    website:
+        Astro.url.searchParams.get("website") ||
+        matchedClinicRecord?.website ||
+        "",
+    vetscore: matchedClinicRecord?.vetscore ?? null,
+    claimed: matchedClinicRecord?.claimed,
+    isVerified: matchedClinicRecord?.isVerified,
+    hasBacklink: matchedClinicRecord?.hasBacklink,
+    services: Array.isArray(requestedServices) ? requestedServices : [],
+    animals: Array.isArray(requestedAnimals) ? requestedAnimals : [],
+    hours:
+        requestedHours && typeof requestedHours === "object" && !Array.isArray(requestedHours)
+            ? requestedHours
+            : null,
+    cityPageHref:
+        Astro.url.searchParams.get("cityPage") ||
+        matchedClinicCityStats?.cityPageHref ||
+        matchedClinicRecord?.cityPageHref ||
+        "",
+    cityRank: matchedClinicCityStats?.cityRank ?? null,
+    cityTotal: matchedClinicCityStats?.cityTotal ?? null,
+    cityScores: matchedClinicCityStats?.cityScores || null,
+    cityLeaderName: matchedClinicCityStats?.cityLeaderName || "",
+    cityLeaderScore: matchedClinicCityStats?.cityLeaderScore ?? null,
+};
+
+const hasInitialClaimContext = [
+    requestedClinicId,
+    initialClaimRecord.practiceName,
+    initialClaimRecord.phone,
+    initialClaimRecord.address,
+    initialClaimRecord.city,
+    initialClaimRecord.province,
+    initialClaimRecord.country,
+    initialClaimRecord.website,
+].some((value) => typeof value === "string" && value.trim() !== "");
+
+const initialBaseScore =
+    Number.isFinite(initialClaimRecord.vetscore)
+        ? Math.round(initialClaimRecord.vetscore)
+        : avgVetScore;
+
+const initialVerificationScore = projectTrustScore(initialBaseScore, {
+    includeClaimed: !isTruthyValue(initialClaimRecord.claimed),
+    includeVerified: !isTruthyValue(initialClaimRecord.isVerified),
+});
+const initialBacklinkScenarioScore = projectTrustScore(initialBaseScore, {
+    includeClaimed: !isTruthyValue(initialClaimRecord.claimed),
+    includeVerified: !isTruthyValue(initialClaimRecord.isVerified),
+    includeBacklink: !isTruthyValue(initialClaimRecord.hasBacklink),
+});
+const initialVerificationGain = hasInitialClaimContext
+    ? Math.max(0, initialVerificationScore - initialBaseScore)
+    : 0;
+const initialBacklinkGain = hasInitialClaimContext
+    ? Math.max(0, initialBacklinkScenarioScore - initialVerificationScore)
+    : 0;
+const initialProfileGain = hasInitialClaimContext
+    ? calculateProfileDetailGain(initialClaimRecord)
+    : 0;
+const initialPotentialGain =
+    initialVerificationGain + initialBacklinkGain + initialProfileGain;
+
+const initialProjectedScore = Math.min(100, initialBacklinkScenarioScore + initialProfileGain);
+const initialCurrentRank =
+    initialClaimRecord.cityRank || getRankForScore(initialBaseScore, initialClaimRecord.cityScores);
+const initialVerifiedRank = getRankForScore(initialVerificationScore, initialClaimRecord.cityScores);
+const initialBacklinkRank = getRankForScore(initialBacklinkScenarioScore, initialClaimRecord.cityScores);
+const initialProjectedRank = getRankForScore(initialProjectedScore, initialClaimRecord.cityScores);
+const initialScoreNote = hasInitialClaimContext && initialClaimRecord.practiceName
+    ? `${initialClaimRecord.practiceName} can jump from ${initialBaseScore} to ${initialProjectedScore}.` +
+      (initialCurrentRank && initialProjectedRank && initialClaimRecord.city
+          ? ` That can move it from #${initialCurrentRank} to around #${initialProjectedRank} in ${initialClaimRecord.city}.`
+          : "")
+    : "Projection assumes the full upgrade path: claim, verify, add the city-page backlink, and tighten the listing details.";
+const initialRankNote =
+    initialCurrentRank && initialClaimRecord.cityTotal && initialClaimRecord.city
+        ? `${initialClaimRecord.practiceName || "This clinic"} is currently ` +
+          `#${initialCurrentRank} of ${initialClaimRecord.cityTotal} in ${initialClaimRecord.city}. ` +
+          `Verification can push it to about #${initialVerifiedRank || initialCurrentRank}, ` +
+          `and the backlink tier can push it to about #${initialBacklinkRank || initialVerifiedRank || initialCurrentRank}.`
+        : "We’ll compare your upgraded projection against every clinic in the same city when clinic data is available.";
+
+allProfiles.forEach((profile) => {
+    if (!profile.country_slug || !profile.province_slug || !profile.city_slug) return;
+
+    const countrySlug = profile.country_slug;
+    const provinceSlug = profile.province_slug;
+    const citySlug = profile.city_slug;
+    const countryName = profile.country || countrySlug;
+    const provinceName = profile.province || provinceSlug;
+    const cityName = profile.city || citySlug;
+
+    if (!locationHierarchy.has(countrySlug)) {
+        locationHierarchy.set(countrySlug, {
+            name: countryName,
+            slug: countrySlug,
+            regions: new Map(),
+        });
+    }
+
+    const countryEntry = locationHierarchy.get(countrySlug);
+    if (!countryEntry.regions.has(provinceSlug)) {
+        countryEntry.regions.set(provinceSlug, {
+            name: provinceName,
+            slug: provinceSlug,
+            cities: new Map(),
+        });
+    }
+
+    const regionEntry = countryEntry.regions.get(provinceSlug);
+    if (!regionEntry.cities.has(citySlug)) {
+        regionEntry.cities.set(citySlug, {
+            name: cityName,
+            slug: citySlug,
+            href: `/${countrySlug}/${provinceSlug}/${citySlug}/`,
+        });
+    }
+});
+
+const claimLocationIndex = Array.from(locationHierarchy.values())
+    .map((country) => ({
+        name: country.name,
+        slug: country.slug,
+        regions: Array.from(country.regions.values())
+            .map((region) => ({
+                name: region.name,
+                slug: region.slug,
+                cities: Array.from(region.cities.values()).sort((a, b) =>
+                    a.name.localeCompare(b.name),
+                ),
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name)),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 ---
 
-<Layout title={title} description={description}>
-    <div class="max-w-4xl mx-auto pt-8">
-        <!-- Search Section -->
-        <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
-            <h2 class="text-xl font-semibold text-gray-900 mb-3">
-                Find Your Clinic First
-            </h2>
-            <p class="text-gray-600 mb-4">
-                Use the search below to find your clinic and click "Claim" if you see it. If you don't find your clinic, then click "Add Your Clinic" to create a new listing.
+<Layout title={title} description={description} noindex={true}>
+    <div class="max-w-5xl mx-auto pt-8 px-4">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-black text-gray-900 mb-4 pt-4">
+                Claim Your Veterinary Practice
+            </h1>
+            <p class="text-xl text-gray-600 font-medium">
+                Update your information and boost your VetScore™
             </p>
-            <UnifiedVetSearch />
-            <div class="mt-4 text-center">
-                <a 
-                    href="/add-vet/" 
-                    class="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-3 rounded-lg hover:from-orange-600 hover:to-red-700 transition-all font-medium"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                    Don't see your clinic? Add it here
-                </a>
+        </div>
+
+        <div
+            id="claim-prefill-notice"
+            class:list={[
+                "rounded-2xl border border-emerald-200 bg-emerald-50 p-5 mb-6",
+                !hasInitialClaimContext && "hidden",
+            ]}
+        >
+            <p class="text-sm font-semibold text-emerald-800">
+                Claiming clinic:
+                <span id="claim-prefill-clinic-name" class="font-black">
+                    {initialClaimRecord.practiceName || "Selected clinic"}
+                </span>
+            </p>
+            <p class="text-sm text-emerald-700 mt-1">
+                This form is already pre-filled. If this is the wrong clinic, use <a href="/claim-clinic/" class="underline font-semibold">manual finder</a>.
+            </p>
+        </div>
+
+        <!-- FOMO Banner -->
+        <div class="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl p-6 mb-8 shadow-xl">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="text-4xl">🏆</div>
+                    <div>
+                        <h2 class="text-xl font-bold">Your Competitors Are Already Here</h2>
+                        <p class="text-amber-100">
+                            {showClaimedMomentum
+                                ? `${claimedCount.toLocaleString()} clinics have claimed their listing. ${unclaimedCount.toLocaleString()} spots still available.`
+                                : 'Clinic owners are already updating their listings. Claim yours before a competitor owns the first impression.'}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex gap-4 text-center">
+                    <div class="bg-white/20 backdrop-blur rounded-lg px-4 py-2">
+                        <div class="text-2xl font-bold">{citiesWithOpportunity}+</div>
+                        <div class="text-xs text-amber-100">Cities</div>
+                    </div>
+                    <div class="bg-white/20 backdrop-blur rounded-lg px-4 py-2">
+                        <div class="text-2xl font-bold">{topVetScore}</div>
+                        <div class="text-xs text-amber-100">Top Score</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4 pt-4">
-                Claim Your Veterinary Practice
-            </h1>
-            <p class="text-lg text-gray-600">
-                Update your information and boost your online presence
-            </p>
+        <!-- VetScore Boost Section -->
+        <div class="bg-gradient-to-br from-slate-950 via-sky-950 to-teal-950 text-white rounded-2xl p-8 mb-8 shadow-xl">
+            <div class="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] items-start">
+                <div>
+                    <div class="inline-flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-sm mb-4">
+                        <span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                        VetScore™ Boost
+                    </div>
+                    <h2 class="text-3xl font-bold mb-4">See the Score Jump You Unlock</h2>
+                    <p class="text-sky-100/85 mb-6 text-lg leading-8">
+                        We start with your clinic’s current VetScore, then show the strongest path: claim the listing, verify ownership, add the city-page backlink, and move into the higher-trust tier that can shake up local rankings fast.
+                    </p>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="rounded-2xl border border-white/10 bg-white/8 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-sky-200/70">Step 1</p>
+                            <h3 class="mt-2 text-xl font-black text-white">Claim and verify ownership</h3>
+                            <p class="mt-2 text-sm leading-7 text-sky-100/80">
+                                This pushes the listing into a stronger trust tier right away and unlocks the verified badge.
+                            </p>
+                        </div>
+                        <div class="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-200/80">Step 2</p>
+                            <h3 class="mt-2 text-xl font-black text-white">Add the city-page backlink</h3>
+                            <p class="mt-2 text-sm leading-7 text-emerald-100/85">
+                                This is the real accelerator. The backlink pushes the clinic into the trusted network tier and is designed to create a much bigger ranking jump.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-6 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <span class="text-emerald-400 text-xl">✓</span>
+                            <span>See where the clinic ranks in its city right now</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-emerald-400 text-xl">✓</span>
+                            <span>Estimate how verification and backlinking can move that rank</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-emerald-400 text-xl">✓</span>
+                            <span>Copy a ready-to-use badge that links to the city page on VetList</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <div class="bg-white/10 backdrop-blur rounded-2xl p-6">
+                        <h3 class="font-bold text-lg mb-4 text-center">Your VetScore Projection</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sky-100/80">Current Score</span>
+                                <span id="claim-current-score" class="text-2xl font-bold">{initialBaseScore}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-sky-100">
+                                <span>Claim + owner verification</span>
+                                <span id="claim-verification-gain" class="font-bold text-cyan-300">+{initialVerificationGain}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-sky-100">
+                                <span>Trusted backlink tier</span>
+                                <span id="claim-backlink-gain" class="font-bold text-emerald-300">+{initialBacklinkGain}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-sky-100">
+                                <span>Profile detail additions</span>
+                                <span id="claim-profile-gain" class="font-bold text-amber-300">+{initialProfileGain}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-emerald-300">
+                                <span>Upside on the table</span>
+                                <span id="claim-potential-gain" class="font-bold">+{initialPotentialGain}</span>
+                            </div>
+                            <div class="border-t border-white/20 pt-4 flex items-center justify-between">
+                                <span class="font-bold">Projected Score</span>
+                                <span id="claim-projected-score" class="text-3xl font-bold text-emerald-300">{initialProjectedScore}</span>
+                            </div>
+                            <p id="claim-score-note" class="text-xs text-sky-100/70 text-center">
+                                {initialScoreNote}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl border border-white/12 bg-white/6 p-6">
+                        <div class="flex items-center justify-between gap-4">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-sky-200/70">City impact</p>
+                                <h3 class="mt-2 text-xl font-black text-white">What this could change locally</h3>
+                            </div>
+                            <span class="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-sky-100/80">Estimated</span>
+                        </div>
+                        <div class="mt-4 grid grid-cols-3 gap-3 text-center">
+                            <div class="rounded-2xl border border-white/10 bg-slate-950/30 p-4">
+                                <div id="claim-rank-now" class="text-2xl font-black text-white">{initialCurrentRank ? `#${initialCurrentRank}` : "--"}</div>
+                                <div class="mt-1 text-xs uppercase tracking-[0.16em] text-sky-100/60">Now</div>
+                            </div>
+                            <div class="rounded-2xl border border-cyan-300/20 bg-cyan-300/8 p-4">
+                                <div id="claim-rank-verified" class="text-2xl font-black text-cyan-200">{initialVerifiedRank ? `#${initialVerifiedRank}` : "--"}</div>
+                                <div class="mt-1 text-xs uppercase tracking-[0.16em] text-sky-100/60">Verified</div>
+                            </div>
+                            <div class="rounded-2xl border border-emerald-300/20 bg-emerald-300/8 p-4">
+                                <div id="claim-rank-backlink" class="text-2xl font-black text-emerald-200">{initialBacklinkRank ? `#${initialBacklinkRank}` : "--"}</div>
+                                <div class="mt-1 text-xs uppercase tracking-[0.16em] text-sky-100/60">Trusted</div>
+                            </div>
+                        </div>
+                        <p id="claim-rank-note" class="mt-4 text-sm leading-7 text-sky-100/75 text-center">
+                            {initialRankNote}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Section -->
+        <div
+            id="claim-workflow-section"
+            class:list={[
+                "rounded-[28px] border border-slate-300/70 bg-white p-8 mb-10 shadow-[0_20px_48px_rgba(15,23,42,0.10)]",
+                hasInitialClaimContext && "hidden",
+            ]}
+        >
+            <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Claim workflow</p>
+                    <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">
+                        Pick your location first
+                    </h2>
+                    <p class="mt-4 text-lg leading-8 text-slate-600">
+                        Keep it simple: choose country, province/state, and city. Then open the city page and pick your clinic from there.
+                    </p>
+                    <div class="mt-6 grid gap-4">
+                        <div>
+                            <label for="claim-country-select" class="block text-sm font-semibold uppercase tracking-[0.14em] text-slate-500 mb-3">
+                                Country
+                            </label>
+                            <div class="relative">
+                                <select
+                                    id="claim-country-select"
+                                    class="claim-finder-select w-full rounded-full border border-slate-300 bg-white px-5 py-4 pr-12 text-base text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition focus:border-cyan-400 focus:outline-none focus:ring-4 focus:ring-cyan-100"
+                                >
+                                    <option value="">Select a country</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-5 flex items-center text-slate-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-5 w-5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="claim-region-select" class="block text-sm font-semibold uppercase tracking-[0.14em] text-slate-500 mb-3">
+                                Province / State
+                            </label>
+                            <div class="relative">
+                                <select
+                                    id="claim-region-select"
+                                    class="claim-finder-select w-full rounded-full border border-slate-300 bg-white px-5 py-4 pr-12 text-base text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition focus:border-cyan-400 focus:outline-none focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                                    disabled
+                                >
+                                    <option value="">Select country first</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-5 flex items-center text-slate-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-5 w-5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="claim-city-select" class="block text-sm font-semibold uppercase tracking-[0.14em] text-slate-500 mb-3">
+                                City
+                            </label>
+                            <div class="relative">
+                                <select
+                                    id="claim-city-select"
+                                    class="claim-finder-select w-full rounded-full border border-slate-300 bg-white px-5 py-4 pr-12 text-base text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition focus:border-cyan-400 focus:outline-none focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                                    disabled
+                                >
+                                    <option value="">Select province/state first</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-5 flex items-center text-slate-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-5 w-5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <a
+                                id="claim-city-link"
+                                href="#"
+                                class="inline-flex rounded-full border border-cyan-300/25 bg-cyan-300/10 px-5 py-3 text-sm font-semibold text-cyan-800 transition hover:bg-cyan-300/15 pointer-events-none opacity-50"
+                            >
+                                Browse clinics in selected city
+                            </a>
+                            <p id="claim-location-note" class="text-sm text-slate-500">
+                                Choose a city to open its listing page.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-[24px] border border-slate-200 bg-slate-50 p-6">
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Direct contact</p>
+                    <h3 class="mt-2 text-2xl font-black tracking-tight text-slate-950">Email us if the finder misses</h3>
+                    <p class="mt-4 text-sm leading-7 text-slate-600">
+                        If you can’t find the listing quickly, send the claim details directly and we’ll help sort it out.
+                    </p>
+                    <a href="mailto:directorytraffic@gmail.com" class="mt-5 inline-flex rounded-full border border-cyan-300/25 bg-cyan-300/10 px-5 py-3 text-sm font-semibold text-cyan-800 transition hover:bg-cyan-300/15">
+                        directorytraffic@gmail.com
+                    </a>
+                    <div class="mt-5 space-y-3 text-sm text-slate-600">
+                        <p>Include clinic name, city, website, and the best owner or manager email.</p>
+                        <p>If your clinic is not listed yet, use <a href="/add-vet/" class="font-semibold text-cyan-700 hover:text-cyan-800">Add Your Clinic</a> instead.</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Claim Form -->
-        <div class="bg-white rounded-xl shadow-card p-8 mb-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-3">
+        <div class="bg-white rounded-2xl shadow-2xl p-10 mb-10 border border-gray-100">
+            <h2 class="text-3xl font-black text-gray-900 mb-6">
                 Update Your Practice Information
             </h2>
             <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
@@ -83,6 +734,7 @@ const description =
                             type="text"
                             id="practice-name"
                             required
+                            value={initialClaimRecord.practiceName}
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         />
                     </div>
@@ -95,6 +747,7 @@ const description =
                             type="tel"
                             id="phone"
                             required
+                            value={initialClaimRecord.phone}
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         />
                     </div>
@@ -109,6 +762,7 @@ const description =
                         type="text"
                         id="address"
                         required
+                        value={initialClaimRecord.address}
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     />
                 </div>
@@ -123,6 +777,7 @@ const description =
                             type="text"
                             id="city"
                             required
+                            value={initialClaimRecord.city}
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         />
                     </div>
@@ -135,6 +790,7 @@ const description =
                             type="text"
                             id="province"
                             required
+                            value={initialClaimRecord.province}
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         />
                     </div>
@@ -147,6 +803,7 @@ const description =
                             type="text"
                             id="country"
                             required
+                            value={initialClaimRecord.country}
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         />
                     </div>
@@ -174,14 +831,183 @@ const description =
                         <input
                             type="url"
                             id="website"
+                            value={initialClaimRecord.website}
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         />
                     </div>
                 </div>
 
+                <div class="rounded-[28px] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-cyan-50 p-6">
+                    <div class="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Visibility boosts</p>
+                            <h3 class="mt-2 text-2xl font-black tracking-tight text-slate-950">Verify first, then add the city-page backlink</h3>
+                            <p class="mt-4 text-sm leading-7 text-slate-600">
+                                Owner verification creates the first jump. The real move comes from adding a VetList badge on your homepage or footer that links back to your city page on VetList.
+                            </p>
+                            <p class="mt-3 text-sm leading-7 text-slate-600">
+                                That backlink should point to the city page, not the homepage, so the SEO signal supports the market page where local pet owners are browsing and pushes the listing into the stronger network tier.
+                            </p>
+                        </div>
+                        <div class="space-y-4">
+                            <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                                <input
+                                    type="checkbox"
+                                    id="verification-interest"
+                                    checked
+                                    class="mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                />
+                                <span>
+                                    <span class="block text-sm font-semibold text-slate-950">Include owner verification</span>
+                                    <span class="mt-1 block text-sm text-slate-600">
+                                        Unlocks the verified badge and the first major trust-tier jump.
+                                    </span>
+                                </span>
+                            </label>
+                            <label class="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white px-4 py-4 shadow-sm">
+                                <input
+                                    type="checkbox"
+                                    id="backlink-interest"
+                                    checked
+                                    class="mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                />
+                                <span>
+                                    <span class="block text-sm font-semibold text-slate-950">Add a VetList city-page badge backlink</span>
+                                    <span class="mt-1 block text-sm text-slate-600">
+                                        This is the biggest boost. It pushes the clinic into the stronger backlink tier and we’ll generate the ready-to-paste badge code below.
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    id="claim-badge-section"
+                    class:list={[
+                        "rounded-[28px] border border-slate-200 bg-slate-50 p-6",
+                        !hasInitialClaimContext && "hidden",
+                    ]}
+                >
+                    <div class="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] items-start">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">City backlink badge</p>
+                            <h3 class="mt-2 text-2xl font-black tracking-tight text-slate-950">Embed your VetList badge</h3>
+                            <p class="mt-4 text-sm leading-7 text-slate-600">
+                                Use this on your homepage or footer. It links to your VetList city page and gives visitors a clean local ranking badge they can drop in quickly.
+                            </p>
+
+                            <div class="mt-6 space-y-5">
+                                <div>
+                                    <div class="text-sm font-semibold text-slate-700 mb-2">Size</div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button type="button" data-badge-size="md" class="claim-badge-tab active">Standard</button>
+                                        <button type="button" data-badge-size="sm" class="claim-badge-tab">Small</button>
+                                    </div>
+                                    <p class="mt-2 text-xs text-slate-500">Small uses fewer words and pushes the VetScore harder, so it fits more naturally in tight footers and sidebars.</p>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-semibold text-slate-700 mb-2">Theme</div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button type="button" data-badge-theme="light" class="claim-badge-tab active">Light</button>
+                                        <button type="button" data-badge-theme="dark" class="claim-badge-tab">Dark</button>
+                                        <button type="button" data-badge-theme="mint" class="claim-badge-tab">Mint</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-semibold text-slate-700 mb-2">Shape</div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button type="button" data-badge-shape="rounded" class="claim-badge-tab active">Rounded</button>
+                                        <button type="button" data-badge-shape="square" class="claim-badge-tab">Square</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="badge-label-input" class="block text-sm font-semibold text-slate-700 mb-2">Badge headline</label>
+                                    <input
+                                        type="text"
+                                        id="badge-label-input"
+                                        maxlength="34"
+                                        placeholder="#1 Miami Veterinarian"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                    />
+                                    <p class="mt-2 text-xs text-slate-500">Examples: #1 Miami Veterinarian, Top Miami Veterinarian, Miami Veterinarian.</p>
+                                </div>
+                                <div>
+                                    <label for="badge-anchor-input" class="block text-sm font-semibold text-slate-700 mb-2">Anchor text</label>
+                                    <input
+                                        type="text"
+                                        id="badge-anchor-input"
+                                        maxlength="44"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                    />
+                                    <div id="badge-anchor-suggestions" class="mt-3 flex flex-wrap gap-2"></div>
+                                    <p class="mt-2 text-xs text-slate-500">Keep anchors natural. A few good local variants help more than repetitive exact-match spam.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-[24px] bg-slate-950 p-5 text-white shadow-[0_20px_48px_rgba(15,23,42,0.2)]">
+                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Preview</p>
+                            <div class="mt-4 rounded-2xl bg-white p-4">
+                                <div id="claim-badge-preview-stack" class="flex flex-col items-center gap-3">
+                                    <a
+                                        id="claim-badge-preview-link"
+                                        href="#"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="inline-block"
+                                    >
+                                        <img
+                                            id="claim-badge-preview-image"
+                                            src=""
+                                            alt="VetList badge preview"
+                                            class="block h-auto rounded-xl"
+                                        />
+                                    </a>
+                                    <a
+                                        id="claim-badge-text-preview"
+                                        href="#"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="hidden text-center text-sm font-semibold text-cyan-700 underline decoration-cyan-300 underline-offset-4"
+                                    ></a>
+                                </div>
+                            </div>
+
+                            <textarea
+                                id="claim-badge-embed-code"
+                                readonly
+                                class="mt-4 h-40 w-full rounded-2xl border border-white/10 bg-slate-900 p-4 text-sm text-slate-100"
+                            ></textarea>
+
+                            <div class="mt-4 flex flex-wrap gap-3">
+                                <button
+                                    type="button"
+                                    id="copy-badge-code"
+                                    class="rounded-full bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+                                >
+                                    Copy Embed Code
+                                </button>
+                                <a
+                                    id="claim-open-city-page"
+                                    href="#"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                                >
+                                    Open City Page
+                                </a>
+                            </div>
+                            <p id="claim-badge-copy-message" class="mt-3 hidden text-sm text-emerald-300">
+                                Embed code copied.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Services -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-3"
+                    <label class="block text-lg font-bold text-gray-900 mb-4"
                         >Services & Specializations Offered</label
                     >
                     <div
@@ -534,9 +1360,90 @@ const description =
                     </div>
                 </div>
 
+                <!-- Animals Treated -->
+                <div>
+                    <label class="block text-lg font-bold text-gray-900 mb-4"
+                        >Animals Treated</label
+                    >
+                    <div class="grid md:grid-cols-3 gap-3 mb-4" id="animals-grid">
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="dogs"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700">🐕 Dogs</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="cats"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700">🐈 Cats</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="birds"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700">🦜 Birds</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="rabbits"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700">🐰 Rabbits</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="reptiles"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700">🦎 Reptiles</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="fish"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700">🐠 Fish</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="horses"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700">🐴 Horses</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="farm_animals"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700">🐄 Farm Animals</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                value="exotic_pets"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span class="ml-2 text-sm text-gray-700">🦎 Exotic Pets</span>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Hours -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-4"
+                    <label class="block text-lg font-bold text-gray-900 mb-4"
                         >Hours of Operation</label
                     >
                     <div class="space-y-3" id="hours-container">
@@ -587,32 +1494,6 @@ const description =
                     </div>
                 </div>
 
-                <!-- FAQ Section -->
-                <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                    <div class="flex items-center gap-2 mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-blue-600">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-                        </svg>
-                        <label class="text-lg font-semibold text-gray-900"
-                            >Common Questions Your Practice Handles</label
-                        >
-                    </div>
-                    <p class="text-sm text-gray-600 mb-4">
-                        Select the questions your practice commonly answers. This helps pet owners understand your expertise areas and improves your profile visibility.
-                    </p>
-                    <div class="grid md:grid-cols-1 gap-3 mb-4" id="faq-grid">
-                        <!-- FAQ checkboxes will be populated by JavaScript -->
-                    </div>
-                    <div class="flex justify-between items-center mt-2">
-                        <p class="text-xs text-blue-600">
-                            💡 We've pre-selected questions based on your services, but you can adjust these selections.
-                        </p>
-                        <span id="faq-counter" class="text-xs font-medium text-gray-600 bg-white px-2 py-1 rounded">
-                            0 selected
-                        </span>
-                    </div>
-                </div>
-
                 <!-- Submit Buttons -->
                 <div
                     class="flex flex-col sm:flex-row gap-4 justify-center items-center"
@@ -623,321 +1504,8 @@ const description =
                     >
                         Generate Claim Email
                     </button>
-
-                    <button
-                        type="button"
-                        id="reveal-premium"
-                        class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-4 rounded-full font-medium text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                    >
-                        <span class="flex items-center gap-2">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="2"
-                                stroke="currentColor"
-                                class="w-5 h-5"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
-                                ></path>
-                            </svg>
-                            Rank Higher in ChatGPT
-                        </span>
-                    </button>
                 </div>
             </form>
-        </div>
-
-        <!-- Hidden Premium Sales Pitch -->
-        <div
-            id="premium-section"
-            class="hidden mb-8 opacity-0 transform translate-y-4 transition-all duration-500 ease-out"
-        >
-            <!-- AI Explanation Header -->
-            <div
-                class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-8 mb-6 text-white relative overflow-hidden"
-            >
-                <div
-                    class="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10"
-                >
-                </div>
-                <div class="relative z-10">
-                    <div class="text-center mb-6">
-                        <div
-                            class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-4"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="2"
-                                stroke="currentColor"
-                                class="w-8 h-8"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
-                                ></path>
-                            </svg>
-                        </div>
-                        <h2 class="text-3xl font-bold mb-3">
-                            The AI Revolution is Here
-                        </h2>
-                        <p
-                            class="text-slate-300 text-lg leading-relaxed max-w-3xl mx-auto"
-                        >
-                            <strong
-                                >ChatGPT, Claude, Perplexity, and Grok</strong
-                            > are changing how pet owners find veterinarians. These
-                            AI systems don't just search randomly - they <strong
-                                >prioritize businesses that rank higher on
-                                trusted directories</strong
-                            >. When someone asks "find me the best vet in
-                            [city]", AI looks at directory rankings as a key
-                            signal of quality and authority.
-                        </p>
-                    </div>
-
-                    <div class="bg-white/10 rounded-lg p-6 backdrop-blur-sm">
-                        <div class="flex items-center gap-4 mb-4">
-                            <div class="bg-green-500 rounded-full p-2">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke-width="2"
-                                    stroke="currentColor"
-                                    class="w-5 h-5"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    ></path>
-                                </svg>
-                            </div>
-                            <h3 class="text-xl font-semibold">
-                                The Bottom Line:
-                            </h3>
-                        </div>
-                        <p class="text-slate-200 text-lg">
-                            <strong
-                                >Higher directory rankings = More AI
-                                recommendations = More pet owners finding you
-                                first</strong
-                            >
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Benefits Pills - Alternating Layout -->
-            <div class="space-y-6">
-                <!-- Benefit 1 - Left aligned -->
-                <div class="flex items-center gap-6">
-                    <div
-                        class="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full p-4 shadow-lg"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="2"
-                            stroke="currentColor"
-                            class="w-8 h-8 text-white"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12.001 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.228V2.721m-2.48 5.228a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"
-                            ></path>
-                        </svg>
-                    </div>
-                    <div
-                        class="bg-white rounded-2xl p-6 shadow-lg flex-1 border-l-4 border-emerald-500"
-                    >
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">
-                            #1 City Rankings
-                        </h3>
-                        <p class="text-gray-600">
-                            Rank highest in your city searches, beating all
-                            competitors. <strong>We limit premium spots</strong>
-                            to maintain exclusivity - only 3-5 practices per city
-                            get this advantage.
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Benefit 2 - Right aligned -->
-                <div class="flex items-center gap-6 flex-row-reverse">
-                    <div
-                        class="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full p-4 shadow-lg"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="2"
-                            stroke="currentColor"
-                            class="w-8 h-8 text-white"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
-                            ></path>
-                        </svg>
-                    </div>
-                    <div
-                        class="bg-white rounded-2xl p-6 shadow-lg flex-1 border-r-4 border-blue-500"
-                    >
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">
-                            Homepage Featured
-                        </h3>
-                        <p class="text-gray-600">
-                            Prominently displayed on our main page where
-                            thousands of pet owners search daily. <strong
-                                >Maximum exposure</strong
-                            > when people are actively looking for veterinary care.
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Benefit 3 - Left aligned -->
-                <div class="flex items-center gap-6">
-                    <div
-                        class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-full p-4 shadow-lg"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="2"
-                            stroke="currentColor"
-                            class="w-8 h-8 text-white"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                            ></path>
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
-                    </div>
-                    <div
-                        class="bg-white rounded-2xl p-6 shadow-lg flex-1 border-l-4 border-purple-500"
-                    >
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">
-                            Competitor Steal Traffic
-                        </h3>
-                        <p class="text-gray-600">
-                            Appear as "related" on ALL nearby competitor pages. <strong
-                                >100%+ more visibility</strong
-                            > - when pet owners visit your competitors, they see
-                            YOU too.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pricing Section -->
-            <div class="mt-12 text-center">
-                <div
-                    class="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-8 shadow-2xl relative overflow-hidden"
-                >
-                    <div
-                        class="absolute inset-0 bg-gradient-to-r from-yellow-400/20 to-orange-500/20 animate-pulse"
-                    >
-                    </div>
-
-                    <div class="relative z-10">
-                        <div
-                            class="text-6xl font-black mb-4 text-white drop-shadow-lg"
-                        >
-                            $249/year
-                        </div>
-                        <div
-                            class="bg-red-600 text-white px-6 py-2 rounded-full text-lg font-bold mb-4 inline-block animate-bounce"
-                        >
-                            🔥 LIMITED TIME - 58% OFF
-                        </div>
-                        <div class="text-white mb-6">
-                            <span class="line-through text-2xl opacity-75"
-                                >$600/year</span
-                            >
-                            <span class="text-3xl font-bold ml-4"
-                                >Save $351!</span
-                            >
-                        </div>
-                        <p class="text-white/90 text-lg mb-8">
-                            Regular price: <strong>$50/month</strong> after first
-                            year
-                        </p>
-
-                        <div
-                            class="bg-white/20 rounded-xl p-6 backdrop-blur-sm"
-                        >
-                            <label
-                                class="flex items-start justify-center cursor-pointer"
-                            >
-                                <input
-                                    type="checkbox"
-                                    id="verification-interest"
-                                    class="mt-1 rounded border-white/30 text-yellow-400 focus:ring-yellow-400 bg-white/10 w-5 h-5"
-                                />
-                                <div class="ml-4 text-left">
-                                    <span
-                                        class="text-lg font-semibold text-white"
-                                        >Yes, I want to dominate my local market</span
-                                    >
-                                    <p class="text-white/80 mt-1">
-                                        We'll include this in your claim email
-                                        and follow up with details about getting
-                                        started.
-                                    </p>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bottom Submit Button -->
-            <div class="mt-8 text-center">
-                <button
-                    type="submit"
-                    form="claim-form"
-                    class="bg-primary-600 hover:bg-primary-700 text-white px-10 py-4 rounded-full font-medium text-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
-                >
-                    <span class="flex items-center gap-2 justify-center">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="2"
-                            stroke="currentColor"
-                            class="w-5 h-5"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
-                            ></path>
-                        </svg>
-                        Generate Claim Email
-                    </span>
-                </button>
-                <p class="text-gray-500 text-sm mt-3">
-                    Your premium preferences will be included in the email
-                </p>
-            </div>
         </div>
 
         <!-- Email Modal -->
@@ -1013,7 +1581,808 @@ const description =
     </div>
 </Layout>
 
-<script is:inline>
+<script
+    is:inline
+    define:vars={{
+        avgVetScore,
+        serverClaimContext: hasInitialClaimContext ? initialClaimRecord : null,
+    }}
+>
+    const claimCountrySelect = document.getElementById("claim-country-select");
+    const claimRegionSelect = document.getElementById("claim-region-select");
+    const claimCitySelect = document.getElementById("claim-city-select");
+    const claimCityLink = document.getElementById("claim-city-link");
+    const claimLocationNote = document.getElementById("claim-location-note");
+    const claimWorkflowSection = document.getElementById("claim-workflow-section");
+    const claimPrefillNotice = document.getElementById("claim-prefill-notice");
+    const claimPrefillClinicName = document.getElementById("claim-prefill-clinic-name");
+    const currentScoreEl = document.getElementById("claim-current-score");
+    const verificationGainEl = document.getElementById("claim-verification-gain");
+    const backlinkGainEl = document.getElementById("claim-backlink-gain");
+    const profileGainEl = document.getElementById("claim-profile-gain");
+    const potentialGainEl = document.getElementById("claim-potential-gain");
+    const projectedScoreEl = document.getElementById("claim-projected-score");
+    const scoreNoteEl = document.getElementById("claim-score-note");
+    const rankNowEl = document.getElementById("claim-rank-now");
+    const rankVerifiedEl = document.getElementById("claim-rank-verified");
+    const rankBacklinkEl = document.getElementById("claim-rank-backlink");
+    const rankNoteEl = document.getElementById("claim-rank-note");
+    const verificationInterestEl = document.getElementById("verification-interest");
+    const backlinkInterestEl = document.getElementById("backlink-interest");
+    const badgeSectionEl = document.getElementById("claim-badge-section");
+    const badgePreviewLinkEl = document.getElementById("claim-badge-preview-link");
+    const badgePreviewImageEl = document.getElementById("claim-badge-preview-image");
+    const badgeTextPreviewEl = document.getElementById("claim-badge-text-preview");
+    const badgeEmbedCodeEl = document.getElementById("claim-badge-embed-code");
+    const badgeCopyButtonEl = document.getElementById("copy-badge-code");
+    const badgeCopyMessageEl = document.getElementById("claim-badge-copy-message");
+    const badgeOpenCityPageEl = document.getElementById("claim-open-city-page");
+    const badgeLabelInputEl = document.getElementById("badge-label-input");
+    const badgeAnchorInputEl = document.getElementById("badge-anchor-input");
+    const badgeAnchorSuggestionsEl = document.getElementById("badge-anchor-suggestions");
+    const defaultScore = avgVetScore;
+    const CLAIMED_MULTIPLIER = 1.12;
+    const VERIFIED_MULTIPLIER = 1.08;
+    const BACKLINK_MULTIPLIER = 1.18;
+    const VERIFIED_TIER_FLOOR = 48;
+    const TRUSTED_NETWORK_FLOOR = 66;
+    const FEATURED_NETWORK_FLOOR = 74;
+    const badgeState = {
+        size: "md",
+        theme: "light",
+        shape: "rounded",
+        label: "",
+        anchorText: "",
+    };
+    let activeClinicRecord = serverClaimContext;
+    let activeClinicId = "";
+
+    function setClaimSelectOptions(selectEl, items, placeholder) {
+        if (!selectEl) return;
+        selectEl.innerHTML = `<option value="">${placeholder}</option>` +
+            items
+                .map((item) => `<option value="${item.slug}">${item.name}</option>`)
+                .join("");
+    }
+
+    function resetClaimCityLink() {
+        if (!claimCityLink || !claimLocationNote) return;
+        claimCityLink.setAttribute("href", "#");
+        claimCityLink.classList.add("pointer-events-none", "opacity-50");
+        claimLocationNote.textContent = "Choose a city to open its listing page.";
+    }
+
+    function initializeClaimLocationPicker() {
+        if (!claimCountrySelect || !claimRegionSelect || !claimCitySelect) return;
+        const claimLocationDataEl = document.getElementById("claim-location-data");
+        const claimLocationData = claimLocationDataEl
+            ? JSON.parse(claimLocationDataEl.textContent || "[]")
+            : [];
+        if (!Array.isArray(claimLocationData) || !claimLocationData.length) return;
+
+        setClaimSelectOptions(claimCountrySelect, claimLocationData, "Select a country");
+        setClaimSelectOptions(claimRegionSelect, [], "Select country first");
+        setClaimSelectOptions(claimCitySelect, [], "Select province/state first");
+        claimRegionSelect.disabled = true;
+        claimCitySelect.disabled = true;
+        resetClaimCityLink();
+
+        claimCountrySelect.addEventListener("change", function () {
+            const selectedCountry = claimLocationData.find(
+                (country) => country.slug === this.value,
+            );
+
+            setClaimSelectOptions(
+                claimRegionSelect,
+                selectedCountry?.regions || [],
+                selectedCountry ? "Select a province/state" : "Select country first",
+            );
+            setClaimSelectOptions(claimCitySelect, [], "Select province/state first");
+            claimRegionSelect.disabled = !selectedCountry;
+            claimCitySelect.disabled = true;
+            resetClaimCityLink();
+
+            const countryInput = document.getElementById("country");
+            if (countryInput) countryInput.value = selectedCountry?.name || "";
+            const provinceInput = document.getElementById("province");
+            if (provinceInput) provinceInput.value = "";
+            const cityInput = document.getElementById("city");
+            if (cityInput) cityInput.value = "";
+        });
+
+        claimRegionSelect.addEventListener("change", function () {
+            const selectedCountry = claimLocationData.find(
+                (country) => country.slug === claimCountrySelect.value,
+            );
+            const selectedRegion = selectedCountry?.regions?.find(
+                (region) => region.slug === this.value,
+            );
+
+            setClaimSelectOptions(
+                claimCitySelect,
+                selectedRegion?.cities || [],
+                selectedRegion ? "Select a city" : "Select province/state first",
+            );
+            claimCitySelect.disabled = !selectedRegion;
+            resetClaimCityLink();
+
+            const provinceInput = document.getElementById("province");
+            if (provinceInput) provinceInput.value = selectedRegion?.name || "";
+            const cityInput = document.getElementById("city");
+            if (cityInput) cityInput.value = "";
+        });
+
+        claimCitySelect.addEventListener("change", function () {
+            const selectedCountry = claimLocationData.find(
+                (country) => country.slug === claimCountrySelect.value,
+            );
+            const selectedRegion = selectedCountry?.regions?.find(
+                (region) => region.slug === claimRegionSelect.value,
+            );
+            const selectedCity = selectedRegion?.cities?.find(
+                (city) => city.slug === this.value,
+            );
+
+            if (!claimCityLink || !claimLocationNote || !selectedCity) {
+                resetClaimCityLink();
+                return;
+            }
+
+            claimCityLink.setAttribute("href", selectedCity.href);
+            claimCityLink.classList.remove("pointer-events-none", "opacity-50");
+            claimLocationNote.textContent = `${selectedCity.name}, ${selectedRegion?.name || ""}`;
+
+            const cityInput = document.getElementById("city");
+            if (cityInput) cityInput.value = selectedCity.name || "";
+        });
+    }
+
+    function toScore(value) {
+        const numeric = Number.parseFloat(value);
+        return Number.isFinite(numeric) ? Math.round(numeric) : null;
+    }
+
+    function countChecked(selector) {
+        return document.querySelectorAll(`${selector}:checked`).length;
+    }
+
+    function hasOperationalHours(hoursValue = null) {
+        if (hoursValue && typeof hoursValue === "object") {
+            return Object.values(hoursValue).some((dayHours) => {
+                if (Array.isArray(dayHours)) {
+                    return dayHours.some(
+                        (entry) =>
+                            typeof entry === "string" &&
+                            entry.trim() &&
+                            !/^closed$/i.test(entry.trim()),
+                    );
+                }
+
+                return (
+                    typeof dayHours === "string" &&
+                    dayHours.trim() &&
+                    !/^closed$/i.test(dayHours.trim())
+                );
+            });
+        }
+
+        return Array.from(document.querySelectorAll(".day-checkbox")).some(
+            (checkbox) => checkbox.checked,
+        );
+    }
+
+    function normalizeBoolean(value) {
+        return value === true || value === "true";
+    }
+
+    function clampScore(value) {
+        const numeric = Math.round(Number.parseFloat(value) || 0);
+        return Math.min(100, Math.max(0, numeric));
+    }
+
+    function applyTrustTierFloor(score, options = {}) {
+        const claimed = Boolean(options.includeClaimed);
+        const verified = Boolean(options.includeVerified);
+        const backlink = Boolean(options.includeBacklink);
+        let boostedScore = Number.parseFloat(score) || 0;
+
+        if (claimed && verified && backlink) {
+            boostedScore = Math.max(boostedScore, FEATURED_NETWORK_FLOOR);
+        } else if (verified && backlink) {
+            boostedScore = Math.max(boostedScore, TRUSTED_NETWORK_FLOOR);
+        } else if (claimed && verified) {
+            boostedScore = Math.max(boostedScore, VERIFIED_TIER_FLOOR);
+        }
+
+        return boostedScore;
+    }
+
+    function projectTrustTierScore(score, options = {}) {
+        let boostedScore = Number.parseFloat(score) || 0;
+
+        if (options.includeClaimed) {
+            boostedScore *= CLAIMED_MULTIPLIER;
+        }
+        if (options.includeVerified) {
+            boostedScore *= VERIFIED_MULTIPLIER;
+        }
+        if (options.includeBacklink) {
+            boostedScore *= BACKLINK_MULTIPLIER;
+        }
+
+        return clampScore(applyTrustTierFloor(boostedScore, options));
+    }
+
+    function slugifyText(value) {
+        return String(value || "")
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, "-")
+            .replace(/[^\w-]+/g, "")
+            .replace(/--+/g, "-")
+            .replace(/-?\d+$/, "");
+    }
+
+    function deriveCityStatsFromIndex(clinicRecord, allRecords) {
+        if (!clinicRecord || !Array.isArray(allRecords) || allRecords.length === 0) {
+            return clinicRecord;
+        }
+
+        const city = String(clinicRecord.city || "").trim().toLowerCase();
+        const province = String(clinicRecord.province || "").trim().toLowerCase();
+        const country = String(clinicRecord.country || "").trim().toLowerCase();
+        if (!city || !province || !country) return clinicRecord;
+
+        const cityRecords = allRecords
+            .filter((record) => {
+                return (
+                    String(record?.city || "").trim().toLowerCase() === city &&
+                    String(record?.province || "").trim().toLowerCase() === province &&
+                    String(record?.country || "").trim().toLowerCase() === country
+                );
+            })
+            .map((record) => ({
+                ...record,
+                score: Number.parseFloat(record?.vetscore) || 0,
+            }))
+            .sort((a, b) => b.score - a.score || String(a.practiceName || "").localeCompare(String(b.practiceName || "")));
+
+        if (!cityRecords.length) return clinicRecord;
+
+        const currentName = String(clinicRecord.practiceName || "").trim();
+        const currentAddress = String(clinicRecord.address || "").trim();
+        const currentIndex = cityRecords.findIndex((record) => {
+            return (
+                String(record.practiceName || "").trim() === currentName &&
+                String(record.address || "").trim() === currentAddress
+            );
+        });
+
+        return {
+            ...clinicRecord,
+            cityRank: currentIndex >= 0 ? currentIndex + 1 : null,
+            cityTotal: cityRecords.length,
+            cityScores: cityRecords.map((record) => record.score),
+            cityLeaderName: cityRecords[0]?.practiceName || "",
+            cityLeaderScore: cityRecords[0]?.score != null ? Math.round(cityRecords[0].score) : null,
+            cityPageHref:
+                clinicRecord.cityPageHref ||
+                `/${slugifyText(clinicRecord.country)}/${slugifyText(clinicRecord.province)}/${slugifyText(clinicRecord.city)}/`,
+        };
+    }
+
+    function getProfileDetailGain() {
+        let gain = 0;
+        const websiteValue = (document.getElementById("website")?.value || "").trim();
+        const hadWebsiteBefore = Boolean((activeClinicRecord?.website || "").trim());
+        if (websiteValue && !hadWebsiteBefore) gain += 2;
+
+        const customServicesValue = (
+            document.getElementById("custom-services")?.value || ""
+        ).trim();
+        const currentServicesCount =
+            countChecked('#services-grid input[type="checkbox"]') +
+            (customServicesValue ? 1 : 0);
+        const hadServicesBefore = Array.isArray(activeClinicRecord?.services)
+            ? activeClinicRecord.services.length > 0
+            : false;
+        if (currentServicesCount > 0 && !hadServicesBefore) gain += 2;
+
+        const hadAnimalsBefore = Array.isArray(activeClinicRecord?.animals)
+            ? activeClinicRecord.animals.length > 0
+            : false;
+        if (countChecked('#animals-grid input[type="checkbox"]') > 0 && !hadAnimalsBefore) {
+            gain += 1;
+        }
+
+        const hadHoursBefore = hasOperationalHours(activeClinicRecord?.hours);
+        if (hasOperationalHours() && !hadHoursBefore) gain += 2;
+
+        return gain;
+    }
+
+    function getRankForScore(score, cityScores) {
+        if (!Array.isArray(cityScores) || cityScores.length === 0) return null;
+        const numericScore = Number.parseFloat(score) || 0;
+        return cityScores.filter((value) => (Number.parseFloat(value) || 0) > numericScore).length + 1;
+    }
+
+    function formatRank(rank, total) {
+        if (!rank || !total) return "--";
+        return `#${rank}`;
+    }
+
+    function buildProjectionScoreNote({
+        practiceName,
+        baseScore,
+        projectedScore,
+        currentRank,
+        projectedRank,
+        city,
+    }) {
+        if (!practiceName) {
+            return "Projection assumes the full upgrade path: claim, verify, add the city-page backlink, and tighten the listing details.";
+        }
+
+        let note = `${practiceName} can jump from ${baseScore} to ${projectedScore}.`;
+
+        if (currentRank && projectedRank && city) {
+            note += ` That can move it from #${currentRank} to around #${projectedRank} in ${city}.`;
+            if (projectedRank <= 5) {
+                note += " That is the kind of jump that gets a clinic into the local top tier fast.";
+            }
+        }
+
+        return note;
+    }
+
+    function buildProjectionRankNote({
+        practiceName,
+        currentRank,
+        cityTotal,
+        city,
+        verifiedRank,
+        backlinkRank,
+    }) {
+        if (!currentRank || !cityTotal || !city) {
+            return "We’ll compare your upgraded projection against every clinic in the same city when clinic data is available.";
+        }
+
+        let note =
+            `${practiceName || "This clinic"} is currently #${currentRank} of ${cityTotal} in ${city}. ` +
+            `Verification can push it to about #${verifiedRank || currentRank}, ` +
+            `and the backlink tier can push it to about #${backlinkRank || verifiedRank || currentRank}.`;
+
+        if (backlinkRank && backlinkRank <= 5) {
+            note += " That puts the clinic in striking distance of the top 5.";
+        }
+
+        return note;
+    }
+
+    function resolveCityPageHref() {
+        if (activeClinicRecord?.cityPageHref) return activeClinicRecord.cityPageHref;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const cityPageParam = (urlParams.get("cityPage") || "").trim();
+        if (cityPageParam) return cityPageParam;
+
+        const country = document.getElementById("country")?.value || activeClinicRecord?.country;
+        const province = document.getElementById("province")?.value || activeClinicRecord?.province;
+        const city = document.getElementById("city")?.value || activeClinicRecord?.city;
+        if (!country || !province || !city) return "";
+
+        return `/${slugifyText(country)}/${slugifyText(province)}/${slugifyText(city)}/`;
+    }
+
+    function getBadgeSizeConfig(size) {
+        const sizes = {
+            md: {
+                width: 320,
+                height: 104,
+                titleSize: 18,
+                nameSize: 13,
+                subtitleSize: 12,
+                iconSize: 42,
+                iconX: 16,
+                iconY: 16,
+                textX: 72,
+                titleY: 35,
+                nameY: 58,
+                subtitleY: 79,
+                labelMax: 24,
+                clinicMax: 28,
+                subtitleMax: 28,
+                layout: "standard",
+            },
+            sm: {
+                width: 304,
+                height: 88,
+                titleSize: 13,
+                nameSize: 11,
+                subtitleSize: 10,
+                iconSize: 30,
+                iconX: 22,
+                iconY: 29,
+                textX: 58,
+                titleY: 35,
+                nameY: 53,
+                subtitleY: 67,
+                labelMax: 18,
+                clinicMax: 18,
+                subtitleMax: 12,
+                panelX: 10,
+                panelY: 10,
+                panelWidth: 284,
+                panelHeight: 68,
+                scoreX: 274,
+                scoreLabelY: 42,
+                scoreValueY: 58,
+                layout: "small",
+            },
+        };
+
+        return sizes[size] || sizes.md;
+    }
+
+    function getBadgeThemeConfig(theme) {
+        const themes = {
+            light: {
+                bg: "#ffffff",
+                border: "#cbd5e1",
+                accent: "#0f766e",
+                accentSoft: "#ccfbf1",
+                title: "#0f172a",
+                body: "#334155",
+            },
+            dark: {
+                bg: "#0f172a",
+                border: "#1e293b",
+                accent: "#22c55e",
+                accentSoft: "#052e16",
+                title: "#f8fafc",
+                body: "#cbd5e1",
+            },
+            mint: {
+                bg: "#f0fdf4",
+                border: "#bbf7d0",
+                accent: "#15803d",
+                accentSoft: "#dcfce7",
+                title: "#14532d",
+                body: "#166534",
+            },
+        };
+
+        return themes[theme] || themes.light;
+    }
+
+    function truncateDisplayText(value, maxLength) {
+        const text = String(value || "").trim();
+        if (!text) return "";
+        if (text.length <= maxLength) return text;
+        return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+    }
+
+    function getDefaultBadgeLabel(record = activeClinicRecord) {
+        const cityName = String(record?.city || "").trim();
+        const cityRank = Number.parseInt(record?.cityRank, 10);
+
+        if (cityName && cityRank === 1) {
+            return `#1 ${cityName} Veterinarian`;
+        }
+
+        if (cityName && Number.isFinite(cityRank) && cityRank > 1) {
+            return `Top ${cityName} Veterinarian`;
+        }
+
+        if (cityName) {
+            return `${cityName} Veterinarian`;
+        }
+
+        return "Top Veterinarian";
+    }
+
+    function getCompactBadgeLabel(record = activeClinicRecord, fallbackLabel = "") {
+        const cityName = String(record?.city || "").trim();
+        const cityRank = Number.parseInt(record?.cityRank, 10);
+        const cleanedFallback = String(fallbackLabel || "")
+            .replace(/\bVeterinarian\b/gi, "Vet")
+            .replace(/\bVeterinary Clinics\b/gi, "Vets")
+            .replace(/\bVeterinary\b/gi, "Vet")
+            .trim();
+
+        if (cityName && cityRank === 1) return `#1 ${cityName} Vet`;
+        if (cityName && Number.isFinite(cityRank) && cityRank > 1) {
+            return `Top ${cityName} Vet`;
+        }
+        if (cityName) return `${cityName} Vet`;
+        return cleanedFallback || "Top Vet";
+    }
+
+    function getAnchorOptions(city) {
+        const cityName = String(city || "").trim();
+        if (!cityName) return ["Find a local veterinarian on VetList"];
+
+        return [
+            `${cityName} veterinarian`,
+            `veterinarian in ${cityName}`,
+            `${cityName} vet`,
+            `${cityName} veterinary clinics`,
+            `${cityName} vet directory`,
+        ];
+    }
+
+    function refreshAnchorSuggestions() {
+        if (!badgeAnchorSuggestionsEl) return;
+        const options = getAnchorOptions(activeClinicRecord?.city);
+        badgeAnchorSuggestionsEl.innerHTML = options
+            .map(
+                (option) =>
+                    `<button type="button" class="claim-anchor-chip" data-badge-anchor="${option.replace(/"/g, "&quot;")}">${option}</button>`,
+            )
+            .join("");
+
+        badgeAnchorSuggestionsEl.querySelectorAll("[data-badge-anchor]").forEach((button) => {
+            button.addEventListener("click", function () {
+                badgeState.anchorText = this.dataset.badgeAnchor || "";
+                if (badgeAnchorInputEl) {
+                    badgeAnchorInputEl.value = badgeState.anchorText;
+                }
+                updateBadgeConfigurator();
+            });
+        });
+    }
+
+    function updateBadgeConfigurator() {
+        if (!badgeSectionEl || !badgePreviewLinkEl || !badgePreviewImageEl || !badgeEmbedCodeEl) {
+            return;
+        }
+
+        const cityPageHref = resolveCityPageHref();
+        const publicCityUrl = cityPageHref ? `https://vetlist.org${cityPageHref}` : "";
+        const localCityUrl = cityPageHref ? `${window.location.origin}${cityPageHref}` : "#";
+
+        if (!activeClinicId || !publicCityUrl) {
+            badgeSectionEl.classList.add("hidden");
+            return;
+        }
+
+        badgeSectionEl.classList.remove("hidden");
+        const sizeConfig = getBadgeSizeConfig(badgeState.size);
+        const badgeLabel =
+            (badgeState.label || "").trim() ||
+            getDefaultBadgeLabel(activeClinicRecord);
+
+        const badgeParams = new URLSearchParams({
+            clinic: activeClinicId,
+            theme: badgeState.theme,
+            size: badgeState.size,
+            shape: badgeState.shape,
+            label: badgeLabel,
+        });
+
+        const publicBadgeUrl = `https://vetlist.org/api/vetlist-badge.svg?${badgeParams.toString()}`;
+        const altText = `${activeClinicRecord?.practiceName || "Clinic"} on VetList`;
+        const anchorText =
+            (badgeState.anchorText || "").trim() ||
+            getAnchorOptions(activeClinicRecord?.city)[0];
+        const previewBadgeUrl = buildBadgePreviewDataUrl({
+            clinicName: activeClinicRecord?.practiceName || "Clinic",
+            label: badgeLabel,
+            size: badgeState.size,
+            theme: badgeState.theme,
+            shape: badgeState.shape,
+            score: toScore(activeClinicRecord?.vetscore) || defaultScore,
+            city: activeClinicRecord?.city || "",
+            cityRank: activeClinicRecord?.cityRank || null,
+        });
+
+        badgePreviewLinkEl.setAttribute("href", localCityUrl);
+        badgePreviewLinkEl.style.width = `${sizeConfig.width}px`;
+        badgePreviewLinkEl.style.maxWidth = "100%";
+        badgePreviewImageEl.setAttribute("src", previewBadgeUrl);
+        badgePreviewImageEl.setAttribute("alt", altText);
+        badgePreviewImageEl.setAttribute("width", String(sizeConfig.width));
+        badgePreviewImageEl.setAttribute("height", String(sizeConfig.height));
+        badgePreviewImageEl.style.width = `${sizeConfig.width}px`;
+        badgePreviewImageEl.style.maxWidth = "100%";
+
+        if (badgeTextPreviewEl) {
+            badgeTextPreviewEl.setAttribute("href", localCityUrl);
+            badgeTextPreviewEl.textContent = anchorText;
+            badgeTextPreviewEl.classList.add("hidden");
+        }
+
+        const badgeImageMarkup =
+            `<a href="${publicCityUrl}" title="${anchorText}" target="_blank" rel="noopener">` +
+            `<img src="${publicBadgeUrl}" alt="${anchorText}" width="${sizeConfig.width}" height="${sizeConfig.height}" loading="lazy" style="display:block;max-width:100%;height:auto;border:0;"></a>`;
+        badgeEmbedCodeEl.value = badgeImageMarkup;
+
+        if (badgeOpenCityPageEl) {
+            badgeOpenCityPageEl.setAttribute("href", localCityUrl);
+        }
+    }
+
+    function escapeSvgText(value) {
+        return String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&apos;");
+    }
+
+    function buildBadgePreviewDataUrl({ clinicName, label, size, theme, shape, score, city, cityRank }) {
+        const sizeConfig = getBadgeSizeConfig(size);
+        const themeConfig = getBadgeThemeConfig(theme);
+        const rounded = shape !== "square";
+        const radius = rounded ? 20 : 8;
+        const iconRadius = rounded ? 16 : 10;
+        const displayLabel = sizeConfig.layout === "small"
+            ? getCompactBadgeLabel({ city, cityRank }, label)
+            : (label || "Top Veterinarian");
+        const safeLabel = escapeSvgText(truncateDisplayText(displayLabel, sizeConfig.labelMax));
+        const safeClinicName = escapeSvgText(truncateDisplayText(clinicName || "Clinic", sizeConfig.clinicMax));
+        const subtitleText = sizeConfig.layout === "small"
+            ? `VetScore ${score}`
+            : cityRank && city
+                ? `VetScore ${score} | #${cityRank} in ${city}`
+                : city
+                    ? `VetScore ${score} | ${city}`
+                    : `VetScore ${score}`;
+        const safeSubtitle = escapeSvgText(truncateDisplayText(subtitleText, sizeConfig.subtitleMax));
+        const checkStartX = sizeConfig.iconX + Math.round(sizeConfig.iconSize * 0.26);
+        const checkStartY = sizeConfig.iconY + Math.round(sizeConfig.iconSize * 0.55);
+        const checkMidX = sizeConfig.iconX + Math.round(sizeConfig.iconSize * 0.47);
+        const checkMidY = sizeConfig.iconY + Math.round(sizeConfig.iconSize * 0.75);
+        const checkEndX = sizeConfig.iconX + Math.round(sizeConfig.iconSize * 0.78);
+        const checkEndY = sizeConfig.iconY + Math.round(sizeConfig.iconSize * 0.34);
+        const checkStroke = 4.5;
+        const bodyMarkup = sizeConfig.layout === "small"
+            ? `<rect x="${sizeConfig.panelX}" y="${sizeConfig.panelY}" width="${sizeConfig.panelWidth}" height="${sizeConfig.panelHeight}" rx="${rounded ? 22 : 10}" fill="${themeConfig.bg}" stroke="${themeConfig.border}" stroke-width="2"/>` +
+              `<circle cx="${sizeConfig.iconX + (sizeConfig.iconSize / 2)}" cy="${sizeConfig.iconY + (sizeConfig.iconSize / 2)}" r="${sizeConfig.iconSize / 2}" fill="${themeConfig.accentSoft}"/>` +
+              `<path d="M${checkStartX} ${checkStartY} L${checkMidX} ${checkMidY} L${checkEndX} ${checkEndY}" stroke="${themeConfig.accent}" stroke-width="${checkStroke}" stroke-linecap="round" stroke-linejoin="round"/>` +
+              `<text x="${sizeConfig.textX}" y="${sizeConfig.titleY}" fill="${themeConfig.title}" font-family="Arial, sans-serif" font-size="${sizeConfig.titleSize}" font-weight="800">${safeLabel}</text>` +
+              `<text x="${sizeConfig.textX}" y="${sizeConfig.nameY}" fill="${themeConfig.body}" font-family="Arial, sans-serif" font-size="${sizeConfig.nameSize}" font-weight="600">${safeClinicName}</text>` +
+              `<text x="${sizeConfig.scoreX}" y="${sizeConfig.scoreLabelY}" text-anchor="end" fill="${themeConfig.accent}" font-family="Arial, sans-serif" font-size="${sizeConfig.subtitleSize}" font-weight="700">VetScore</text>` +
+              `<text x="${sizeConfig.scoreX}" y="${sizeConfig.scoreValueY}" text-anchor="end" fill="${themeConfig.accent}" font-family="Arial, sans-serif" font-size="18" font-weight="800">${score}</text>`
+            : `<rect x="1" y="1" width="${sizeConfig.width - 2}" height="${sizeConfig.height - 2}" rx="${radius}" fill="${themeConfig.bg}" stroke="${themeConfig.border}" stroke-width="2"/>` +
+              `<rect x="${sizeConfig.iconX}" y="${sizeConfig.iconY}" width="${sizeConfig.iconSize}" height="${sizeConfig.iconSize}" rx="${iconRadius}" fill="${themeConfig.accentSoft}"/>` +
+              `<path d="M${checkStartX} ${checkStartY} L${checkMidX} ${checkMidY} L${checkEndX} ${checkEndY}" stroke="${themeConfig.accent}" stroke-width="${checkStroke}" stroke-linecap="round" stroke-linejoin="round"/>` +
+              `<text x="${sizeConfig.textX}" y="${sizeConfig.titleY}" fill="${themeConfig.title}" font-family="Arial, sans-serif" font-size="${sizeConfig.titleSize}" font-weight="700">${safeLabel}</text>` +
+              `<text x="${sizeConfig.textX}" y="${sizeConfig.nameY}" fill="${themeConfig.body}" font-family="Arial, sans-serif" font-size="${sizeConfig.nameSize}" font-weight="600">${safeClinicName}</text>` +
+              `<text x="${sizeConfig.textX}" y="${sizeConfig.subtitleY}" fill="${themeConfig.body}" font-family="Arial, sans-serif" font-size="${sizeConfig.subtitleSize}">${safeSubtitle}</text>`;
+
+        const svg = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+            `<svg xmlns="http://www.w3.org/2000/svg" width="${sizeConfig.width}" height="${sizeConfig.height}" viewBox="0 0 ${sizeConfig.width} ${sizeConfig.height}" fill="none" role="img" aria-label="${safeLabel}">` +
+            bodyMarkup +
+            `</svg>`;
+
+        return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }
+
+    function updateScoreProjection() {
+        const baseScore = toScore(activeClinicRecord?.vetscore) ?? defaultScore;
+        const verificationSelected = verificationInterestEl?.checked !== false;
+        const backlinkSelected = backlinkInterestEl?.checked === true;
+        const claimedAlready = normalizeBoolean(activeClinicRecord?.claimed);
+        const verifiedAlready = normalizeBoolean(activeClinicRecord?.isVerified);
+        const backlinkAlready = normalizeBoolean(activeClinicRecord?.hasBacklink);
+
+        const verifiedScenarioScore = projectTrustTierScore(baseScore, {
+            includeClaimed: verificationSelected && !claimedAlready,
+            includeVerified: verificationSelected && !verifiedAlready,
+        });
+        const verificationGain = verificationSelected
+            ? Math.max(0, verifiedScenarioScore - baseScore)
+            : 0;
+
+        const backlinkScenarioScore = projectTrustTierScore(baseScore, {
+            includeClaimed: verificationSelected && !claimedAlready,
+            includeVerified: verificationSelected && !verifiedAlready,
+            includeBacklink: backlinkSelected && !backlinkAlready,
+        });
+        const backlinkGain = backlinkSelected
+            ? Math.max(
+                0,
+                backlinkScenarioScore - (verificationSelected ? verifiedScenarioScore : baseScore),
+            )
+            : 0;
+
+        const profileGain = getProfileDetailGain();
+        const potentialGain = verificationGain + backlinkGain + profileGain;
+        const selectedBoostScore = backlinkSelected
+            ? backlinkScenarioScore
+            : verificationSelected
+                ? verifiedScenarioScore
+                : baseScore;
+        const projectedScore = Math.min(100, selectedBoostScore + profileGain);
+
+        if (currentScoreEl) currentScoreEl.textContent = String(baseScore);
+        if (verificationGainEl) verificationGainEl.textContent = `+${verificationGain}`;
+        if (backlinkGainEl) backlinkGainEl.textContent = `+${backlinkGain}`;
+        if (profileGainEl) profileGainEl.textContent = `+${profileGain}`;
+        if (potentialGainEl) potentialGainEl.textContent = `+${potentialGain}`;
+        if (projectedScoreEl) projectedScoreEl.textContent = String(projectedScore);
+
+        const cityScores = Array.isArray(activeClinicRecord?.cityScores)
+            ? activeClinicRecord.cityScores
+            : null;
+        const cityTotal = activeClinicRecord?.cityTotal || cityScores?.length || null;
+        const currentRank =
+            activeClinicRecord?.cityRank || getRankForScore(baseScore, cityScores);
+        const verifiedRank = getRankForScore(verifiedScenarioScore, cityScores);
+        const backlinkRank = getRankForScore(backlinkScenarioScore, cityScores);
+        const projectedRank = getRankForScore(projectedScore, cityScores);
+
+        if (rankNowEl) rankNowEl.textContent = formatRank(currentRank, cityTotal);
+        if (rankVerifiedEl) rankVerifiedEl.textContent = formatRank(verifiedRank, cityTotal);
+        if (rankBacklinkEl) rankBacklinkEl.textContent = formatRank(backlinkRank, cityTotal);
+
+        if (rankNoteEl) {
+            rankNoteEl.textContent = buildProjectionRankNote({
+                practiceName: activeClinicRecord?.practiceName,
+                currentRank,
+                cityTotal,
+                city: activeClinicRecord?.city,
+                verifiedRank,
+                backlinkRank,
+            });
+        }
+
+        if (scoreNoteEl) {
+            scoreNoteEl.textContent = buildProjectionScoreNote({
+                practiceName: activeClinicRecord?.practiceName,
+                baseScore,
+                projectedScore,
+                currentRank,
+                projectedRank,
+                city: activeClinicRecord?.city,
+            });
+        }
+
+        updateBadgeConfigurator();
+    }
+
+    function applyClinicContext(clinicRecord) {
+        activeClinicRecord = clinicRecord || null;
+
+        if (activeClinicRecord && claimWorkflowSection) {
+            claimWorkflowSection.classList.add("hidden");
+        }
+
+        if (activeClinicRecord && claimPrefillNotice && claimPrefillClinicName) {
+            claimPrefillClinicName.textContent =
+                activeClinicRecord.practiceName || "Selected clinic";
+            claimPrefillNotice.classList.remove("hidden");
+        }
+
+        if (
+            activeClinicRecord &&
+            (!badgeState.label ||
+                ["Listed on VetList", "Verified on VetList", "Trusted local listing"].includes(
+                    badgeState.label,
+                ))
+        ) {
+            badgeState.label = getDefaultBadgeLabel(activeClinicRecord);
+            if (badgeLabelInputEl) {
+                badgeLabelInputEl.value = badgeState.label;
+            }
+        }
+
+        if (activeClinicRecord && !badgeState.anchorText) {
+            badgeState.anchorText = getAnchorOptions(activeClinicRecord.city)[0];
+            if (badgeAnchorInputEl) {
+                badgeAnchorInputEl.value = badgeState.anchorText;
+            }
+        }
+
+        refreshAnchorSuggestions();
+
+        updateBadgeConfigurator();
+        updateScoreProjection();
+    }
+
     // Handle day checkboxes
     document.querySelectorAll(".day-checkbox").forEach((checkbox) => {
         checkbox.addEventListener("change", function () {
@@ -1055,33 +2424,33 @@ const description =
                 country: document.getElementById("country").value,
                 email: document.getElementById("email").value,
                 website: document.getElementById("website").value,
-                verificationInterest: document.getElementById(
-                    "verification-interest",
-                ).checked,
+                verificationInterest:
+                    document.getElementById("verification-interest")?.checked === true,
+                backlinkInterest:
+                    document.getElementById("backlink-interest")?.checked === true,
             };
 
             // Collect services
             const services = [];
             document
-                .querySelectorAll('input[type="checkbox"][value]:checked')
+                .querySelectorAll('#services-grid input[type="checkbox"]:checked')
                 .forEach((cb) => {
-                    if (cb.value && cb.id !== "verification-interest" && !cb.classList.contains('faq-checkbox')) {
+                    if (cb.value) {
                         services.push(cb.value);
                     }
                 });
 
-            // Collect FAQ preferences (as encoded answers)
-            const faqAnswers = [];
+            // Collect animals
+            const animals = [];
             document
-                .querySelectorAll('.faq-radio:checked')
-                .forEach((radio) => {
-                    if (!radio.value.endsWith('X')) { // Skip the "Skip" options
-                        faqAnswers.push(radio.value);
+                .querySelectorAll('#animals-grid input[type="checkbox"]:checked')
+                .forEach((cb) => {
+                    if (cb.value) {
+                        animals.push(cb.value);
                     }
                 });
 
-            // Update form data with FAQ count for display
-            formData.faqCount = faqAnswers.length;
+
 
             // Add custom services
             const customServices =
@@ -1140,8 +2509,8 @@ ${formData.country}
 SERVICES OFFERED:
 ${services.length > 0 ? services.join(", ") : "Not specified"}
 
-FREQUENTLY ASKED QUESTIONS:
-${faqAnswers.length > 0 ? generateFAQText(faqAnswers) : "Not specified"}
+ANIMALS TREATED:
+${animals.length > 0 ? animals.join(", ") : "Not specified"}
 
 HOURS OF OPERATION:
 Monday: ${hours.monday}
@@ -1153,7 +2522,11 @@ Saturday: ${hours.saturday}
 Sunday: ${hours.sunday}
 
 VERIFICATION INTEREST:
-${formData.verificationInterest ? "Yes, I am interested in the verification program ($249/year introductory offer)" : "No, just claiming the basic profile"}
+${formData.verificationInterest ? "Yes, I would like owner verification included with this claim." : "No verification requested right now."}
+
+CITY PAGE BACKLINK:
+${formData.backlinkInterest ? "Yes, I plan to add the VetList badge / city-page backlink on our website." : "No backlink commitment yet."}
+${formData.backlinkInterest ? `Preferred city page: https://vetlist.org${resolveCityPageHref() || ""}` : ""}
 
 Please update my profile with this information. I confirm that I am authorized to make changes to this veterinary practice profile.
 
@@ -1208,329 +2581,482 @@ ${formData.practiceName}`;
             }
         });
 
-    // FAQ Encoding System for existing profile FAQs
-    // These are the common FAQ questions from the CSV data
-    const FAQ_QUESTIONS = {
-        'A': 'Are walk-in appointments available?',
-        'B': 'Are prescription pet foods or diets available?', 
-        'C': 'Is pet dental care available?',
-        'D': 'Is care provided for exotic animals like birds or reptiles?',
-        'E': 'Is pet insurance accepted?',
-        'F': 'Are spay and neuter services available?',
-        'G': 'Is the clinic open on weekends?',
-        'H': 'Are X-rays or ultrasounds offered?',
-        'I': 'Are house calls offered for pets?',
-        'J': 'Are surgical procedures performed?',
-        'K': 'Is emergency care provided?',
-        'L': 'Are evening appointments available?',
-        'M': 'Are vaccinations provided?',
-        'N': 'Can appointments be scheduled online?',
-        'O': 'Are payment plans or financing options available?'
-    };
-
-    // FAQ answers mapping (Y/N + code for common answers)
-    const FAQ_ANSWERS = {
-        'Y1': 'Yes, this service is available.',
-        'Y2': 'Yes, we offer this service.',
-        'Y3': 'Yes, we are open on weekends for your convenience.',
-        'Y4': 'Yes, evening hours (after 7 PM) are offered.',
-        'Y5': 'Yes, comprehensive surgical services are available on-site.',
-        'Y6': 'Yes, routine spay and neuter procedures are performed.',
-        'N1': 'No, appointments are required as walk-ins aren\'t typically accepted.',
-        'N2': 'Prescription diets aren\'t available.',
-        'N3': 'Pet dental care isn\'t currently available.',
-        'N4': 'Care is primarily focused on cats and dogs.',
-        'N5': 'Direct billing for pet insurance isn\'t available.',
-        'N6': 'Diagnostic imaging isn\'t offered on-site.',
-        'N7': 'House calls aren\'t currently offered.',
-        'N8': 'Emergency care isn\'t offered; referrals may be provided.',
-        'N9': 'Online booking isn\'t offered at this time.',
-        'N10': 'Payment plans aren\'t currently available.'
-    };
-
-    // Initialize FAQ checkboxes
-    function initializeFAQSection() {
-        const faqGrid = document.getElementById('faq-grid');
-        if (!faqGrid) return;
-
-        Object.entries(FAQ_QUESTIONS).forEach(([code, question]) => {
-            const container = document.createElement('div');
-            container.className = 'border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors';
-            container.innerHTML = `
-                <div class="mb-3">
-                    <div class="text-sm font-medium text-gray-900 mb-2">${question}</div>
-                    <div class="flex gap-4">
-                        <label class="flex items-center cursor-pointer">
-                            <input type="radio" name="faq-${code}" value="${code}Y" class="faq-radio rounded border-gray-300 text-green-600 focus:ring-green-500">
-                            <span class="ml-2 text-sm text-green-700">Yes</span>
-                        </label>
-                        <label class="flex items-center cursor-pointer">
-                            <input type="radio" name="faq-${code}" value="${code}N" class="faq-radio rounded border-gray-300 text-red-600 focus:ring-red-500">
-                            <span class="ml-2 text-sm text-red-700">No</span>
-                        </label>
-                        <label class="flex items-center cursor-pointer">
-                            <input type="radio" name="faq-${code}" value="${code}X" class="faq-radio rounded border-gray-300 text-gray-600 focus:ring-gray-500" checked>
-                            <span class="ml-2 text-sm text-gray-600">Skip</span>
-                        </label>
-                    </div>
-                </div>
-            `;
-            faqGrid.appendChild(container);
+    document.querySelectorAll("[data-badge-size]").forEach((button) => {
+        button.addEventListener("click", function () {
+            badgeState.size = this.dataset.badgeSize || "md";
+            document.querySelectorAll("[data-badge-size]").forEach((item) => {
+                item.classList.toggle("active", item === this);
+            });
+            updateBadgeConfigurator();
         });
+    });
 
-        // Add event listeners to update counter
-        document.querySelectorAll('.faq-radio').forEach(radio => {
-            radio.addEventListener('change', updateFAQCounter);
+    document.querySelectorAll("[data-badge-theme]").forEach((button) => {
+        button.addEventListener("click", function () {
+            badgeState.theme = this.dataset.badgeTheme || "light";
+            document.querySelectorAll("[data-badge-theme]").forEach((item) => {
+                item.classList.toggle("active", item === this);
+            });
+            updateBadgeConfigurator();
         });
+    });
 
-        updateFAQCounter();
+    document.querySelectorAll("[data-badge-shape]").forEach((button) => {
+        button.addEventListener("click", function () {
+            badgeState.shape = this.dataset.badgeShape || "rounded";
+            document.querySelectorAll("[data-badge-shape]").forEach((item) => {
+                item.classList.toggle("active", item === this);
+            });
+            updateBadgeConfigurator();
+        });
+    });
+
+    badgeLabelInputEl?.addEventListener("input", function () {
+        badgeState.label = (this.value || "").trim().slice(0, 34);
+        updateBadgeConfigurator();
+    });
+
+    badgeAnchorInputEl?.addEventListener("input", function () {
+        badgeState.anchorText = (this.value || "").trim().slice(0, 44);
+        updateBadgeConfigurator();
+    });
+
+    badgeCopyButtonEl?.addEventListener("click", async function () {
+        if (!badgeEmbedCodeEl?.value) return;
+
+        try {
+            await navigator.clipboard.writeText(badgeEmbedCodeEl.value);
+        } catch {
+            badgeEmbedCodeEl.select();
+            document.execCommand("copy");
+        }
+
+        if (badgeCopyMessageEl) {
+            badgeCopyMessageEl.classList.remove("hidden");
+            window.setTimeout(() => {
+                badgeCopyMessageEl.classList.add("hidden");
+            }, 1800);
+        }
+    });
+
+    function parseJSONParam(rawValue, fallback = null) {
+        if (!rawValue) return fallback;
+        const attempts = [rawValue];
+        try {
+            attempts.push(decodeURIComponent(rawValue));
+        } catch {}
+
+        for (const candidate of attempts) {
+            try {
+                return JSON.parse(candidate);
+            } catch {}
+        }
+
+        return fallback;
     }
 
-    // Update FAQ counter
-    function updateFAQCounter() {
-        const counter = document.getElementById('faq-counter');
-        const answeredCount = document.querySelectorAll('.faq-radio:checked').length - document.querySelectorAll('.faq-radio:checked[value$="X"]').length;
-        if (counter) {
-            counter.textContent = `${answeredCount} answered`;
-            counter.className = answeredCount > 0 
-                ? 'text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded'
-                : 'text-xs font-medium text-gray-600 bg-white px-2 py-1 rounded';
+    function setInputValue(id, value) {
+        if (value == null || value === "") return;
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    }
+
+    function clearCheckboxGroup(selector) {
+        document.querySelectorAll(selector).forEach((checkbox) => {
+            checkbox.checked = false;
+        });
+    }
+
+    function prefillServices(services) {
+        if (!Array.isArray(services) || services.length === 0) return;
+        clearCheckboxGroup('#services-grid input[type="checkbox"]');
+
+        const normalizedServices = services
+            .map((service) => String(service || "").trim())
+            .filter(Boolean);
+        const unmatchedServices = [];
+
+        normalizedServices.forEach((service) => {
+            let checkbox = document.querySelector(
+                `#services-grid input[type="checkbox"][value="${service}"]`,
+            );
+
+            if (!checkbox) {
+                const allCheckboxes = document.querySelectorAll(
+                    '#services-grid input[type="checkbox"]',
+                );
+                for (const cb of allCheckboxes) {
+                    if (cb.value.toLowerCase() === service.toLowerCase()) {
+                        checkbox = cb;
+                        break;
+                    }
+                }
+            }
+
+            if (checkbox) {
+                checkbox.checked = true;
+            } else {
+                unmatchedServices.push(service);
+            }
+        });
+
+        const customServicesEl = document.getElementById("custom-services");
+        if (customServicesEl) {
+            customServicesEl.value = unmatchedServices.join(", ");
         }
     }
 
-    // Generate full FAQ text for email
-    function generateFAQText(faqAnswers) {
-        let faqText = `${faqAnswers.length} questions answered:\n\n`;
-        
-        faqAnswers.forEach((answer, index) => {
-            const questionCode = answer.charAt(0);
-            const answerType = answer.charAt(1);
-            const question = FAQ_QUESTIONS[questionCode];
-            
-            let answerText;
-            if (answerType === 'Y') {
-                // Find appropriate "Yes" answer
-                answerText = FAQ_ANSWERS['Y1']; // Default yes answer
-                if (questionCode === 'G') answerText = FAQ_ANSWERS['Y3']; // Weekend hours
-                if (questionCode === 'L') answerText = FAQ_ANSWERS['Y4']; // Evening hours
-                if (questionCode === 'J') answerText = FAQ_ANSWERS['Y5']; // Surgery
-                if (questionCode === 'F') answerText = FAQ_ANSWERS['Y6']; // Spay/neuter
-            } else {
-                // Find appropriate "No" answer based on question
-                const noAnswerMap = {
-                    'A': 'N1', 'B': 'N2', 'C': 'N3', 'D': 'N4', 'E': 'N5',
-                    'H': 'N6', 'I': 'N7', 'K': 'N8', 'N': 'N9', 'O': 'N10'
-                };
-                answerText = FAQ_ANSWERS[noAnswerMap[questionCode]] || FAQ_ANSWERS['N1'];
-            }
-            
-            faqText += `${index + 1}. ${question}\n   ${answerText}\n\n`;
+    function prefillAnimals(animals) {
+        if (!Array.isArray(animals) || animals.length === 0) return;
+        clearCheckboxGroup('#animals-grid input[type="checkbox"]');
+
+        animals.forEach((animal) => {
+            const normalizedAnimal = String(animal || "")
+                .toLowerCase()
+                .replace(/\s+/g, "_");
+            if (!normalizedAnimal) return;
+
+            const checkbox = document.querySelector(
+                `#animals-grid input[type="checkbox"][value="${normalizedAnimal}"]`,
+            );
+            if (checkbox) checkbox.checked = true;
         });
-        
-        return faqText;
+    }
+
+    function convertTo24Hour(time) {
+        const timeStr = String(time || "").trim();
+        if (!timeStr) return "";
+
+        if (timeStr.includes("AM") || timeStr.includes("PM")) {
+            const [timePart, period] = timeStr.split(/\s+(AM|PM)/i);
+            let [hours, minutes] = timePart.split(":");
+            hours = parseInt(hours, 10);
+            minutes = minutes || "00";
+
+            if (period.toUpperCase() === "PM" && hours !== 12) {
+                hours += 12;
+            } else if (period.toUpperCase() === "AM" && hours === 12) {
+                hours = 0;
+            }
+
+            return `${hours.toString().padStart(2, "0")}:${minutes}`;
+        }
+
+        return timeStr;
+    }
+
+    function prefillHours(hoursValue) {
+        if (!hoursValue || typeof hoursValue !== "object") return;
+
+        const dayMapping = {
+            "1": "monday",
+            "2": "tuesday",
+            "3": "wednesday",
+            "4": "thursday",
+            "5": "friday",
+            "6": "saturday",
+            "7": "sunday",
+            monday: "monday",
+            tuesday: "tuesday",
+            wednesday: "wednesday",
+            thursday: "thursday",
+            friday: "friday",
+            saturday: "saturday",
+            sunday: "sunday",
+        };
+
+        document.querySelectorAll(".day-checkbox").forEach((checkbox) => {
+            checkbox.checked = false;
+            const day = checkbox.dataset.day;
+            const openInput = document.querySelector(`.day-open[data-day="${day}"]`);
+            const closeInput = document.querySelector(`.day-close[data-day="${day}"]`);
+            if (openInput && closeInput) {
+                openInput.value = "";
+                closeInput.value = "";
+                openInput.disabled = true;
+                closeInput.disabled = true;
+            }
+        });
+
+        Object.entries(hoursValue).forEach(([rawDay, dayHours]) => {
+            const dayName = dayMapping[String(rawDay).toLowerCase()];
+            if (!dayName) return;
+
+            let timeRange = "";
+            if (Array.isArray(dayHours) && dayHours.length > 0) {
+                timeRange = String(dayHours[0] || "").trim();
+            } else if (typeof dayHours === "string") {
+                timeRange = dayHours.trim();
+            }
+
+            if (
+                !timeRange ||
+                /^closed$/i.test(timeRange) ||
+                !timeRange.includes("-")
+            ) {
+                return;
+            }
+
+            const [openTime, closeTime] = timeRange.split("-");
+            const checkbox = document.querySelector(
+                `.day-checkbox[data-day="${dayName}"]`,
+            );
+            const openInput = document.querySelector(
+                `.day-open[data-day="${dayName}"]`,
+            );
+            const closeInput = document.querySelector(
+                `.day-close[data-day="${dayName}"]`,
+            );
+
+            if (checkbox && openInput && closeInput) {
+                checkbox.checked = true;
+                openInput.disabled = false;
+                closeInput.disabled = false;
+                openInput.value = convertTo24Hour(openTime);
+                closeInput.value = convertTo24Hour(closeTime);
+            }
+        });
+    }
+
+    function prefillFromClinicRecord(clinicRecord) {
+        if (!clinicRecord || typeof clinicRecord !== "object") return;
+        applyClinicContext(clinicRecord);
+        setInputValue("practice-name", clinicRecord.practiceName || clinicRecord.name);
+        setInputValue("phone", clinicRecord.phone);
+        setInputValue("address", clinicRecord.address);
+        setInputValue("city", clinicRecord.city);
+        setInputValue("province", clinicRecord.province);
+        setInputValue("country", clinicRecord.country);
+        setInputValue("website", clinicRecord.website);
+        prefillServices(clinicRecord.services);
+        prefillAnimals(clinicRecord.animals);
+        prefillHours(clinicRecord.hours);
+        updateScoreProjection();
+    }
+
+    const clinicPrefillCache = new Map();
+
+    async function loadClinicRecord(clinicId) {
+        if (!clinicId) return null;
+        if (clinicPrefillCache.has(clinicId)) return clinicPrefillCache.get(clinicId);
+
+        try {
+            const response = await fetch(
+                `/api/claim-clinic-prefill.json?clinic=${encodeURIComponent(clinicId)}`,
+                {
+                    headers: { Accept: "application/json" },
+                },
+            );
+
+            if (!response.ok) {
+                clinicPrefillCache.set(clinicId, null);
+                return null;
+            }
+
+            const parsed = await response.json();
+            let record = parsed?.record && typeof parsed.record === "object"
+                ? parsed.record
+                : null;
+
+            if (!record && parsed && typeof parsed === "object" && parsed[clinicId]) {
+                record = deriveCityStatsFromIndex(
+                    parsed[clinicId],
+                    Object.values(parsed).filter((value) => value && typeof value === "object"),
+                );
+            }
+
+            clinicPrefillCache.set(clinicId, record);
+            return record;
+        } catch {
+            clinicPrefillCache.set(clinicId, null);
+            return null;
+        }
     }
 
     // Handle URL parameter prefilling
-    function prefillFormFromURL() {
+    async function prefillFormFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
+        const clinicParam = (urlParams.get("clinic") || "").trim();
+        activeClinicId = clinicParam;
+        let resolvedClinicRecord = activeClinicRecord;
 
-        // Basic information
-        const name = urlParams.get("name");
-        if (name) {
-            const nameEl = document.getElementById("practice-name");
-            if (nameEl) nameEl.value = name;
-        }
+        if (clinicParam && !resolvedClinicRecord) {
+            if (claimWorkflowSection) {
+                claimWorkflowSection.classList.add("hidden");
+            }
+            if (claimPrefillNotice) {
+                claimPrefillNotice.classList.remove("hidden");
+            }
+            if (claimPrefillClinicName) {
+                claimPrefillClinicName.textContent = "Loading clinic details...";
+            }
 
-        const phone = urlParams.get("phone");
-        if (phone) {
-            const phoneEl = document.getElementById("phone");
-            if (phoneEl) phoneEl.value = phone;
-        }
+            resolvedClinicRecord = await loadClinicRecord(clinicParam);
 
-        const address = urlParams.get("address");
-        if (address) {
-            const addressEl = document.getElementById("address");
-            if (addressEl) addressEl.value = address;
-        }
-
-        const city = urlParams.get("city");
-        if (city) {
-            const cityEl = document.getElementById("city");
-            if (cityEl) cityEl.value = city;
-        }
-
-        const province = urlParams.get("province");
-        if (province) {
-            const provinceEl = document.getElementById("province");
-            if (provinceEl) provinceEl.value = province;
-        }
-
-        const country = urlParams.get("country");
-        if (country) {
-            const countryEl = document.getElementById("country");
-            if (countryEl) countryEl.value = country;
-        }
-
-        const website = urlParams.get("website");
-        if (website) {
-            const websiteEl = document.getElementById("website");
-            if (websiteEl) websiteEl.value = website;
-        }
-
-        // FAQ codes (encoded as pairs like "AY,BN,FY" for A=Yes, B=No, F=Yes)
-        const faqParam = urlParams.get("faq");
-        if (faqParam) {
-            const faqPairs = faqParam.split(',');
-            faqPairs.forEach(pair => {
-                if (pair.length === 2) {
-                    const questionCode = pair.charAt(0);
-                    const answerCode = pair.charAt(1);
-                    const radio = document.querySelector(`input[name="faq-${questionCode}"][value="${questionCode}${answerCode}"]`);
-                    if (radio) radio.checked = true;
-                }
-            });
-            updateFAQCounter();
-        }
-
-        // Services
-        const servicesParam = urlParams.get("services");
-        if (servicesParam) {
-            try {
-                const services = JSON.parse(servicesParam);
-                services.forEach((service) => {
-                    const checkbox = document.querySelector(
-                        `input[type="checkbox"][value="${service}"]`,
-                    );
-                    if (checkbox) checkbox.checked = true;
-                });
-            } catch (e) {
-                console.error("Error parsing services:", e);
+            if (resolvedClinicRecord) {
+                prefillFromClinicRecord(resolvedClinicRecord);
             }
         }
 
-        // Hours
-        const hoursParam = urlParams.get("hours");
-        if (hoursParam) {
-            try {
-                const hours = JSON.parse(decodeURIComponent(hoursParam));
-                const dayMapping = {
-                    "1": "monday",
-                    "2": "tuesday",
-                    "3": "wednesday",
-                    "4": "thursday",
-                    "5": "friday",
-                    "6": "saturday",
-                    "7": "sunday",
-                };
+        const nameParam = urlParams.get("name");
+        const phoneParam = urlParams.get("phone");
+        const addressParam = urlParams.get("address");
+        const cityParam = urlParams.get("city");
+        const provinceParam = urlParams.get("province");
+        const countryParam = urlParams.get("country");
+        const websiteParam = urlParams.get("website");
 
-                Object.entries(hours).forEach(([dayNum, dayHours]) => {
-                    const dayName = dayMapping[dayNum];
-                    if (
-                        dayName &&
-                        Array.isArray(dayHours) &&
-                        dayHours.length > 0
-                    ) {
-                        const timeRange = dayHours[0];
-                        if (timeRange && timeRange.includes("-")) {
-                            const [openTime, closeTime] = timeRange.split("-");
-                            const checkbox = document.querySelector(
-                                `.day-checkbox[data-day="${dayName}"]`,
-                            );
-                            const openInput = document.querySelector(
-                                `.day-open[data-day="${dayName}"]`,
-                            );
-                            const closeInput = document.querySelector(
-                                `.day-close[data-day="${dayName}"]`,
-                            );
+        setInputValue("practice-name", nameParam);
+        setInputValue("phone", phoneParam);
+        setInputValue("address", addressParam);
+        setInputValue("city", cityParam);
+        setInputValue("province", provinceParam);
+        setInputValue("country", countryParam);
+        setInputValue("website", websiteParam);
 
-                            if (checkbox && openInput && closeInput) {
-                                checkbox.checked = true;
-                                openInput.disabled = false;
-                                closeInput.disabled = false;
+        const services = parseJSONParam(urlParams.get("services"), null);
+        if (Array.isArray(services)) {
+            prefillServices(services);
+        }
 
-                                // Convert time format if needed (e.g., "9:00 AM" to "09:00")
-                                const convertTo24Hour = (time) => {
-                                    const timeStr = time.trim();
-                                    if (
-                                        timeStr.includes("AM") ||
-                                        timeStr.includes("PM")
-                                    ) {
-                                        const [timePart, period] =
-                                            timeStr.split(/\s+(AM|PM)/i);
-                                        let [hours, minutes] =
-                                            timePart.split(":");
-                                        hours = parseInt(hours, 10);
-                                        minutes = minutes || "00";
+        const animals = parseJSONParam(urlParams.get("animals"), null);
+        if (Array.isArray(animals)) {
+            prefillAnimals(animals);
+        }
 
-                                        if (
-                                            period.toUpperCase() === "PM" &&
-                                            hours !== 12
-                                        ) {
-                                            hours += 12;
-                                        } else if (
-                                            period.toUpperCase() === "AM" &&
-                                            hours === 12
-                                        ) {
-                                            hours = 0;
-                                        }
+        const hours = parseJSONParam(urlParams.get("hours"), null);
+        if (hours && typeof hours === "object") {
+            prefillHours(hours);
+        }
 
-                                        return `${hours.toString().padStart(2, "0")}:${minutes}`;
-                                    }
-                                    return timeStr;
-                                };
+        if (!resolvedClinicRecord) {
+            const hasDirectClinicPrefill = [
+                nameParam,
+                phoneParam,
+                addressParam,
+                cityParam,
+                provinceParam,
+                countryParam,
+                websiteParam,
+            ].some((value) => typeof value === "string" && value.trim() !== "");
 
-                                openInput.value = convertTo24Hour(openTime);
-                                closeInput.value = convertTo24Hour(closeTime);
-                            }
-                        }
-                    }
+            if (hasDirectClinicPrefill) {
+                applyClinicContext({
+                    practiceName: nameParam || "Selected clinic",
+                    city: cityParam || "",
+                    province: provinceParam || "",
+                    country: countryParam || "",
+                    cityPageHref: (urlParams.get("cityPage") || "").trim(),
                 });
-            } catch (e) {
-                console.error("Error parsing hours:", e);
             }
         }
+
+        updateScoreProjection();
     }
 
-    // Run initialization when page loads
-    document.addEventListener("DOMContentLoaded", function() {
-        initializeFAQSection();
-        prefillFormFromURL();
-    });
+    let claimPageInitialized = false;
 
-    // Handle premium section reveal
-    document
-        .getElementById("reveal-premium")
-        .addEventListener("click", function () {
-            const premiumSection = document.getElementById("premium-section");
-            const button = this;
+    async function initializeClaimPage() {
+        if (claimPageInitialized) return;
+        claimPageInitialized = true;
+        activeClinicId = new URLSearchParams(window.location.search).get("clinic")?.trim() || "";
 
-            // Show the section
-            premiumSection.classList.remove("hidden");
+        initializeClaimLocationPicker();
+        if (activeClinicRecord) {
+            prefillFromClinicRecord(activeClinicRecord);
+        }
+        await prefillFormFromURL();
 
-            // Trigger animation after a brief delay
-            setTimeout(() => {
-                premiumSection.classList.remove("opacity-0", "translate-y-4");
-                premiumSection.classList.add("opacity-100", "translate-y-0");
-            }, 50);
-
-            // Smooth scroll to the premium section
-            setTimeout(() => {
-                premiumSection.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start",
-                });
-            }, 100);
-
-            // Update button text and disable it
-            button.innerHTML = `
-      <span class="flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        Premium Options Revealed
-      </span>
-    `;
-            button.disabled = true;
-            button.classList.add("opacity-75", "cursor-not-allowed");
+        verificationInterestEl?.addEventListener("change", function () {
+            if (!this.checked && backlinkInterestEl?.checked) {
+                backlinkInterestEl.checked = false;
+            }
+            updateScoreProjection();
         });
+
+        backlinkInterestEl?.addEventListener("change", function () {
+            if (this.checked && verificationInterestEl && !verificationInterestEl.checked) {
+                verificationInterestEl.checked = true;
+            }
+            updateScoreProjection();
+        });
+
+        [
+            "#website",
+            "#custom-services",
+            "#verification-interest",
+            "#backlink-interest",
+            '#services-grid input[type="checkbox"]',
+            '#animals-grid input[type="checkbox"]',
+            ".day-checkbox",
+            ".day-open",
+            ".day-close",
+        ].forEach((selector) => {
+            document.querySelectorAll(selector).forEach((element) => {
+                element.addEventListener("change", updateScoreProjection);
+                element.addEventListener("input", updateScoreProjection);
+            });
+        });
+
+        updateScoreProjection();
+    }
+
+    // Run initialization when page loads (and safely handle cases where DOM is already loaded)
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initializeClaimPage, {
+            once: true,
+        });
+    } else {
+        initializeClaimPage();
+    }
 </script>
+<script id="claim-location-data" type="application/json" set:html={JSON.stringify(claimLocationIndex)} />
+
+<style is:inline>
+    .claim-finder-select {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: none;
+        min-height: 58px;
+    }
+
+    .claim-badge-tab {
+        border: 1px solid rgb(203 213 225);
+        background: white;
+        border-radius: 999px;
+        color: rgb(15 23 42);
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0.7rem 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .claim-badge-tab:hover {
+        border-color: rgb(34 211 238);
+        background: rgb(236 254 255);
+    }
+
+    .claim-badge-tab.active {
+        border-color: rgb(13 148 136);
+        background: rgb(204 251 241);
+        color: rgb(19 78 74);
+        box-shadow: 0 8px 22px -14px rgba(13, 148, 136, 0.55);
+    }
+
+    .claim-anchor-chip {
+        border: 1px solid rgb(186 230 253);
+        background: rgb(239 246 255);
+        border-radius: 999px;
+        color: rgb(8 47 73);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        padding: 0.55rem 0.9rem;
+        transition: all 0.2s ease;
+    }
+
+    .claim-anchor-chip:hover {
+        border-color: rgb(34 211 238);
+        background: rgb(236 254 255);
+    }
+</style>

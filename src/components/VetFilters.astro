@@ -1,0 +1,456 @@
+---
+/**
+ * VetFilters Component
+ * Provides filter and sort functionality for city pages
+ * Features:
+ * - Sort dropdown (Recommended, Open Now, Rating, A-Z)
+ * - Status filters (Open Now, 24/7 Emergency)
+ * - Animal filters (Dogs, Cats, Horses, Exotic, Birds, Small Animals)
+ * - Service filters (Surgery, Dental, Boarding, + More expandable)
+ * - Results count display
+ * - Clear All button
+ * 
+ * Note: Search functionality is handled by the header search bar
+ */
+
+interface Props {
+  totalCount?: number;
+}
+
+const { totalCount = 0 } = Astro.props;
+---
+
+<div class="filter-search-bar">
+  <div class="w-full">
+    <!-- Compact Filter Line -->
+    <div class="flex flex-wrap items-center gap-2 text-xs">
+      <!-- Status & Features -->
+      <button data-filter="open-now" data-filter-type="status" class="filter-btn-compact">
+        🟢 Open
+      </button>
+      <button data-filter="emergency" data-filter-type="enriched" class="filter-btn-compact">
+        🚨 Emergency
+      </button>
+      <button data-filter="online-booking" data-filter-type="enriched" class="filter-btn-compact">
+        📅 Book Online
+      </button>
+      <button data-filter="telehealth" data-filter-type="enriched" class="filter-btn-compact">
+        💻 Telehealth
+      </button>
+      <button data-filter="multilingual" data-filter-type="enriched" class="filter-btn-compact">
+        🌍 Multilingual
+      </button>
+      
+      <span class="text-gray-300">|</span>
+      
+      <!-- Animals -->
+      <button data-filter="dog" data-filter-type="animal" class="filter-btn-compact">
+        🐕 Dogs
+      </button>
+      <button data-filter="cat" data-filter-type="animal" class="filter-btn-compact">
+        🐈 Cats
+      </button>
+      <button data-filter="exotic" data-filter-type="animal" class="filter-btn-compact">
+        🦎 Exotic
+      </button>
+      <button data-filter="bird" data-filter-type="animal" class="filter-btn-compact">
+        🐦 Birds
+      </button>
+      <button data-filter="horse" data-filter-type="animal" class="filter-btn-compact">
+        🐴 Horses
+      </button>
+      <button data-filter="farm" data-filter-type="animal" class="filter-btn-compact">
+        🐄 Farm
+      </button>
+      <button data-filter="small" data-filter-type="animal" class="filter-btn-compact">
+        🐹 Small
+      </button>
+      
+      <span class="text-gray-300">|</span>
+      
+      <!-- Services -->
+      <button data-filter="surgery" data-filter-type="service" class="filter-btn-compact">
+        💉 Surgery
+      </button>
+      <button data-filter="dental" data-filter-type="service" class="filter-btn-compact">
+        🦷 Dental
+      </button>
+      <button data-filter="boarding" data-filter-type="service" class="filter-btn-compact">
+        🛏️ Boarding
+      </button>
+      <button class="filter-btn-compact bg-gray-100" id="moreFiltersBtn" aria-expanded="false">
+        ➕ More
+      </button>
+      
+      <!-- Results Count - Inline -->
+      <span class="ml-auto text-xs font-semibold text-gray-700" id="resultsCount">
+        {totalCount} clinics
+      </span>
+      
+      <!-- Clear -->
+      <button class="clear-all-btn hidden text-xs text-red-600 hover:underline" id="clearAllBtn">
+        Clear
+      </button>
+    </div>
+    
+    <!-- Expanded Filters -->
+    <div class="hidden mt-2 pt-2 border-t border-gray-200" id="expandedFilters">
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <button data-filter="grooming" data-filter-type="service" class="filter-btn-compact">
+          🛁 Grooming
+        </button>
+        <button data-filter="vaccination" data-filter-type="service" class="filter-btn-compact">
+          💉 Vaccines
+        </button>
+        <button data-filter="ultrasound" data-filter-type="service" class="filter-btn-compact">
+          🔬 Ultrasound
+        </button>
+        <button data-filter="spay" data-filter-type="service" class="filter-btn-compact">
+          💉 Spay/Neuter
+        </button>
+      </div>
+    </div>
+    
+    <!-- Expanded Filters (Hidden by default) -->
+    <div class="expanded-filters hidden mt-4 pt-4 border-t border-gray-200" id="expandedFilters">
+      <div class="filter-group">
+        <span class="filter-label text-xs font-bold text-gray-600 uppercase tracking-wider mb-2 block">More Services:</span>
+        <div class="flex flex-wrap gap-2">
+          <button 
+            data-filter="emergency-care" 
+            data-filter-type="service"
+            class="filter-btn"
+            aria-label="Filter by Emergency Care"
+          >
+            <span class="text-base">🚑</span>
+            <span>Emergency</span>
+          </button>
+          <button 
+            data-filter="grooming" 
+            data-filter-type="service"
+            class="filter-btn"
+            aria-label="Filter by Grooming"
+          >
+            <span class="text-base">🛁</span>
+            <span>Grooming</span>
+          </button>
+          <button 
+            data-filter="ultrasound" 
+            data-filter-type="service"
+            class="filter-btn"
+            aria-label="Filter by Ultrasound"
+          >
+            <span class="text-base">🔬</span>
+            <span>Ultrasound</span>
+          </button>
+          <button 
+            data-filter="spay" 
+            data-filter-type="service"
+            class="filter-btn"
+            aria-label="Filter by Spay/Neuter"
+          >
+            <span class="text-base">💉</span>
+            <span>Spay/Neuter</span>
+          </button>
+          <button 
+            data-filter="vaccination" 
+            data-filter-type="service"
+            class="filter-btn"
+            aria-label="Filter by Vaccinations"
+          >
+            <span class="text-base">💉</span>
+            <span>Vaccines</span>
+          </button>
+          <button 
+            data-filter="euthanasia" 
+            data-filter-type="service"
+            class="filter-btn"
+            aria-label="Filter by Euthanasia"
+          >
+            <span class="text-base">💔</span>
+            <span>Euthanasia</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Filter state
+  const filters = new Set<string>();
+  let currentSort = 'recommended';
+  
+  // Get DOM elements
+  const resultsCount = document.getElementById('resultsCount') as HTMLElement;
+  const clearAllBtn = document.getElementById('clearAllBtn') as HTMLButtonElement;
+  const moreFiltersBtn = document.getElementById('moreFiltersBtn') as HTMLButtonElement;
+  const expandedFilters = document.getElementById('expandedFilters') as HTMLElement;
+  const sortSelect = document.getElementById('sortSelect') as HTMLSelectElement;
+  
+  // Sort functionality
+  if (sortSelect) {
+    sortSelect.addEventListener('change', (e) => {
+      const target = e.target as HTMLSelectElement;
+      currentSort = target.value;
+      applySorting();
+    });
+  }
+  
+  // Filter functionality
+  document.querySelectorAll('[data-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const button = btn as HTMLButtonElement;
+      const filter = button.dataset.filter;
+      
+      if (!filter) return;
+      
+      if (filters.has(filter)) {
+        filters.delete(filter);
+        button.classList.remove('active');
+      } else {
+        filters.add(filter);
+        button.classList.add('active');
+      }
+      
+      // Show/hide clear all button
+      if (clearAllBtn) {
+        clearAllBtn.style.display = filters.size > 0 ? 'block' : 'none';
+        
+        if (filters.size > 0) {
+          clearAllBtn.classList.remove('hidden');
+        } else {
+          clearAllBtn.classList.add('hidden');
+        }
+      }
+      
+      applyFilters();
+    });
+  });
+  
+  // Clear all functionality
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener('click', () => {
+      filters.clear();
+      
+      document.querySelectorAll('[data-filter]').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      clearAllBtn.style.display = 'none';
+      clearAllBtn.classList.add('hidden');
+      
+      applyFilters();
+    });
+  }
+  
+  // More filters toggle
+  if (moreFiltersBtn && expandedFilters) {
+    moreFiltersBtn.addEventListener('click', () => {
+      const isHidden = expandedFilters.classList.contains('hidden');
+      expandedFilters.classList.toggle('hidden');
+      moreFiltersBtn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+    });
+  }
+  
+  // Filter logic
+  function applyFilters() {
+    const cards = document.querySelectorAll('.vet-card') as NodeListOf<HTMLElement>;
+    let visibleCount = 0;
+    
+    cards.forEach(card => {
+      let matchesFilters = true;
+      
+      // Check if card matches all active filters (AND logic)
+      if (filters.size > 0) {
+        matchesFilters = Array.from(filters).every(filterValue => {
+          const filterBtn = document.querySelector(`[data-filter="${filterValue}"]`) as HTMLElement;
+          const filterType = filterBtn?.dataset.filterType;
+          
+          if (filterType === 'animal') {
+            const cardAnimals = card.dataset.animals || '';
+            // Handle singular/plural: "dog" matches "dogs", "cat" matches "cats", etc.
+            return cardAnimals.includes(filterValue) || cardAnimals.includes(filterValue + 's');
+          } else if (filterType === 'service') {
+            const cardServices = card.dataset.services || '';
+            return cardServices.includes(filterValue);
+          } else if (filterType === 'status') {
+            if (filterValue === 'open-now') {
+              return card.dataset.openNow === 'true';
+            }
+          } else if (filterType === 'enriched') {
+            if (filterValue === 'emergency') {
+              return card.dataset.emergencyServices === 'true';
+            } else if (filterValue === 'online-booking') {
+              return card.dataset.onlineBooking === 'true';
+            } else if (filterValue === 'telehealth') {
+              return card.dataset.telehealth === 'true';
+            } else if (filterValue === 'multilingual') {
+              return card.dataset.multilingual === 'true';
+            }
+          }
+          return true;
+        });
+      }
+      
+      // Show/hide card based on filters
+      card.style.display = matchesFilters ? 'block' : 'none';
+      
+      if (matchesFilters) visibleCount++;
+    });
+    
+    // Update results count
+    if (resultsCount) {
+      resultsCount.textContent = `${visibleCount} clinic${visibleCount !== 1 ? 's' : ''}`;
+    }
+  }
+  
+  // Sorting function
+  function applySorting() {
+    const grid = document.getElementById('profiles-grid');
+    if (!grid) return;
+    
+    const cards = Array.from(grid.querySelectorAll('.vet-card')) as HTMLElement[];
+    
+    // Sort cards based on selected option
+    cards.sort((a, b) => {
+      switch (currentSort) {
+        case 'recommended':
+          // Claimed first, then by rating
+          const aClaimedStr = a.dataset.claimed || 'false';
+          const bClaimedStr = b.dataset.claimed || 'false';
+          const aClaimed = aClaimedStr === 'true';
+          const bClaimed = bClaimedStr === 'true';
+          
+          if (aClaimed && !bClaimed) return -1;
+          if (!aClaimed && bClaimed) return 1;
+          
+          // Within same claimed status, sort by rating
+          const aRating = parseFloat(a.dataset.rating || '0');
+          const bRating = parseFloat(b.dataset.rating || '0');
+          return bRating - aRating;
+          
+        case 'open-now':
+          // Open clinics first, then by rating
+          const aOpenStr = a.dataset.openNow || 'false';
+          const bOpenStr = b.dataset.openNow || 'false';
+          const aOpen = aOpenStr === 'true';
+          const bOpen = bOpenStr === 'true';
+          
+          if (aOpen && !bOpen) return -1;
+          if (!aOpen && bOpen) return 1;
+          
+          // Within same open status, sort by rating
+          const aRating2 = parseFloat(a.dataset.rating || '0');
+          const bRating2 = parseFloat(b.dataset.rating || '0');
+          return bRating2 - aRating2;
+          
+        case 'rating':
+          // Highest rating first
+          const aRating3 = parseFloat(a.dataset.rating || '0');
+          const bRating3 = parseFloat(b.dataset.rating || '0');
+          return bRating3 - aRating3;
+          
+        case 'a-z':
+          // Alphabetical by name
+          const aName = a.dataset.name || '';
+          const bName = b.dataset.name || '';
+          return aName.localeCompare(bName);
+          
+        default:
+          return 0;
+      }
+    });
+    
+    // Re-append cards in sorted order
+    cards.forEach(card => {
+      grid.appendChild(card);
+    });
+  }
+  
+  // Initialize on page load
+  if (resultsCount) {
+    const cards = document.querySelectorAll('.vet-card');
+    resultsCount.textContent = `${cards.length} clinic${cards.length !== 1 ? 's' : ''}`;
+  }
+</script>
+
+<style>
+  .filter-search-bar {
+    background: transparent;
+  }
+  
+  .filter-btn-compact {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.125rem 0.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.25rem;
+    background: white;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: background 0.1s;
+    white-space: nowrap;
+    user-select: none;
+  }
+  
+  .filter-btn-compact:hover {
+    background: #f3f4f6;
+  }
+  
+  .filter-btn-compact.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+  }
+  
+  .expanded-filters {
+    animation: slideDown 0.3s ease-out;
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .hidden {
+    display: none !important;
+  }
+  
+  /* Mobile optimizations */
+  @media (max-width: 640px) {
+    .filter-btn-compact {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.6875rem;
+    }
+  }
+  
+  /* Ensure sticky positioning works correctly */
+  .sticky {
+    position: sticky;
+    top: 0;
+  }
+  
+  /* Accessibility improvements */
+  .filter-btn-compact:focus,
+  .sort-select:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+  
+  /* Print styles */
+  @media print {
+    .filter-search-bar {
+      display: none;
+    }
+  }
+</style>

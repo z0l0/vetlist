@@ -1,0 +1,525 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const title = 'Operator Workbook';
+const description = 'Exact operating handbook for VetList: where live data goes, how to add clinics, how scraping works, which models are used, what costs are tracked, and how to rebrand the site.';
+
+const toc = [
+  { href: '#start', label: 'Start Here' },
+  { href: '#storage', label: 'Data Storage' },
+  { href: '#add-vets', label: 'Add More Vets' },
+  { href: '#scrape', label: 'Scrape Workflow' },
+  { href: '#llms', label: 'LLMs + Cost' },
+  { href: '#update-site', label: 'Update Site' },
+  { href: '#colors', label: 'Change Colors' },
+  { href: '#copy-paste', label: 'Copy/Paste Prompts' },
+];
+
+const startCards = [
+  {
+    label: 'Public site',
+    command: 'npm install\nnpm run dev',
+    note: 'Runs Astro on `http://localhost:4323`. `predev` automatically rebuilds `data/derived/site-data.json` first.',
+  },
+  {
+    label: 'Local CRM',
+    command: 'cd crm\nnpm install\nnpm start',
+    note: 'Runs the CSV editor on `http://localhost:3030`.',
+  },
+  {
+    label: 'Rebuild derived data',
+    command: 'npm run precompute:data',
+    note: 'Recreates `data/derived/site-data.json` from the live Canada and USA CSV files.',
+  },
+  {
+    label: 'Safe build check',
+    command: 'npm run build:fast',
+    note: 'Fast sanity check before shipping. Full `npm run build` is heavier.',
+  },
+];
+
+const liveFiles = [
+  {
+    file: 'data/professionals-canada.csv',
+    rule: 'All live Canadian clinics go here.',
+  },
+  {
+    file: 'data/professionals-usa.csv',
+    rule: 'All live United States clinics go here.',
+  },
+  {
+    file: 'data/derived/site-data.json',
+    rule: 'Generated build data. Never edit by hand.',
+  },
+  {
+    file: 'data/enriched-*.csv',
+    rule: 'Temporary scraper output. Review it, then merge it back into a live CSV.',
+  },
+];
+
+const neverEdit = [
+  '`data/derived/site-data.json` because it is regenerated',
+  '`src/data/profiles.json` because it is old demo/sample data, not the production source of truth',
+  '`data/.scraper-checkpoint-*.json` and `data/*-progress.csv` because they are resume/debug files',
+  '`data/old-files/` unless you are intentionally working on legacy migration work',
+];
+
+const storageRules = [
+  'One clinic location = one row. Do not combine multiple physical locations into one profile.',
+  'Choose the live CSV by country only: Canada rows go in `professionals-canada.csv`, U.S. rows go in `professionals-usa.csv`.',
+  'The profile URL is generated from `country + province + city + name`, so those fields must be clean and present.',
+  'If you save through the CRM, it refreshes derived data automatically. If you edit CSVs directly, run `npm run precompute:data` yourself.',
+];
+
+const addVetSteps = [
+  {
+    title: 'Single clinic, safest path',
+    items: [
+      'Open `http://localhost:3030`.',
+      'Search for the clinic first so you do not create a duplicate.',
+      'If it already exists, click Edit and save the corrected fields.',
+      'If it does not exist, use Import or add the row to the correct live CSV.',
+      'Refresh the Astro page locally. If you are not running the CRM, run `npm run precompute:data` first.',
+    ],
+  },
+  {
+    title: 'When adding manually to CSV',
+    items: [
+      'Put Canadian rows in `data/professionals-canada.csv` and U.S. rows in `data/professionals-usa.csv`.',
+      'Copy a nearby row as a template so you keep the full column set intact.',
+      'Assign a new numeric `id`. Easiest rule: use the next highest id in that same file.',
+      'Leave unknown fields blank instead of inventing values.',
+      'Run `npm run precompute:data` after saving.',
+    ],
+  },
+  {
+    title: 'Minimum fields that should be real',
+    items: [
+      '`id`',
+      '`name`',
+      '`country`',
+      '`province`',
+      '`city`',
+      '`address`',
+      '`phone_number`',
+      '`website` if the clinic has one',
+      '`hours_of_operation` as JSON if you know it, otherwise leave blank',
+      '`specialization` and `animals_treated` if you know them, otherwise leave blank',
+    ],
+  },
+];
+
+const addManyRules = [
+  'For 10 to 100+ new clinics, edit the target CSV directly or prepare rows elsewhere and paste them into the CRM Bulk Edit screen.',
+  'Keep the existing header exactly as-is. Do not delete columns just because you are not filling them yet.',
+  'If you only have bare listing data at first, that is fine. Scraping/enrichment can fill in pricing, digital signals, languages, and extra services later.',
+  'Always backup before bulk edits. The CRM warns correctly: bulk edit is raw CSV access with no undo.',
+];
+
+const scrapeFacts = [
+  'Current scraper file: `scripts/production-scraper-v3.js`.',
+  'Website fetcher: Jina AI via `https://r.jina.ai/...`.',
+  'Current LLMs in code: OpenAI `gpt-5-nano`, DeepSeek `deepseek-chat`, and Google `gemini-2.5-flash`.',
+  'The scraper round-robins across whichever model keys are present, then falls back to the others if the assigned model fails.',
+  'Output goes to a separate enriched CSV first. It does not automatically overwrite the live Canada/USA CSVs.',
+];
+
+const scrapeWarnings = [
+  'Important: parts of the scraper comments still mention legacy `professionals.csv` and `data/old-files/`. The live site now renders from `professionals-canada.csv` and `professionals-usa.csv`.',
+  'Use the new merge step below to bring enriched data back into the active CSV you actually ship.',
+];
+
+const llmRows = [
+  {
+    tool: 'Jina AI',
+    role: 'Fetches website text content quickly before extraction.',
+    cost: 'The script prints a Jina line item, but `stats.costs.jina` is not actually incremented in the current code.',
+  },
+  {
+    tool: 'OpenAI',
+    role: 'Extraction fallback/participant using `gpt-5-nano`.',
+    cost: 'The script estimates cost at `$0.30 / 1M tokens`.',
+  },
+  {
+    tool: 'DeepSeek',
+    role: 'Cheap primary extractor when key is available using `deepseek-chat`.',
+    cost: 'The script estimates cost at `$0.14 / 1M tokens`.',
+  },
+  {
+    tool: 'Gemini',
+    role: 'Additional fallback/participant using `gemini-2.5-flash`.',
+    cost: 'Usage is counted, but Gemini dollars are not added to the cost total in the current script.',
+  },
+];
+
+const costTruths = [
+  'The cost summary from `production-scraper-v3.js` is a floor, not a perfect invoice.',
+  'If Gemini or paid Jina usage matters, track those separately because the script does not fully price them today.',
+  'If only DeepSeek is active, the reported LLM total is closer to reality.',
+];
+
+const siteEditMap = [
+  {
+    file: 'src/pages/index.astro',
+    purpose: 'Homepage copy, hero, main discovery messaging, featured geography blocks.',
+  },
+  {
+    file: 'src/layouts/Layout.astro',
+    purpose: 'Global shell, background gradient, font, `<meta name="theme-color">`, and hero accent CSS.',
+  },
+  {
+    file: 'src/components/Header.astro',
+    purpose: 'Top nav, mobile menu, and several hardcoded cyan accent classes.',
+  },
+  {
+    file: 'src/components/VetCard.astro',
+    purpose: 'City cards and many of the visible accent states.',
+  },
+  {
+    file: 'src/pages/[country]/index.astro',
+    purpose: 'Country directory design and a lot of the system-level stats cards.',
+  },
+  {
+    file: 'src/pages/[country]/[region]/index.astro',
+    purpose: 'Region directory structure and browsing cards.',
+  },
+  {
+    file: 'src/pages/[country]/[region]/[city]/[profile].astro',
+    purpose: 'Main profile page design. Treat this as the visual source of truth.',
+  },
+  {
+    file: 'src/pages/api/vetlist-badge.svg.js',
+    purpose: 'Badge color themes if you are embedding branded score badges.',
+  },
+  {
+    file: 'tailwind.config.mjs',
+    purpose: 'Primary palette tokens used by `primary-*` utility classes.',
+  },
+];
+
+const shippingChecklist = [
+  'After data edits: run `npm run precompute:data` if the CRM did not already do it.',
+  'After code or design edits: run `npm run build:fast`.',
+  'If you changed brand colors: run `rg -n "cyan-|#0066cc|#004a99|#38bdf8" src tailwind.config.mjs` and clear remaining old accents.',
+  'If you scraped data: keep the enriched CSV as an artifact until you confirm the merged live CSV looks correct.',
+];
+
+const envSnippet = String.raw`# Required for scraping website text
+JINA_AI_API_KEY=your_jina_key
+
+# Use at least one LLM
+DEEPSEEK_API_KEY=your_deepseek_key
+OPENAI_API_KEY=your_openai_key
+GEMINI_API_KEY=your_gemini_key`;
+
+const scrapeCanadaSnippet = String.raw`# Example: enrich Ontario clinics
+node scripts/production-scraper-v3.js data/professionals-canada.csv --province="Ontario" --output=data/enriched-ontario.csv
+
+# Merge enriched values back into the live Canada file
+npm run merge:enriched -- --main=data/professionals-canada.csv --enriched=data/enriched-ontario.csv
+
+# Rebuild derived site data
+npm run precompute:data
+
+# Sanity check the site
+npm run build:fast`;
+
+const scrapeUsSnippet = String.raw`# Example: enrich Colorado clinics
+node scripts/production-scraper-v3.js data/professionals-usa.csv --province="Colorado" --output=data/enriched-colorado.csv
+
+# Merge enriched values back into the live USA file
+npm run merge:enriched -- --main=data/professionals-usa.csv --enriched=data/enriched-colorado.csv
+
+# Rebuild derived site data
+npm run precompute:data
+
+# Sanity check
+npm run build:fast`;
+
+const colorRecipeSnippet = String.raw`// tailwind.config.mjs
+primary: {
+  DEFAULT: '#16a34a',
+  50: '#f0fdf4',
+  100: '#dcfce7',
+  400: '#4ade80',
+  500: '#22c55e',
+  600: '#16a34a',
+  700: '#15803d',
+  800: '#166534',
+  hover: '#15803d',
+}`;
+
+const colorSearchSnippet = String.raw`# 1. Update the palette token file first
+code tailwind.config.mjs
+
+# 2. Update global shell gradients + theme color
+code src/layouts/Layout.astro
+
+# 3. Find remaining hardcoded blue/cyan accents
+rg -n "cyan-|#0066cc|#004a99|#38bdf8|text-cyan|bg-cyan|border-cyan" src
+
+# 4. Rebuild and visually check
+npm run build:fast`;
+
+const greenPrompt = String.raw`Rebrand this Astro directory site from blue/cyan to a green-led veterinary brand.
+
+Rules:
+- Keep the existing layout and information architecture.
+- Update \`tailwind.config.mjs\` primary colors to a green palette.
+- Update \`src/layouts/Layout.astro\` theme-color, page background gradient, and hero gradient text so the shell feels green instead of cyan.
+- Find and replace remaining hardcoded cyan accents in high-visibility files, especially \`src/components/Header.astro\`, \`src/components/VetCard.astro\`, \`src/pages/index.astro\`, \`src/pages/[country]/index.astro\`, and \`src/pages/[country]/[region]/[city]/[profile].astro\`.
+- Preserve the slate neutrals and overall polish.
+- Run \`npm run build:fast\` when done and report any remaining hardcoded blue/cyan references.`;
+
+const operatorPrompt = String.raw`Use this repo's real data flow, not generic advice.
+
+Source of truth:
+- Canada: \`data/professionals-canada.csv\`
+- USA: \`data/professionals-usa.csv\`
+- Generated: \`data/derived/site-data.json\` (never edit manually)
+
+Workflow:
+1. Add or edit rows in the correct live CSV.
+2. If scraping, run \`scripts/production-scraper-v3.js\` against that live CSV and write to a separate \`data/enriched-*.csv\` file.
+3. Merge enriched output back with \`npm run merge:enriched -- --main=... --enriched=...\`.
+4. Run \`npm run precompute:data\`.
+5. Run \`npm run build:fast\`.
+
+Do not store production data in \`src/data/profiles.json\` and do not tell me to edit generated files.`;
+---
+
+<Layout title={title} description={description}>
+  <div class="mx-auto max-w-7xl py-6 md:py-8">
+    <section class="overflow-hidden rounded-[36px] border border-slate-200 bg-slate-950 text-white shadow-2xl">
+      <div class="bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.22),_transparent_24%),radial-gradient(circle_at_80%_20%,_rgba(56,189,248,0.14),_transparent_18%),radial-gradient(circle_at_bottom_right,_rgba(250,204,21,0.12),_transparent_20%)] px-6 py-8 md:px-10 md:py-10">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">Operator workbook</p>
+        <h1 class="mt-3 max-w-5xl text-4xl font-black tracking-tight text-white md:text-6xl">
+          Run this site without guessing, Googling, or hoping
+        </h1>
+        <p class="mt-4 max-w-4xl text-lg leading-8 text-slate-200">
+          This page is the handoff manual. It tells you where live vet data belongs, how to add more clinics, how scraping actually works in this repo, what models are used, what costs are and are not tracked, and exactly how to rebrand the site green or turn it into a new directory brand.
+        </p>
+        <div class="mt-6 flex flex-wrap gap-3 text-sm">
+          <span class="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-slate-100">Live source of truth = CSV files</span>
+          <span class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-emerald-100">Derived data is generated</span>
+          <span class="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-slate-100">Scraper output merges back in</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-6 rounded-[28px] border border-slate-300/70 bg-white p-4 shadow-[0_20px_48px_rgba(15,23,42,0.10)] md:p-5">
+      <div class="flex flex-wrap gap-2">
+        {toc.map((item) => (
+          <a href={item.href} class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700">
+            {item.label}
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <section id="start" class="mt-8">
+      <div class="flex items-end justify-between gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Start Here</p>
+          <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">The 5-minute setup</h2>
+        </div>
+        <div class="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm">Public site: `localhost:4323`</div>
+      </div>
+
+      <div class="mt-5 grid gap-4 md:grid-cols-2">
+        {startCards.map((card) => (
+          <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{card.label}</p>
+            <pre class="mt-4 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-sm leading-7 text-slate-100 whitespace-pre-wrap">{card.command}</pre>
+            <p class="mt-4 text-sm leading-7 text-slate-600">{card.note}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section id="storage" class="mt-8 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Data Storage</p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Where live data actually lives</h2>
+        <div class="mt-5 space-y-3">
+          {liveFiles.map((item) => (
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <code class="text-sm font-semibold text-slate-900">{item.file}</code>
+              <p class="mt-2 text-sm leading-6 text-slate-600">{item.rule}</p>
+            </div>
+          ))}
+        </div>
+        <div class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-900">
+          The site renders from two active CSVs only: `data/professionals-canada.csv` and `data/professionals-usa.csv`. Everything else is supporting or generated.
+        </div>
+      </div>
+
+      <div class="rounded-[28px] border border-amber-200 bg-amber-50 p-6 shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Never Edit These By Hand</p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Generated, legacy, or scratch files</h2>
+        <div class="mt-5 space-y-3 text-sm leading-7 text-slate-700">
+          {neverEdit.map((item) => (
+            <div class="rounded-2xl border border-amber-200/80 bg-white/80 p-4">{item}</div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-8 rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Operating Rules</p>
+      <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Storage rules that keep the site sane</h2>
+      <div class="mt-5 grid gap-3 md:grid-cols-2">
+        {storageRules.map((rule, index) => (
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div class="flex gap-4">
+              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-sm font-black text-white">{index + 1}</div>
+              <div class="text-sm leading-7 text-slate-700">{rule}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section id="add-vets" class="mt-8">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Add More Vets</p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Exact playbook for adding clinics</h2>
+      </div>
+
+      <div class="mt-5 grid gap-4 lg:grid-cols-3">
+        {addVetSteps.map((group) => (
+          <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+            <h3 class="text-xl font-black tracking-tight text-slate-950">{group.title}</h3>
+            <div class="mt-4 space-y-3">
+              {group.items.map((item) => (
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-700">{item}</div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div class="mt-4 rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Bulk Adds</p>
+        <h3 class="mt-2 text-2xl font-black tracking-tight text-slate-950">If you are adding a lot of vets</h3>
+        <div class="mt-4 grid gap-3 md:grid-cols-2">
+          {addManyRules.map((rule) => (
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-700">{rule}</div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section id="scrape" class="mt-8 grid gap-4 lg:grid-cols-[1fr_1fr]">
+      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Scrape Workflow</p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">How enrichment works in this repo</h2>
+        <div class="mt-5 space-y-3 text-sm leading-7 text-slate-700">
+          {scrapeFacts.map((item) => (
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">{item}</div>
+          ))}
+        </div>
+        <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-950">
+          {scrapeWarnings.map((item, index) => (
+            <p class={index < scrapeWarnings.length - 1 ? 'mb-3' : ''}>{item}</p>
+          ))}
+        </div>
+      </div>
+
+      <div class="rounded-[28px] border border-slate-900 bg-slate-950 p-6 text-white shadow-[0_20px_48px_rgba(15,23,42,0.18)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">Environment</p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight text-white">Keys you need before scraping</h2>
+        <pre class="mt-5 overflow-x-auto rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-7 text-slate-200 whitespace-pre-wrap">{envSnippet}</pre>
+      </div>
+    </section>
+
+    <section class="mt-8 grid gap-4 xl:grid-cols-2">
+      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Canada Example</p>
+        <h3 class="mt-2 text-2xl font-black tracking-tight text-slate-950">Scrape and merge a Canadian province</h3>
+        <pre class="mt-5 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-sm leading-7 text-slate-100 whitespace-pre-wrap">{scrapeCanadaSnippet}</pre>
+      </div>
+
+      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">USA Example</p>
+        <h3 class="mt-2 text-2xl font-black tracking-tight text-slate-950">Scrape and merge a U.S. state</h3>
+        <pre class="mt-5 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-sm leading-7 text-slate-100 whitespace-pre-wrap">{scrapeUsSnippet}</pre>
+      </div>
+    </section>
+
+    <section id="llms" class="mt-8 rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">LLMs + Cost</p>
+      <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">What models the scraper uses and what the cost line really means</h2>
+      <div class="mt-5 grid gap-3 md:grid-cols-2">
+        {llmRows.map((row) => (
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div class="text-sm font-black text-slate-950">{row.tool}</div>
+            <p class="mt-2 text-sm leading-7 text-slate-700">{row.role}</p>
+            <p class="mt-2 text-sm leading-7 text-slate-600">{row.cost}</p>
+          </div>
+        ))}
+      </div>
+      <div class="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-950">
+        {costTruths.map((item, index) => (
+          <p class={index < costTruths.length - 1 ? 'mb-3' : ''}>{item}</p>
+        ))}
+      </div>
+    </section>
+
+    <section id="update-site" class="mt-8">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Update Site</p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">If you need to change the actual website</h2>
+      </div>
+      <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {siteEditMap.map((item) => (
+          <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+            <code class="text-sm font-semibold text-slate-900">{item.file}</code>
+            <p class="mt-3 text-sm leading-7 text-slate-600">{item.purpose}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section id="colors" class="mt-8 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Change Colors</p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Exact green-brand recipe</h2>
+        <p class="mt-4 text-sm leading-7 text-slate-600">
+          If you want a new green version of the same site, do not just change one token and stop. This repo uses both `primary-*` Tailwind tokens and hardcoded cyan classes in important pages.
+        </p>
+        <pre class="mt-5 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-sm leading-7 text-slate-100 whitespace-pre-wrap">{colorRecipeSnippet}</pre>
+      </div>
+
+      <div class="rounded-[28px] border border-slate-900 bg-slate-950 p-6 text-white shadow-[0_20px_48px_rgba(15,23,42,0.18)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">Find The Leftovers</p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight text-white">Copy/paste workflow for color changes</h2>
+        <pre class="mt-5 overflow-x-auto rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-7 text-slate-200 whitespace-pre-wrap">{colorSearchSnippet}</pre>
+      </div>
+    </section>
+
+    <section id="copy-paste" class="mt-8 grid gap-4 xl:grid-cols-2">
+      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Prompt For Rebrand</p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Paste this into a coding agent</h2>
+        <pre class="mt-5 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-sm leading-7 text-slate-100 whitespace-pre-wrap">{greenPrompt}</pre>
+      </div>
+
+      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Prompt For Operators</p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Paste this into a skill or LLM so it follows the real repo flow</h2>
+        <pre class="mt-5 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-sm leading-7 text-slate-100 whitespace-pre-wrap">{operatorPrompt}</pre>
+      </div>
+    </section>
+
+    <section class="mt-8 rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Before Shipping</p>
+      <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Final checklist</h2>
+      <div class="mt-5 grid gap-3 md:grid-cols-2">
+        {shippingChecklist.map((item) => (
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-700">{item}</div>
+        ))}
+      </div>
+    </section>
+  </div>
+</Layout>

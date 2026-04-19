@@ -1,0 +1,1055 @@
+{
+  "generated": "2026-04-15T15:35:55.132495",
+  "total_clinics": 3609,
+  "statistics": {
+    "average": 48.1,
+    "max": 86.0,
+    "min": 7.0,
+    "median": 49.0
+  },
+  "distribution": {
+    "90-100": 0,
+    "80-89": 12,
+    "70-79": 159,
+    "60-69": 552,
+    "50-59": 1017,
+    "40-49": 1000,
+    "30-39": 502,
+    "20-29": 256,
+    "10-19": 108,
+    "0-9": 3
+  },
+  "top50": [
+    {
+      "id": "1473",
+      "name": "Mildmay Veterinary Clinic",
+      "city": "Mildmay",
+      "province": "Ontario",
+      "score": 86.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 16,
+        "services": 10,
+        "transparency": 10,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "(519) 367-2691",
+      "email": "mildmayveterinary@gmail.com",
+      "website": "http://www.mildmayvet.com/"
+    },
+    {
+      "id": "2456",
+      "name": "King Hopkins Pet Hospital",
+      "city": "Whitby",
+      "province": "Ontario",
+      "score": 85.0,
+      "breakdown": {
+        "essential": 17,
+        "availability": 25,
+        "emergency": 16,
+        "services": 11,
+        "transparency": 12,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(905) 665-6369",
+      "email": "",
+      "website": "https://khpethospital.ca/"
+    },
+    {
+      "id": "1105",
+      "name": "Watrous Animal Hospital",
+      "city": "Watrous",
+      "province": "Saskatchewan",
+      "score": 84.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 11,
+        "emergency": 26,
+        "services": 11,
+        "transparency": 5,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "(306) 946-3657",
+      "email": "info@watrousanimalhospital.com",
+      "website": "http://www.watrousanimalhospital.com/"
+    },
+    {
+      "id": "194",
+      "name": "A Niu Veterinary Hospital",
+      "city": "Richmond",
+      "province": "British Columbia",
+      "score": 83.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 22,
+        "emergency": 16,
+        "services": 13,
+        "transparency": 7,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(604) 285-8822",
+      "email": "reception@anuvh.com",
+      "website": "https://aniuvet.ca/"
+    },
+    {
+      "id": "1075",
+      "name": "WCVM Large Animal Clinic and Field Service (Veterinary Medical Centre)",
+      "city": "Saskatoon",
+      "province": "Saskatchewan",
+      "score": 83.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 22,
+        "emergency": 21,
+        "services": 8,
+        "transparency": 4,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "(306) 966-7178",
+      "email": "",
+      "website": "https://vmc.usask.ca/"
+    },
+    {
+      "id": "178",
+      "name": "Burrard Animal Hospital + Emergency",
+      "city": "Vancouver",
+      "province": "British Columbia",
+      "score": 82.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 25,
+        "emergency": 20,
+        "services": 11,
+        "transparency": 4,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(604) 738-5683",
+      "email": "hospitalmanager@burrardvet.com",
+      "website": "http://www.burrardvet.com/"
+    },
+    {
+      "id": "1989",
+      "name": "Burnhamthorpe Animal Hospital",
+      "city": "Mississauga",
+      "province": "Ontario",
+      "score": 82.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 10,
+        "services": 8,
+        "transparency": 14,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "(905) 276-4083",
+      "email": "petdoctor@rogers.com",
+      "website": "http://www.burnhamthorpeanimalhospital.com/"
+    },
+    {
+      "id": "2800",
+      "name": "Veterinary Hospital Suro\u00eet",
+      "city": "Salaberry-de-Valleyfield",
+      "province": "Quebec",
+      "score": 82.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 22,
+        "emergency": 26,
+        "services": 10,
+        "transparency": 4,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(450) 373-3456",
+      "email": "hvdusuroit@outlook.com,bureauvetstan@gmail.com",
+      "website": "http://www.hopitalveterinairedusuroit.ca/fr/"
+    },
+    {
+      "id": "225",
+      "name": "48th Avenue Animal Hospital",
+      "city": "Delta",
+      "province": "British Columbia",
+      "score": 81.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 25,
+        "emergency": 6,
+        "services": 9,
+        "transparency": 14,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(604) 946-7779",
+      "email": "ladnervet@gmail.com",
+      "website": "https://ladnervet.ca/"
+    },
+    {
+      "id": "262",
+      "name": "Edmonds St. Animal Hospital",
+      "city": "Burnaby",
+      "province": "British Columbia",
+      "score": 81.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 22,
+        "emergency": 16,
+        "services": 13,
+        "transparency": 10,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(604) 540-7387",
+      "email": "edmondsvet@yahoo.ca",
+      "website": "https://www.edmondsstreetanimalhospital.com/"
+    },
+    {
+      "id": "3521",
+      "name": "Metro Animal Emergency Clinic",
+      "city": "Dartmouth",
+      "province": "Nova Scotia",
+      "score": 81.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 22,
+        "emergency": 20,
+        "services": 9,
+        "transparency": 5,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(902) 468-0674",
+      "email": "info@maec.ca",
+      "website": "https://maec.ca/"
+    },
+    {
+      "id": "2850",
+      "name": "H\u00f4pital V\u00e9t\u00e9rinaire Ste-Th\u00e9r\u00e8se - Vet et Nous",
+      "city": "Sainte-Th\u00e9r\u00e8se",
+      "province": "Quebec",
+      "score": 80.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 19,
+        "emergency": 16,
+        "services": 11,
+        "transparency": 6,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "(450) 430-6060",
+      "email": "",
+      "website": "https://www.vetetnous.com/nos-veterinaires/hopital-veterinaire-ste-therese/"
+    },
+    {
+      "id": "206",
+      "name": "Tele-Vet",
+      "city": "Vancouver",
+      "province": "British Columbia",
+      "score": 79.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 25,
+        "emergency": 20,
+        "services": 10,
+        "transparency": 0,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(604) 230-6162",
+      "email": "",
+      "website": "https://www.tele-vet.ca/"
+    },
+    {
+      "id": "442",
+      "name": "Menzies Pet Hospital",
+      "city": "Chilliwack",
+      "province": "British Columbia",
+      "score": 79.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 6,
+        "services": 13,
+        "transparency": 12,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(604) 792-3399",
+      "email": "contact@menziespethospital.com",
+      "website": "http://www.menziespethospital.com/"
+    },
+    {
+      "id": "1218",
+      "name": "Bridgwater Veterinary Hospital & Wellness Center",
+      "city": "Winnipeg",
+      "province": "Manitoba",
+      "score": 79.0,
+      "breakdown": {
+        "essential": 17,
+        "availability": 25,
+        "emergency": 16,
+        "services": 11,
+        "transparency": 4,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "(204) 452-0911",
+      "email": "",
+      "website": "http://www.bridgwatervethospital.ca/"
+    },
+    {
+      "id": "1488",
+      "name": "Coventry Animal Hospital",
+      "city": "Stratford",
+      "province": "Ontario",
+      "score": 79.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 15,
+        "services": 9,
+        "transparency": 9,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(519) 273-3471",
+      "email": "info@coventryvets.ca",
+      "website": "http://www.coventryvets.ca/"
+    },
+    {
+      "id": "1658",
+      "name": "Peaceful Passing Home Pet Euthanasia Service (previously Dailley Mobile)",
+      "city": "Guelph",
+      "province": "Ontario",
+      "score": 79.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 22,
+        "emergency": 10,
+        "services": 11,
+        "transparency": 11,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(888) 859-2770",
+      "email": "info@peacefulpassing.ca",
+      "website": "https://www.peacefulpassing.ca/"
+    },
+    {
+      "id": "629",
+      "name": "Trinity Hills 24 Hour Pet Hospital",
+      "city": "Calgary",
+      "province": "Alberta",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 22,
+        "emergency": 16,
+        "services": 8,
+        "transparency": 3,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(403) 233-2888",
+      "email": "medicine@thph.ca,repro@thph.ca,info@thph.ca",
+      "website": "http://www.thph.ca/"
+    },
+    {
+      "id": "690",
+      "name": "VCA Canada Calgary North Animal Hospital & 24 Hour Emergency Service",
+      "city": "Calgary",
+      "province": "Alberta",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 17,
+        "availability": 22,
+        "emergency": 20,
+        "services": 13,
+        "transparency": 4,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(403) 277-0135",
+      "email": "",
+      "website": "https://vcacanada.com/calgarynorth/"
+    },
+    {
+      "id": "962",
+      "name": "Family Pet Hospital & 24 Hour Pet Emergency Centre",
+      "city": "Lethbridge",
+      "province": "Alberta",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 17,
+        "availability": 25,
+        "emergency": 16,
+        "services": 9,
+        "transparency": 9,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(403) 320-5200",
+      "email": "",
+      "website": "https://familypet.ca/"
+    },
+    {
+      "id": "1640",
+      "name": "Upper Grand Veterinary Services",
+      "city": "Guelph",
+      "province": "Ontario",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 8,
+        "emergency": 26,
+        "services": 11,
+        "transparency": 6,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(519) 767-9191",
+      "email": "reception@uppergrandvets.ca",
+      "website": "http://www.uppergrandvets.ca/"
+    },
+    {
+      "id": "1787",
+      "name": "Cheltenham Veterinary Centre",
+      "city": "Victoria",
+      "province": "Ontario",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 16,
+        "emergency": 26,
+        "services": 11,
+        "transparency": 0,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(905) 838-3451",
+      "email": "info@cheltenhamvet.ca",
+      "website": "http://cheltenhamvet.ca/"
+    },
+    {
+      "id": "2095",
+      "name": "Juno Veterinary Bloor West",
+      "city": "Toronto",
+      "province": "Ontario",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 16,
+        "emergency": 10,
+        "services": 11,
+        "transparency": 14,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(647) 558-9191",
+      "email": "hello@junovet.com",
+      "website": "https://www.junovet.com/locations/bloor-west"
+    },
+    {
+      "id": "2213",
+      "name": "Star Veterinary Hospital",
+      "city": "Toronto",
+      "province": "Ontario",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 20,
+        "services": 8,
+        "transparency": 4,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(416) 900-7827",
+      "email": "starveterinaryhospital@gmail.com",
+      "website": "https://starveterinaryhospital.ca/"
+    },
+    {
+      "id": "2567",
+      "name": "Richmond Veterinary Clinic",
+      "city": "Napanee",
+      "province": "Ontario",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 10,
+        "services": 11,
+        "transparency": 9,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(613) 354-2330",
+      "email": "rvc@richmondvetclinic.ca",
+      "website": "http://www.richmondvetclinic.ca/"
+    },
+    {
+      "id": "2907",
+      "name": "H\u00f4pital V\u00e9t\u00e9rinaire Ville St-Laurent - Vet et Nous",
+      "city": "Saint-Laurent",
+      "province": "Quebec",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 17,
+        "availability": 25,
+        "emergency": 16,
+        "services": 8,
+        "transparency": 6,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "(514) 337-4078",
+      "email": "",
+      "website": "https://www.vetetnous.com/nos-veterinaires/hopital-veterinaire-ville-st-laurent/"
+    },
+    {
+      "id": "3162",
+      "name": "Veterinary Hospital Trifluvien inc.",
+      "city": "Trois-Rivi\u00e8res",
+      "province": "Quebec",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 25,
+        "emergency": 16,
+        "services": 8,
+        "transparency": 3,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(819) 909-7220",
+      "email": "",
+      "website": "http://www.hvtrifluvien.com/"
+    },
+    {
+      "id": "3194",
+      "name": "Bureau V\u00e9t\u00e9rinaire De Richmond (animaux de ferme seulement)",
+      "city": "Richmond",
+      "province": "Quebec",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 22,
+        "emergency": 21,
+        "services": 11,
+        "transparency": 2,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(819) 826-5037",
+      "email": "",
+      "website": "https://www.vetrichmond.ca/"
+    },
+    {
+      "id": "3255",
+      "name": "H\u00f4pital V\u00e9t\u00e9rinaire des Laurentides - Vet et Nous",
+      "city": "Qu\u00e9bec",
+      "province": "Quebec",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 19,
+        "emergency": 16,
+        "services": 11,
+        "transparency": 6,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(418) 849-1824",
+      "email": "",
+      "website": "https://www.vetetnous.com/nos-veterinaires/hopital-veterinaire-des-laurentides/"
+    },
+    {
+      "id": "3328",
+      "name": "Service v\u00e9t\u00e9rinaire des vall\u00e9es au fleuve inc",
+      "city": "Saint-Ars\u00e8ne",
+      "province": "Quebec",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 22,
+        "emergency": 26,
+        "services": 6,
+        "transparency": 0,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(418) 862-1011",
+      "email": "",
+      "website": "http://facebook.com/vetvalleesfleuve"
+    },
+    {
+      "id": "3432",
+      "name": "Coverdale Veterinary Hospital",
+      "city": "Riverview",
+      "province": "New Brunswick",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 15,
+        "services": 11,
+        "transparency": 4,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(506) 383-4838",
+      "email": "vetteam@coverdalevet.com",
+      "website": "https://coverdalevet.com/"
+    },
+    {
+      "id": "3536",
+      "name": "Fundy Veterinarians - Shubenacadie",
+      "city": "Shubenacadie",
+      "province": "Nova Scotia",
+      "score": 78.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 16,
+        "services": 11,
+        "transparency": 5,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(902) 758-3180",
+      "email": "privacy@nva.com,website-accessibility@nva.com,fundyvetshubenacadie@nva.com",
+      "website": "https://www.fundyvets.com/locations/shubenacadie"
+    },
+    {
+      "id": "1515",
+      "name": "Miller Veterinary Service",
+      "city": "Chatsworth",
+      "province": "Ontario",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 16,
+        "emergency": 16,
+        "services": 11,
+        "transparency": 5,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(519) 794-2173",
+      "email": "mvs@bmts.com",
+      "website": "http://millerveterinaryservice.com/"
+    },
+    {
+      "id": "1528",
+      "name": "Edwards Veterinary Services",
+      "city": "Tillsonburg",
+      "province": "Ontario",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 16,
+        "emergency": 26,
+        "services": 13,
+        "transparency": 2,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(519) 688-2123",
+      "email": "edwards.veterinary@gmail.com",
+      "website": "https://www.edwardsvet.ca/"
+    },
+    {
+      "id": "1703",
+      "name": "Broadway Animal Hospital",
+      "city": "Orangeville",
+      "province": "Ontario",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 19,
+        "emergency": 10,
+        "services": 11,
+        "transparency": 13,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(519) 940-0899",
+      "email": "broadwayanimalhospital@gmail.com",
+      "website": "http://www.broadwayanimalhospital.ca/"
+    },
+    {
+      "id": "1924",
+      "name": "Northpoint Veterinary Hospital",
+      "city": "Bolton",
+      "province": "Ontario",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 6,
+        "services": 9,
+        "transparency": 14,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(905) 857-7387",
+      "email": "npvhreports@gmail.com",
+      "website": "http://www.northpointvet.com/"
+    },
+    {
+      "id": "1992",
+      "name": "Malton Veterinary Services",
+      "city": "Mississauga",
+      "province": "Ontario",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 16,
+        "services": 6,
+        "transparency": 7,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(905) 678-2929",
+      "email": "maltonvet@rogers.com,cawthorpevet@yahoo.com,cawthorpevet@yahoo.co,altonvet@rogers.com",
+      "website": "https://www.maltonveterinaryservices.com/"
+    },
+    {
+      "id": "2235",
+      "name": "Juno Veterinary Summerhill",
+      "city": "Toronto",
+      "province": "Ontario",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 22,
+        "emergency": 20,
+        "services": 8,
+        "transparency": 0,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(647) 558-9191",
+      "email": "hello@junovet.com",
+      "website": "http://www.junovet.com/"
+    },
+    {
+      "id": "2308",
+      "name": "Animal Hospital Of Unionville",
+      "city": "Unionville",
+      "province": "Ontario",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 17,
+        "availability": 19,
+        "emergency": 16,
+        "services": 11,
+        "transparency": 12,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(905) 477-2323",
+      "email": "",
+      "website": "http://unionvet.ca/"
+    },
+    {
+      "id": "2769",
+      "name": "Vankleek Hill Veterinary Service",
+      "city": "Vankleek Hill",
+      "province": "Ontario",
+      "score": 77.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 16,
+        "emergency": 26,
+        "services": 2,
+        "transparency": 8,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(613) 678-2139",
+      "email": "vkhvetservice@bellnet.ca",
+      "website": "https://www.vkhvet.com/"
+    },
+    {
+      "id": "96",
+      "name": "West Coast Animal Veterinary Emergency Specialty (WAVES) Hospital",
+      "city": "Victoria",
+      "province": "British Columbia",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 17,
+        "availability": 22,
+        "emergency": 16,
+        "services": 10,
+        "transparency": 7,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(778) 432-4322",
+      "email": "",
+      "website": "https://www.wavesvet.com/"
+    },
+    {
+      "id": "306",
+      "name": "South Surrey Veterinary Hospital",
+      "city": "Surrey",
+      "province": "British Columbia",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 25,
+        "emergency": 10,
+        "services": 9,
+        "transparency": 5,
+        "digital": 2,
+        "community": 0
+      },
+      "phone": "(604) 538-7874",
+      "email": "staff@ssvh.ca",
+      "website": "http://southsurreyvethospital.ca/"
+    },
+    {
+      "id": "405",
+      "name": "Golden Ears Equine Services",
+      "city": "Maple Ridge",
+      "province": "British Columbia",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 22,
+        "emergency": 26,
+        "services": 6,
+        "transparency": 0,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(778) 896-5733",
+      "email": "",
+      "website": "http://goldenearsequineveterinary.ca/"
+    },
+    {
+      "id": "425",
+      "name": "Glenn Mountain Animal Hospital",
+      "city": "Abbotsford",
+      "province": "British Columbia",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 22,
+        "emergency": 16,
+        "services": 13,
+        "transparency": 3,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(604) 852-3030",
+      "email": "",
+      "website": "https://glenmountain.vet/"
+    },
+    {
+      "id": "1460",
+      "name": "Mitchell Veterinary Services",
+      "city": "Mitchell",
+      "province": "Ontario",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 19,
+        "emergency": 11,
+        "services": 6,
+        "transparency": 9,
+        "digital": 6,
+        "community": 0
+      },
+      "phone": "(519) 348-9711",
+      "email": "info@mitchellvets.ca",
+      "website": "http://www.mitchellvets.ca/"
+    },
+    {
+      "id": "1682",
+      "name": "Campus Estates Animal Hospital",
+      "city": "Guelph",
+      "province": "Ontario",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 20,
+        "availability": 22,
+        "emergency": 16,
+        "services": 9,
+        "transparency": 9,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(519) 837-1212",
+      "email": "ceah@petsandvets.ca",
+      "website": "https://www.petsandvets.ca/"
+    },
+    {
+      "id": "2110",
+      "name": "Midtown Mobile Veterinary Hospice Services",
+      "city": "Toronto",
+      "province": "Ontario",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 25,
+        "emergency": 10,
+        "services": 11,
+        "transparency": 5,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(416) 817-3572",
+      "email": "info@mmvhs.ca",
+      "website": "https://mmvhs.ca/"
+    },
+    {
+      "id": "2509",
+      "name": "Port Hope Veterinary Emergency Clinic & Services",
+      "city": "Port Hope",
+      "province": "Ontario",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 25,
+        "availability": 22,
+        "emergency": 16,
+        "services": 13,
+        "transparency": 0,
+        "digital": 0,
+        "community": 0
+      },
+      "phone": "(905) 885-5321",
+      "email": "info@porthopeemergvet.com",
+      "website": "https://www.porthopeemergvet.com/"
+    },
+    {
+      "id": "2843",
+      "name": "H\u00f4pital V\u00e9t\u00e9rinaire Pierrefonds / Pierrefonds Animal Hospital - Vet et Nous",
+      "city": "Pierrefonds",
+      "province": "Quebec",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 22,
+        "availability": 25,
+        "emergency": 16,
+        "services": 6,
+        "transparency": 3,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(514) 626-9890",
+      "email": "",
+      "website": "https://www.vetetnous.com/nos-veterinaires/pierrefonds/"
+    },
+    {
+      "id": "2936",
+      "name": "Animal Health Clinic / Clinique de Sant\u00e9 Animale - Vet et Nous",
+      "city": "Montreal",
+      "province": "Quebec",
+      "score": 76.0,
+      "breakdown": {
+        "essential": 17,
+        "availability": 25,
+        "emergency": 16,
+        "services": 11,
+        "transparency": 3,
+        "digital": 4,
+        "community": 0
+      },
+      "phone": "(514) 369-9119",
+      "email": "",
+      "website": "https://www.vetetnous.com/nos-veterinaires/clinique-de-sante-animale/"
+    }
+  ],
+  "scoring_config": {
+    "essential": {
+      "phone_number": 5,
+      "address": 3,
+      "website": 4,
+      "email_address": 3,
+      "description": 2,
+      "detailed_description": 3,
+      "picture": 2,
+      "rating": 3,
+      "high_rating": 5
+    },
+    "availability": {
+      "has_hours": 3,
+      "days_open_5": 2,
+      "days_open_6": 4,
+      "days_open_7": 6,
+      "weekend_hours": 4,
+      "extended_hours": 3,
+      "accepts_new_patients": 2,
+      "walk_ins_welcome": 2,
+      "online_booking": 3
+    },
+    "emergency": {
+      "emergency_services": 6,
+      "emergency_24_hour": 10,
+      "after_hours_phone": 3,
+      "telehealth": 4,
+      "house_calls": 5,
+      "mobile_vet": 5
+    },
+    "services": {
+      "services_4_6": 2,
+      "services_7_9": 4,
+      "services_10_plus": 6,
+      "exotic_animals": 4,
+      "multiple_pet_types": 3,
+      "specialty_services": 2
+    },
+    "transparency": {
+      "has_pricing": 8,
+      "pricing_detailed": 4,
+      "accepts_insurance": 3,
+      "payment_plans": 3,
+      "year_established": 2,
+      "established_10_plus": 3,
+      "veterinarian_count": 2,
+      "accreditations": 4,
+      "languages": 3,
+      "languages_3_plus": 2
+    },
+    "digital": {
+      "social_facebook": 2,
+      "social_instagram": 2,
+      "social_multiple": 3,
+      "has_blog": 2,
+      "client_portal": 2,
+      "online_pharmacy": 2
+    },
+    "community": {
+      "claimed_listing": 5,
+      "verified_listing": 6,
+      "backlink_vetlist": 12,
+      "trusted_network_tier": 6,
+      "featured_network_tier": 9,
+      "military_discount": 2,
+      "senior_discount": 1,
+      "rescue_discount": 2,
+      "free_first_visit": 2
+    },
+    "multipliers": {
+      "claimed_listing": 1.12,
+      "backlink_vetlist": 1.18,
+      "verified": 1.08
+    },
+    "floors": {
+      "verified_tier": 48,
+      "trusted_network": 66,
+      "featured_network": 74
+    }
+  }
+}

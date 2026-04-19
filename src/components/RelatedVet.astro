@@ -1,11 +1,64 @@
 ---
-const { name, name_slug, description, picture, city, country_slug, province_slug, city_slug } = Astro.props;
+function parseArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function displayLabel(value) {
+  return String(value || '')
+    .replace(/-/g, ' ')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+const {
+  name,
+  name_slug,
+  description,
+  picture,
+  city,
+  country_slug,
+  province_slug,
+  city_slug,
+  rating,
+  emergency_services,
+  emergency_24_hour,
+  telehealth_available,
+  online_booking,
+  accepts_new_patients,
+  animals_treated,
+  pet_types_served,
+} = Astro.props;
 const url = `/${country_slug}/${province_slug}/${city_slug}/${name_slug}/`;
+const animalLabels = parseArray(pet_types_served || animals_treated).slice(0, 2).map(displayLabel);
+const chips = [
+  emergency_24_hour && '24/7 emergency',
+  emergency_services && 'Emergency',
+  telehealth_available && 'Telehealth',
+  online_booking && 'Online booking',
+  accepts_new_patients && 'New patients',
+  ...animalLabels,
+].filter(Boolean).slice(0, 4);
 ---
-<div class="vet-card related-vet-card">
-  <div class="relative">
-    <div class="w-full h-[150px] bg-primary-100 flex items-center justify-center">
-      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-600">
+<a href={url} rel="prefetch" class="group grid grid-cols-[80px_minmax(0,1fr)] gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 transition hover:border-primary-200 hover:shadow-lg">
+  <div class="relative h-20 w-20 overflow-hidden rounded-xl bg-slate-100">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.24),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(244,114,182,0.18),_transparent_22%)]"></div>
+    <div class="absolute left-2 top-2 z-10 flex gap-2">
+      {rating != null && (
+        <span class="rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-900 backdrop-blur">
+          {rating.toFixed(1)}
+        </span>
+      )}
+    </div>
+
+    <div class="flex h-full items-center justify-center text-slate-400">
+      <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 6v4"/>
         <path d="M14 14h-4"/>
         <path d="M14 18h-4"/>
@@ -14,28 +67,50 @@ const url = `/${country_slug}/${province_slug}/${city_slug}/${name_slug}/`;
         <path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
       </svg>
     </div>
+
     {picture && (
-      <a href={url} rel="prefetch" class="absolute inset-0">
-        <img
-          src={picture.startsWith('https://lh') ? `${picture}=w240-h180-k-no` : picture}
-          alt={`${name} image`}
-          class="vet-card-image absolute inset-0 w-full h-full object-cover"
-          width="200"
-          height="150"
-          loading="lazy"
-          onerror="this.style.display='none'"
-        />
-      </a>
-    )}
-    {!picture && (
-      <a href={url} rel="prefetch" class="absolute inset-0"></a>
+      <img
+        src={picture.startsWith('https://lh') ? `${picture}=w180-h180-k-no` : picture}
+        alt=""
+        class="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+        width="80"
+        height="80"
+        loading="lazy"
+        decoding="async"
+        data-related-vet-image
+      />
     )}
   </div>
-  <div class="vet-card-content">
-    <h3 class="vet-name">
-      <a href={url} rel="prefetch">{name}</a>
+
+  <div class="min-w-0 py-1 pr-1">
+    <h3 class="line-clamp-2 text-base font-black leading-snug tracking-tight text-slate-950 group-hover:text-primary-700">
+      {name}
     </h3>
-    <p class="vet-description">{description || 'No description available'}</p>
-    <p class="vet-location">{city}</p>
+    <p class="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">
+      {description || 'Nearby veterinary listing with contact and care details to compare.'}
+    </p>
   </div>
-</div>
+  <div class="col-span-2 flex flex-wrap gap-2">
+    {chips.length > 0 ? chips.map((chip) => (
+      <span class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-700">
+        {chip}
+      </span>
+    )) : (
+      <span class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-700">
+        {city}
+      </span>
+    )}
+  </div>
+</a>
+
+<script is:inline>
+  if (!window.__vetlistRelatedImageFallback) {
+    window.__vetlistRelatedImageFallback = true;
+    document.addEventListener('error', (event) => {
+      const image = event.target;
+      if (image instanceof HTMLImageElement && image.matches('[data-related-vet-image]')) {
+        image.hidden = true;
+      }
+    }, true);
+  }
+</script>

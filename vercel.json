@@ -1,3 +1,30 @@
 {
-  "trailingSlash": true
-} 
+  "trailingSlash": true,
+  "redirects": [
+    {
+      "source": "/vet/:country/:region/:city/:profile/",
+      "destination": "/:country/:region/:city/:profile/",
+      "permanent": true
+    },
+    {
+      "source": "/vet/:country/:region/:city/",
+      "destination": "/:country/:region/:city/",
+      "permanent": true
+    },
+    {
+      "source": "/vet/:country/:region/",
+      "destination": "/:country/:region/",
+      "permanent": true
+    },
+    {
+      "source": "/vet/:country/",
+      "destination": "/:country/",
+      "permanent": true
+    },
+    {
+      "source": "/vet/",
+      "destination": "/",
+      "permanent": true
+    }
+  ]
+}

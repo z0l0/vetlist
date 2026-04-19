@@ -1,12 +1,12 @@
 ---
-import VetGPTSearchBar from './VetGPTSearchBar.astro';
-
 // Check page type based on URL pattern
 const pathname = Astro.url.pathname;
 const isHomepage = pathname === "/";
 
 // Parse URL to determine page type and context
 let pageType = "homepage";
+let headerPillLabel = "Browse By Location";
+let headerPillBadge = "Use Menu";
 let searchContext: {
   country?: string;
   region?: string;
@@ -16,8 +16,23 @@ let searchContext: {
 } = {};
 
 const pathSegments = pathname.split("/").filter(Boolean);
+const supportedCountrySlugs = new Set(["canada", "united-states"]);
+const hasSupportedCountryPrefix =
+  pathSegments.length > 0 && supportedCountrySlugs.has(pathSegments[0]);
+const networkPromos = [
+  {
+    label: "DentistList",
+    description: "Find dentists by city",
+    href: "https://dentistlist.org",
+  },
+  {
+    label: "CivillyWedd",
+    description: "Browse wedding vendors",
+    href: "https://civillywedd.com",
+  },
+];
 
-if (pathSegments.length === 1) {
+if (pathSegments.length === 1 && hasSupportedCountryPrefix) {
   // Country page: /canada
   pageType = "country";
   searchContext = {
@@ -25,7 +40,7 @@ if (pathSegments.length === 1) {
     placeholder: "Search regions...",
     searchType: "regions",
   };
-} else if (pathSegments.length === 2) {
+} else if (pathSegments.length === 2 && hasSupportedCountryPrefix) {
   // Region page: /canada/ontario
   pageType = "region";
   const regionName = pathSegments[1]
@@ -37,7 +52,7 @@ if (pathSegments.length === 1) {
     placeholder: `Search cities in ${regionName}`,
     searchType: "cities",
   };
-} else if (pathSegments.length === 3) {
+} else if (pathSegments.length === 3 && hasSupportedCountryPrefix) {
   // City page: /canada/ontario/toronto
   pageType = "city";
   const cityName = pathSegments[2]
@@ -50,7 +65,7 @@ if (pathSegments.length === 1) {
     placeholder: `Search veterinarians in ${cityName}`,
     searchType: "profiles",
   };
-} else if (pathSegments.length === 4) {
+} else if (pathSegments.length === 4 && hasSupportedCountryPrefix) {
   // Profile page: /canada/ontario/toronto/vet-name
   pageType = "profile";
   searchContext = {
@@ -69,28 +84,39 @@ if (!["country", "region", "city", "profile"].includes(pageType)) {
 }
 
 // Force Algolia search for add-vet and claim-clinic pages
-if (pathname === "/add-vet" || pathname === "/claim-clinic") {
-  pageType = "homepage";
+if (
+  pathname === "/add-vet" ||
+  pathname === "/add-vet/" ||
+  pathname === "/claim-clinic" ||
+  pathname === "/claim-clinic/"
+) {
+  pageType = "owner-tools";
+  headerPillLabel = pathname.startsWith("/claim-clinic")
+    ? "Owner Tools"
+    : "Add Listing";
+  headerPillBadge = pathname.startsWith("/claim-clinic")
+    ? "Claim Flow"
+    : "Submission";
   searchContext = {
     placeholder: "Search vets, specialties, locations...",
     searchType: "general",
   };
 }
+const showHeaderNetworkPromos = true;
 ---
 
-<header class="sticky top-0 z-50 w-full bg-white shadow-sm">
-  <div class="container mx-auto max-w-none px-4 md:px-8 lg:px-12">
-    <div class="flex items-center gap-4 py-3">
+<header class="relative z-40 border-b border-slate-200/80 bg-white/78 shadow-[0_12px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+  <div class="mx-auto w-full max-w-[1600px] px-4 md:px-6">
+    <div class="flex items-center gap-3 py-3">
       <!-- Logo -->
-      <a href="/" class="flex items-center gap-2 flex-shrink-0">
-        <div class="text-primary-600">
+      <a href="/" class="flex shrink-0 items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-cyan-200 shadow-lg shadow-cyan-950/10">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
+            width="22"
+            height="22"
             viewBox="0 0 24 24"
             fill="currentColor"
-            class="lucide lucide-paw-print"
           >
             <circle cx="11" cy="4" r="2"></circle>
             <circle cx="18" cy="8" r="2"></circle>
@@ -100,30 +126,76 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
             ></path>
           </svg>
         </div>
-        <span class="text-xl font-bold text-primary-700 hidden sm:block"
-          >VetList</span
-        >
-        <span class="text-lg font-bold text-primary-700 sm:hidden">VL</span>
+        <span class="hidden text-base font-extrabold tracking-tight text-slate-950 sm:block">VetList</span>
+        <span class="text-base font-extrabold tracking-tight text-slate-950 sm:hidden">VL</span>
       </a>
 
       <!-- Veterinary Search - Takes up most of the space -->
-      <div class="flex-1 mx-4 relative">
-        {(isHomepage || pageType === "profile") ? (
-          <!-- VetGPT Smart Search for Homepage and Profile Pages -->
-          <VetGPTSearchBar />
+      <div class="relative flex-1">
+        {showHeaderNetworkPromos ? (
+          <div class="rounded-[26px] border border-slate-200 bg-white p-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+            <div id="mobile-header-network-promos" class="sm:hidden">
+              {networkPromos.map((promo, index) => (
+                <a
+                  href={promo.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-mobile-header-promo
+                  class:list={[
+                    "group flex min-w-0 items-center justify-between gap-3 rounded-[22px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] px-4 py-3 transition hover:border-cyan-300/60 hover:bg-[linear-gradient(180deg,#f8fdff_0%,#eef9ff_100%)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.07)]",
+                    index !== 0 && "hidden",
+                  ]}
+                >
+                  <span class="min-w-0">
+                    <span class="block truncate text-sm font-bold tracking-tight text-slate-900">
+                      {promo.label}
+                    </span>
+                    <span class="block truncate text-xs text-slate-500">
+                      {promo.description}
+                    </span>
+                  </span>
+                  <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition group-hover:border-cyan-300/50 group-hover:bg-cyan-50 group-hover:text-cyan-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5H19.5M19.5 4.5V10.5M19.5 4.5L9 15M6.75 6.75H10.5M17.25 13.5V17.25A1.5 1.5 0 0115.75 18.75H6.75A1.5 1.5 0 015.25 17.25V8.25A1.5 1.5 0 016.75 6.75H10.5" />
+                    </svg>
+                  </span>
+                </a>
+              ))}
+            </div>
+            <div class="hidden gap-1.5 sm:grid sm:grid-cols-2">
+              {networkPromos.map((promo) => (
+                <a
+                  href={promo.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="group flex min-w-0 items-center justify-between gap-3 rounded-[22px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] px-4 py-3 transition hover:border-cyan-300/60 hover:bg-[linear-gradient(180deg,#f8fdff_0%,#eef9ff_100%)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.07)]"
+                >
+                  <span class="min-w-0">
+                    <span class="block truncate text-sm font-bold tracking-tight text-slate-900">
+                      {promo.label}
+                    </span>
+                    <span class="block truncate text-xs text-slate-500">
+                      {promo.description}
+                    </span>
+                  </span>
+                  <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition group-hover:border-cyan-300/50 group-hover:bg-cyan-50 group-hover:text-cyan-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5H19.5M19.5 4.5V10.5M19.5 4.5L9 15M6.75 6.75H10.5M17.25 13.5V17.25A1.5 1.5 0 0115.75 18.75H6.75A1.5 1.5 0 015.25 17.25V8.25A1.5 1.5 0 016.75 6.75H10.5" />
+                    </svg>
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
         ) : (
-          <!-- Regular Search for Other Pages -->
           <div class="relative">
-            <!-- NEW Search Badge - Animated Flash -->
             <div
               id="search-flash-badge"
-              class="absolute -top-2 left-3 inline-flex items-center gap-2 px-2.5 py-1 bg-primary-500/95 backdrop-blur-sm rounded-full border-2 border-primary-400 shadow-lg z-10 transition-all duration-500 opacity-0"
-              style="transform: scale(0.8); width: 140px; height: 28px;"
+              class="pointer-events-none absolute -top-3 left-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/30 bg-slate-950 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200 opacity-0 shadow-lg transition-all duration-500"
+              style="transform: scale(0.85);"
             >
-              <div class="w-1.5 h-1.5 bg-primary-200 rounded-full"></div>
-              <span class="text-white text-xs font-semibold"
-                >Try the NEW search!</span
-              >
+              <span class="h-1.5 w-1.5 rounded-full bg-cyan-300"></span>
+              Search
             </div>
 
             <input
@@ -131,7 +203,7 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
               id="header-vet-search"
               placeholder={searchContext.placeholder ||
                 "Search vets, specialties, locations..."}
-              class="w-full px-4 py-2.5 pr-12 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-800 placeholder-gray-500 text-sm sm:text-base bg-gray-50 focus:bg-white transition-all duration-300 hover:border-primary-300"
+              class="w-full rounded-full border border-slate-200 bg-white px-5 py-3 pr-12 text-sm text-slate-800 shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition focus:border-cyan-400 focus:outline-none focus:ring-4 focus:ring-cyan-100 sm:text-base"
               autocomplete="off"
               data-page-type={pageType}
               data-search-type={searchContext.searchType}
@@ -140,17 +212,14 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
               data-city={searchContext.city || ""}
             />
 
-            <!-- Search Icon -->
-            <div
-              class="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-600"
-            >
+            <div class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                stroke-width="2"
+                stroke-width="1.8"
                 stroke="currentColor"
-                class="w-5 h-5"
+                class="h-5 w-5"
               >
                 <path
                   stroke-linecap="round"
@@ -166,43 +235,51 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
       <!-- Hamburger Menu Button -->
       <button
         id="menu-toggle"
-        class="flex flex-col justify-center items-center w-8 h-8 space-y-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-md transition-all duration-300 flex-shrink-0"
+        class="flex h-11 w-11 shrink-0 flex-col items-center justify-center space-y-1.5 rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition-all duration-300 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2"
         aria-label="Toggle menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
       >
         <span
-          class="hamburger-line w-6 h-0.5 bg-gray-700 transition-all duration-300"
+          class="hamburger-line h-0.5 w-5 rounded-full bg-slate-700 transition-all duration-300"
         ></span>
         <span
-          class="hamburger-line w-6 h-0.5 bg-gray-700 transition-all duration-300"
+          class="hamburger-line h-0.5 w-5 rounded-full bg-slate-700 transition-all duration-300"
         ></span>
         <span
-          class="hamburger-line w-6 h-0.5 bg-gray-700 transition-all duration-300"
+          class="hamburger-line h-0.5 w-5 rounded-full bg-slate-700 transition-all duration-300"
         ></span>
       </button>
     </div>
+
   </div>
 
   <!-- Slide-in Menu -->
-  <div id="mobile-menu" class="fixed inset-0 z-50 hidden">
+  <div
+    id="mobile-menu"
+    class="fixed inset-0 z-[1001] hidden opacity-0 pointer-events-none transition-opacity duration-300"
+  >
     <!-- Backdrop -->
     <div
-      class="absolute inset-0 bg-black bg-opacity-50 transition-opacity duration-300"
+      data-menu-backdrop
+      class="absolute inset-0 bg-slate-950/75 backdrop-blur-sm transition-opacity duration-300"
     >
     </div>
 
     <!-- Menu Panel -->
     <div
-      class="absolute right-0 top-0 h-full w-80 bg-white shadow-xl transform translate-x-full transition-transform duration-300 ease-in-out"
+      class="absolute right-0 top-0 h-dvh w-full max-w-none overflow-y-auto border-l border-white/10 bg-slate-950 text-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out will-change-transform sm:max-w-[22rem]"
       id="menu-panel"
     >
       <!-- Menu Header -->
-      <div
-        class="flex items-center justify-between p-6 border-b border-gray-200"
-      >
-        <h2 class="text-lg font-semibold text-gray-900">Menu</h2>
+      <div class="flex items-center justify-between border-b border-white/10 bg-slate-950 p-5">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Navigation</p>
+          <h2 class="mt-1 text-lg font-bold text-white">Browse VetList</h2>
+        </div>
         <button
           id="menu-close"
-          class="p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
+          class="rounded-full border border-white/10 p-2 transition-colors duration-200 hover:bg-white/10"
           aria-label="Close menu"
         >
           <svg
@@ -211,7 +288,7 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
             viewBox="0 0 24 24"
             stroke-width="2"
             stroke="currentColor"
-            class="w-6 h-6 text-gray-600"
+            class="w-6 h-6 text-slate-300"
           >
             <path
               stroke-linecap="round"
@@ -222,11 +299,11 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
       </div>
 
       <!-- Menu Items -->
-      <nav class="p-6 space-y-4">
+      <nav class="space-y-3 p-4 pb-8 sm:space-y-4 sm:p-6">
         <!-- Add Your Clinic - Highlighted -->
         <a
           href="/add-vet/"
-          class="flex items-center gap-4 p-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-xl hover:from-orange-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg"
+          class="flex items-center gap-4 rounded-3xl border border-white/10 bg-white/10 p-4 text-white transition-all duration-200 hover:bg-white/15"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -245,10 +322,7 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
         </a>
 
         <!-- Claim Your Clinic -->
-        <a
-          href="/claim-clinic/"
-          class="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
-        >
+        <a href="/claim-clinic/" class="flex items-center gap-4 rounded-3xl border border-cyan-300/25 bg-cyan-300/10 p-4 text-cyan-100 transition-all duration-200 hover:bg-cyan-300/15">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -269,25 +343,25 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
         <!-- Browse Canadian Vets -->
         <a
           href="/canada/"
-          class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+          class="flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-4 transition-colors duration-200 hover:bg-white/10"
         >
           <span class="text-2xl">🇨🇦</span>
-          <span class="text-gray-800 font-medium">Browse Canadian Vets</span>
+          <span class="font-medium text-white">Browse Canadian Vets</span>
         </a>
 
         <!-- Browse American Vets -->
         <a
           href="/united-states/"
-          class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+          class="flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-4 transition-colors duration-200 hover:bg-white/10"
         >
           <span class="text-2xl">🇺🇸</span>
-          <span class="text-gray-800 font-medium">Browse American Vets</span>
+          <span class="font-medium text-white">Browse American Vets</span>
         </a>
 
         <!-- Vets in Popular Cities -->
         <a
           href="/#popular-cities"
-          class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+          class="flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-4 transition-colors duration-200 hover:bg-white/10"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -295,7 +369,7 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
             viewBox="0 0 24 24"
             stroke-width="2"
             stroke="currentColor"
-            class="w-6 h-6 text-gray-600"
+            class="w-6 h-6 text-slate-300"
           >
             <path
               stroke-linecap="round"
@@ -307,13 +381,13 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
               d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
             ></path>
           </svg>
-          <span class="text-gray-800 font-medium">Vets in Popular Cities</span>
+          <span class="font-medium text-white">Vets in Popular Cities</span>
         </a>
 
         <!-- Most Popular Vets -->
         <a
           href="/#popular-vets"
-          class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+          class="flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-4 transition-colors duration-200 hover:bg-white/10"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -321,7 +395,7 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
             viewBox="0 0 24 24"
             stroke-width="2"
             stroke="currentColor"
-            class="w-6 h-6 text-gray-600"
+            class="w-6 h-6 text-slate-300"
           >
             <path
               stroke-linecap="round"
@@ -329,7 +403,7 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
               d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
             ></path>
           </svg>
-          <span class="text-gray-800 font-medium" id="popular-vets-text"
+          <span class="font-medium text-white" id="popular-vets-text"
             >Most Popular Vets</span
           >
         </a>
@@ -337,7 +411,7 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
         <!-- Contact Us -->
         <a
           href="/contact/"
-          class="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+          class="flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-4 transition-colors duration-200 hover:bg-white/10"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -345,7 +419,7 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
             viewBox="0 0 24 24"
             stroke-width="2"
             stroke="currentColor"
-            class="w-6 h-6 text-gray-600"
+            class="w-6 h-6 text-slate-300"
           >
             <path
               stroke-linecap="round"
@@ -353,7 +427,7 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
               d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
             ></path>
           </svg>
-          <span class="text-gray-800 font-medium">Contact Us</span>
+          <span class="font-medium text-white">Contact Us</span>
         </a>
       </nav>
     </div>
@@ -516,11 +590,11 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
                         <path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
                       </svg>
                     </div>
-                    ${
-                      hit.picture
-                        ? `<img src="${hit.picture}" alt="${hit.name}" class="absolute inset-0 w-full h-full rounded-lg object-cover" onerror="this.style.display='none'" />`
-                        : ""
-                    }
+	                    ${
+	                      hit.picture
+	                        ? `<img src="${hit.picture}" alt="${hit.name}" class="absolute inset-0 w-full h-full rounded-lg object-cover" width="40" height="40" loading="lazy" decoding="async" />`
+	                        : ""
+	                    }
                   </div>
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-1">
@@ -670,226 +744,182 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
     pageType: string,
     context: any,
   ) {
-    console.log("Initializing location search for:", pageType, context);
+    console.log("Initializing location dropdown search for:", pageType, context);
 
-    // Get the appropriate search elements from the page
-    let targetElements: HTMLElement[] = [];
-    let searchFunction: (query: string) => void;
+    type LocalSearchResult = {
+      label: string;
+      subtitle: string;
+      href: string;
+    };
+
+    const results: LocalSearchResult[] = [];
 
     if (pageType === "country") {
-      // Search regions
-      targetElements = Array.from(
+      const cards = Array.from(
         document.querySelectorAll(".region-card"),
       ) as HTMLElement[];
-      searchFunction = (query: string) => {
-        const filtered = targetElements.filter((card) => {
-          const regionName = card.dataset.regionName || "";
-          return regionName.includes(query.toLowerCase());
+      cards.forEach((card) => {
+        const name = (card.dataset.regionName || "").trim();
+        const href =
+          card.getAttribute("href") ||
+          card.querySelector("a")?.getAttribute("href") ||
+          "";
+        if (!name || !href) return;
+        results.push({
+          label: name
+            .split(" ")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" "),
+          subtitle: "Region / Province",
+          href,
         });
-        updateLocationResults(targetElements, filtered, "regions", query);
-      };
+      });
     } else if (pageType === "region") {
-      // Search cities
-      targetElements = Array.from(
+      const cards = Array.from(
         document.querySelectorAll(".city-card"),
       ) as HTMLElement[];
-      searchFunction = (query: string) => {
-        const filtered = targetElements.filter((card) => {
-          const cityName = card.dataset.cityName || "";
-          return cityName.includes(query.toLowerCase());
+      cards.forEach((card) => {
+        const name = (card.dataset.cityName || "").trim();
+        const href =
+          card.getAttribute("href") ||
+          card.querySelector("a")?.getAttribute("href") ||
+          "";
+        if (!name || !href) return;
+        results.push({
+          label: name
+            .split(" ")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" "),
+          subtitle: "City",
+          href,
         });
-        updateLocationResults(targetElements, filtered, "cities", query);
-      };
+      });
     } else if (pageType === "city") {
-      // Search profiles
-      const profileCards = Array.from(
-        document.querySelectorAll(".profile-card"),
+      const vetCards = Array.from(
+        document.querySelectorAll(".vet-card"),
       ) as HTMLElement[];
-      const searchableItems = Array.from(
-        document.querySelectorAll(".searchable-item"),
-      ) as HTMLElement[];
-      targetElements = [...profileCards, ...searchableItems];
-
-      searchFunction = (query: string) => {
-        const filteredProfiles = profileCards.filter((card) => {
-          const profileName = card.dataset.searchName || "";
-          const profileDescription = card.dataset.searchDescription || "";
-          return (
-            profileName.includes(query.toLowerCase()) ||
-            profileDescription.includes(query.toLowerCase())
-          );
+      vetCards.forEach((card) => {
+        const rawSearchText = (card.dataset.searchText || "").trim();
+        const titleText =
+          card.querySelector("h2, h3, [data-name]")?.textContent?.trim() ||
+          rawSearchText.split(" in ")[0] ||
+          "";
+        const subtitleText =
+          card.querySelector("p")?.textContent?.trim() || "Clinic";
+        const href = card.querySelector("a[href]")?.getAttribute("href") || "";
+        if (!titleText || !href) return;
+        results.push({
+          label: titleText,
+          subtitle: subtitleText,
+          href,
         });
-
-        const filteredItems = searchableItems.filter((item) => {
-          const profileName = item.dataset.searchName || "";
-          const profileDescription = item.dataset.searchDescription || "";
-          return (
-            profileName.includes(query.toLowerCase()) ||
-            profileDescription.includes(query.toLowerCase())
-          );
-        });
-
-        updateProfileResults(
-          profileCards,
-          searchableItems,
-          filteredProfiles,
-          filteredItems,
-          query,
-        );
-      };
+      });
     }
 
-    // Handle input events
-    let searchTimeout: NodeJS.Timeout;
+    if (!results.length) return;
+
+    const scrim = document.createElement("div");
+    scrim.className =
+      "fixed inset-0 z-[900] hidden bg-slate-950/28 backdrop-blur-[1px]";
+    document.body.appendChild(scrim);
+
+    const dropdown = document.createElement("div");
+    dropdown.className =
+      "fixed z-[901] hidden max-h-[60vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.2)]";
+    document.body.appendChild(dropdown);
+
+    function positionDropdown() {
+      const inputRect = searchInput.getBoundingClientRect();
+      dropdown.style.left = `${inputRect.left}px`;
+      dropdown.style.top = `${inputRect.bottom + 10}px`;
+      dropdown.style.width = `${inputRect.width}px`;
+    }
+
+    function hideDropdown() {
+      dropdown.classList.add("hidden");
+      scrim.classList.add("hidden");
+    }
+
+    function showDropdown() {
+      positionDropdown();
+      dropdown.classList.remove("hidden");
+      scrim.classList.remove("hidden");
+    }
+
+    function renderFilteredResults(query: string) {
+      const normalized = query.trim().toLowerCase();
+      if (!normalized) {
+        hideDropdown();
+        return;
+      }
+
+      const filtered = results
+        .filter((item) =>
+          `${item.label} ${item.subtitle}`.toLowerCase().includes(normalized),
+        )
+        .slice(0, 12);
+
+      if (!filtered.length) {
+        dropdown.innerHTML = `
+          <div class="px-4 py-4 text-sm text-slate-500">
+            No matches found for "${query}".
+          </div>
+        `;
+        showDropdown();
+        return;
+      }
+
+      dropdown.innerHTML = filtered
+        .map(
+          (item) => `
+            <a href="${item.href}" class="block border-b border-slate-100 px-4 py-3 transition-colors hover:bg-slate-50 last:border-b-0">
+              <p class="text-sm font-semibold text-slate-900">${item.label}</p>
+              <p class="text-xs text-slate-500">${item.subtitle}</p>
+            </a>
+          `,
+        )
+        .join("");
+      showDropdown();
+    }
+
+    let searchTimeout: ReturnType<typeof setTimeout>;
     searchInput.addEventListener("input", function () {
-      const query = this.value.trim();
-
       clearTimeout(searchTimeout);
-
-      searchTimeout = setTimeout(() => {
-        if (query.length === 0) {
-          // Reset to show all items
-          if (pageType === "city") {
-            updateProfileResults(
-              Array.from(
-                document.querySelectorAll(".profile-card"),
-              ) as HTMLElement[],
-              Array.from(
-                document.querySelectorAll(".searchable-item"),
-              ) as HTMLElement[],
-              Array.from(
-                document.querySelectorAll(".profile-card"),
-              ) as HTMLElement[],
-              Array.from(
-                document.querySelectorAll(".searchable-item"),
-              ) as HTMLElement[],
-              "",
-            );
-          } else {
-            updateLocationResults(
-              targetElements,
-              targetElements,
-              pageType === "country" ? "regions" : "cities",
-              "",
-            );
-          }
-        } else {
-          searchFunction(query);
-        }
-      }, 300);
+      const query = this.value;
+      searchTimeout = setTimeout(() => renderFilteredResults(query), 120);
     });
 
-    // Handle keyboard events
+    searchInput.addEventListener("focus", function () {
+      if (this.value.trim().length > 0) {
+        renderFilteredResults(this.value);
+      }
+    });
+
     searchInput.addEventListener("keydown", function (e) {
       if (e.key === "Escape") {
         this.blur();
-        this.value = "";
-        // Reset results
-        if (pageType === "city") {
-          updateProfileResults(
-            Array.from(
-              document.querySelectorAll(".profile-card"),
-            ) as HTMLElement[],
-            Array.from(
-              document.querySelectorAll(".searchable-item"),
-            ) as HTMLElement[],
-            Array.from(
-              document.querySelectorAll(".profile-card"),
-            ) as HTMLElement[],
-            Array.from(
-              document.querySelectorAll(".searchable-item"),
-            ) as HTMLElement[],
-            "",
-          );
-        } else {
-          updateLocationResults(
-            targetElements,
-            targetElements,
-            pageType === "country" ? "regions" : "cities",
-            "",
-          );
-        }
+        hideDropdown();
       }
     });
-  }
 
-  // Update location results (regions/cities)
-  function updateLocationResults(
-    allElements: HTMLElement[],
-    filteredElements: HTMLElement[],
-    type: string,
-    query: string,
-  ) {
-    const grid = document.getElementById(
-      type === "regions" ? "regions-grid" : "cities-grid",
-    );
-    if (!grid) return;
-
-    // Hide all elements
-    allElements.forEach((element) => {
-      element.style.display = "none";
+    scrim.addEventListener("click", () => {
+      hideDropdown();
+      searchInput.blur();
     });
 
-    // Clear grid
-    grid.innerHTML = "";
-
-    if (filteredElements.length === 0 && query) {
-      grid.innerHTML = `
-        <div class="col-span-full text-center py-8 text-gray-500">
-          <p>No ${type} found matching "${query}"</p>
-        </div>
-      `;
-    } else {
-      filteredElements.forEach((element) => {
-        element.style.display = "flex";
-        grid.appendChild(element);
-      });
-    }
-  }
-
-  // Update profile results
-  function updateProfileResults(
-    allProfileCards: HTMLElement[],
-    allSearchableItems: HTMLElement[],
-    filteredProfileCards: HTMLElement[],
-    filteredSearchableItems: HTMLElement[],
-    query: string,
-  ) {
-    const profilesGrid = document.getElementById("profiles-grid");
-    if (!profilesGrid) return;
-
-    // Hide all elements
-    allProfileCards.forEach((card) => {
-      card.style.display = "none";
-    });
-    allSearchableItems.forEach((item) => {
-      item.style.display = "none";
+    document.addEventListener("click", (e) => {
+      const target = e.target as Node;
+      if (!searchInput.contains(target) && !dropdown.contains(target)) {
+        hideDropdown();
+      }
     });
 
-    // Clear grid
-    profilesGrid.innerHTML = "";
-
-    if (
-      filteredProfileCards.length === 0 &&
-      filteredSearchableItems.length === 0 &&
-      query
-    ) {
-      profilesGrid.innerHTML = `
-        <div class="col-span-full text-center py-8 text-gray-500">
-          <p>No veterinarians found matching "${query}"</p>
-        </div>
-      `;
-    } else {
-      filteredProfileCards.forEach((card) => {
-        card.style.display = "block";
-        profilesGrid.appendChild(card);
-      });
-
-      // Show filtered additional items
-      filteredSearchableItems.forEach((item) => {
-        item.style.display = "flex";
-      });
-    }
+    window.addEventListener("resize", () => {
+      if (!dropdown.classList.contains("hidden")) positionDropdown();
+    });
+    window.addEventListener("scroll", () => {
+      if (!dropdown.classList.contains("hidden")) positionDropdown();
+    });
   }
 
   // Menu functionality
@@ -898,6 +928,7 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
   const menuPanel = document.getElementById("menu-panel");
   const menuClose = document.getElementById("menu-close");
   const hamburgerLines = document.querySelectorAll(".hamburger-line");
+  let closeMenuTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Set dynamic date for popular vets
   const popularVetsText = document.getElementById("popular-vets-text");
@@ -910,11 +941,31 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
     popularVetsText.textContent = `Most Popular Vets in ${monthName} ${year}`;
   }
 
+  function hideHeaderSearchOverlays() {
+    ["header-search-results", "header-loading", "header-no-results"].forEach(
+      (id) => {
+        document.getElementById(id)?.classList.add("hidden");
+      },
+    );
+  }
+
   function openMenu() {
     if (!mobileMenu || !menuPanel) return;
 
+    if (closeMenuTimeout) {
+      clearTimeout(closeMenuTimeout);
+      closeMenuTimeout = null;
+    }
+
+    hideHeaderSearchOverlays();
+    (document.getElementById("header-vet-search") as HTMLInputElement | null)
+      ?.blur();
+
     mobileMenu.classList.remove("hidden");
+    mobileMenu.classList.remove("pointer-events-none", "opacity-0");
+    mobileMenu.classList.add("opacity-100");
     document.body.style.overflow = "hidden";
+    menuToggle?.setAttribute("aria-expanded", "true");
 
     // Animate hamburger to X
     if (hamburgerLines[0])
@@ -927,17 +978,21 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
         "rotate(-45deg) translate(6px, -6px)";
 
     // Slide in menu
-    setTimeout(() => {
-      if (menuPanel)
-        (menuPanel as HTMLElement).style.transform = "translateX(0)";
-    }, 10);
+    requestAnimationFrame(() => {
+      menuPanel.classList.remove("translate-x-full");
+      menuPanel.classList.add("translate-x-0");
+    });
   }
 
   function closeMenu() {
     if (!mobileMenu || !menuPanel) return;
 
-    (menuPanel as HTMLElement).style.transform = "translateX(100%)";
+    menuPanel.classList.remove("translate-x-0");
+    menuPanel.classList.add("translate-x-full");
+    mobileMenu.classList.remove("opacity-100");
+    mobileMenu.classList.add("opacity-0", "pointer-events-none");
     document.body.style.overflow = "";
+    menuToggle?.setAttribute("aria-expanded", "false");
 
     // Animate X back to hamburger
     if (hamburgerLines[0])
@@ -947,9 +1002,36 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
     if (hamburgerLines[2])
       (hamburgerLines[2] as HTMLElement).style.transform = "";
 
-    setTimeout(() => {
-      if (mobileMenu) mobileMenu.classList.add("hidden");
+    closeMenuTimeout = setTimeout(() => {
+      mobileMenu.classList.add("hidden");
+      closeMenuTimeout = null;
     }, 300);
+  }
+
+  function initializeHeaderNetworkPromos() {
+    const promoContainer = document.getElementById("mobile-header-network-promos");
+    if (!promoContainer) return;
+
+    const promos = Array.from(
+      promoContainer.querySelectorAll("[data-mobile-header-promo]"),
+    ) as HTMLElement[];
+    if (promos.length <= 1) return;
+
+    let activePromoIndex = Math.floor(Math.random() * promos.length);
+
+    function renderActivePromo() {
+      promos.forEach((promo, index) => {
+        promo.classList.toggle("hidden", index !== activePromoIndex);
+      });
+    }
+
+    renderActivePromo();
+
+    window.setInterval(() => {
+      if (window.innerWidth >= 640) return;
+      activePromoIndex = (activePromoIndex + 1) % promos.length;
+      renderActivePromo();
+    }, 9000);
   }
 
   // Event listeners
@@ -958,7 +1040,8 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
 
   // Close menu when clicking backdrop
   mobileMenu?.addEventListener("click", (e) => {
-    if (e.target === mobileMenu) {
+    const target = e.target as HTMLElement | null;
+    if (target?.hasAttribute("data-menu-backdrop")) {
       closeMenu();
     }
   });
@@ -1038,16 +1121,10 @@ if (pathname === "/add-vet" || pathname === "/claim-clinic") {
 
   // Initialize header search when DOM is ready
   document.addEventListener("DOMContentLoaded", function () {
-    // Only initialize regular search functionality if not on homepage or profile pages
-    const isHomepage = window.location.pathname === "/";
-    const pathSegments = window.location.pathname.split("/").filter(Boolean);
-    const isProfilePage = pathSegments.length === 4;
-    
-    if (!isHomepage && !isProfilePage) {
-      initializeSearchFlashBadge();
-      setTimeout(() => {
-        initializeHeaderVetSearch();
-      }, 100);
-    }
+    initializeHeaderNetworkPromos();
+    initializeSearchFlashBadge();
+    setTimeout(() => {
+      initializeHeaderVetSearch();
+    }, 100);
   });
 </script>

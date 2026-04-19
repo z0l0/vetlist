@@ -1,614 +1,644 @@
 ---
 import Layout from '../../../../layouts/Layout.astro';
 import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
-import VerifiedBadge from '../../../../components/VerifiedBadge.astro';
+import VetCard from '../../../../components/VetCard.astro';
 import { getProfessionals, getProfilesForCity, getLocationDetails, getNearbyCitiesForCity } from '../../../../lib/dataCache.js';
-// Keep the direct import as fallback
 import { fetchAllProfessionals } from '../../../../lib/supabase';
+import { getPrecomputedRouteIndex } from '../../../../lib/siteData.js';
+import { getDefaultOgImageUrl, getGeneratedOgImageUrl, pickFirstProfileImage } from '../../../../lib/seo.js';
 
-// Convert slug to title case
 function toTitleCase(str) {
   return str
     .replace(/-/g, ' ')
     .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+}
+
+function parseArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function parsePrice(value) {
+  if (!value) return null;
+  const match = String(value).match(/\$(\d+)/);
+  return match ? Number(match[1]) : null;
+}
+
+function average(numbers) {
+  return numbers.length ? Math.round(numbers.reduce((sum, value) => sum + value, 0) / numbers.length) : null;
 }
 
 export async function getStaticPaths() {
   try {
-    // First try to get from cache
+    const routeIndex = await getPrecomputedRouteIndex();
+    if (routeIndex?.cities?.length) {
+      return routeIndex.cities.map(({ country, region, city }) => ({ params: { country, region, city } }));
+    }
+
     const profiles = await getProfessionals();
-    console.log(`[city].astro getStaticPaths: Received ${profiles?.length || 0} profiles from cache.`);
-    
-    // If cache failed or is empty, fall back to direct fetch
     const allProfiles = profiles?.length ? profiles : await fetchAllProfessionals();
-    console.log('Generated static paths for cities from', allProfiles.length, 'profiles');
 
-    // Filter out profiles with missing or empty slugs
-    const validProfiles = allProfiles.filter(profile => 
-      profile.country_slug && 
-      profile.province_slug && 
-      profile.city_slug &&
-      profile.country_slug.trim() !== '' && 
-      profile.province_slug.trim() !== '' && 
-      profile.city_slug.trim() !== ''
-    );
-    
-    console.log(`[city].astro getStaticPaths: ${validProfiles.length} valid profiles after filtering`);
-
-    const cities = new Map();
-    validProfiles.forEach(profile => {
-      const key = `${profile.country_slug}/${profile.province_slug}/${profile.city_slug}`;
-      if (!cities.has(key)) {
-        cities.set(key, {
-          country: profile.country_slug,
-          region: profile.province_slug,
-          city: profile.city_slug
-        });
-      }
+    return [...new Set(
+      allProfiles
+        .filter((profile) => profile.country_slug && profile.province_slug && profile.city_slug)
+        .map((profile) => `${profile.country_slug}/${profile.province_slug}/${profile.city_slug}`)
+    )].map((key) => {
+      const [country, region, city] = key.split('/');
+      return { params: { country, region, city } };
     });
-
-    const paths = Array.from(cities.values()).map(({ country, region, city }) => ({
-      params: { country, region, city }
-    }));
-
-    console.log(`[city].astro getStaticPaths: Generated ${paths.length} city paths`);
-    return paths;
-  } catch (fetchError) {
-    console.error('Error fetching profiles for static paths:', fetchError);
+  } catch (error) {
+    console.error('Error in city getStaticPaths:', error);
     return [];
   }
 }
 
 const { country, region, city } = Astro.params;
 
-// Attempt to use the cached data first
-let profiles: any[] = [];
-let locations: any[] = [];
-let nearbyData: any[] = [];
+let profiles = await getProfilesForCity(country, region, city);
 
-// Get profiles for this city first from cache
-profiles = await getProfilesForCity(country, region, city);
-
-// If no profiles found in cache, fetch all profiles and filter
-if (!profiles || profiles.length === 0) {
-  console.log(`[city].astro: No profiles found in cache for ${country}/${region}/${city}, trying direct fetch...`);
+if (!profiles?.length) {
   try {
     const allProfiles = await getProfessionals();
-    profiles = allProfiles.filter(p => 
-      p.country_slug === country && 
-      p.province_slug === region && 
-      p.city_slug === city
-    );
-  } catch (e) {
-    console.error(`[city].astro: Error fetching profiles from cache:`, e.message);
-    
-    // Try direct fetch as last resort
+    profiles = allProfiles.filter((profile) => profile.country_slug === country && profile.province_slug === region && profile.city_slug === city);
+  } catch (error) {
     try {
       const allProfiles = await fetchAllProfessionals();
-      profiles = allProfiles.filter(p => 
-        p.country_slug === country && 
-        p.province_slug === region && 
-        p.city_slug === city
-      );
-    } catch (directFetchError) {
-      console.error(`[city].astro: Direct fetch also failed:`, directFetchError.message);
+      profiles = allProfiles.filter((profile) => profile.country_slug === country && profile.province_slug === region && profile.city_slug === city);
+    } catch {
       profiles = [];
     }
   }
 }
 
-console.log('Fetched', profiles.length, 'profiles for', `${country}/${region}/${city}`);
-
-// Sort profiles: claimed listings first, then by rating
 profiles.sort((a, b) => {
-  // Claimed listings always come first
-  if (a.claimed && !b.claimed) return -1;
-  if (!a.claimed && b.claimed) return 1;
-  
-  // Within same claimed status, sort by rating (highest first)
-  const ratingA = a.rating || 0;
-  const ratingB = b.rating || 0;
-  return ratingB - ratingA;
+  if ((a.claimed === true || a.claimed === 'true') && !(b.claimed === true || b.claimed === 'true')) return -1;
+  if (!(a.claimed === true || a.claimed === 'true') && (b.claimed === true || b.claimed === 'true')) return 1;
+  return (Number.parseFloat(b.vetscore) || 0) - (Number.parseFloat(a.vetscore) || 0);
 });
 
-// Fetch location details from cache
-let locationDetails = await getLocationDetails(country, region, city);
-const longDescription = locationDetails?.long_description || null;
+const enhancedProfiles = profiles.map((profile) => {
+  const hours = profile.hours_of_operation ? (typeof profile.hours_of_operation === 'string' ? (() => {
+    try { return JSON.parse(profile.hours_of_operation); } catch { return null; }
+  })() : profile.hours_of_operation) : null;
+  return {
+    ...profile,
+    hours,
+    animals: parseArray(profile.pet_types_served || profile.animals_treated),
+    services: parseArray(profile.specialization),
+  };
+});
 
-// Get nearby cities from cache
+const cityName = profiles[0]?.city || toTitleCase(city);
+const regionName = profiles[0]?.province || toTitleCase(region);
+const countryName = profiles[0]?.country || toTitleCase(country);
+const profileCount = enhancedProfiles.length;
+const emergencyCount = enhancedProfiles.filter((profile) => profile.emergency_services === true || profile.emergency_services === 'true' || profile.emergency_24_hour === true || profile.emergency_24_hour === 'true').length;
+const onlineBookingCount = enhancedProfiles.filter((profile) => profile.online_booking === true || profile.online_booking === 'true').length;
+const telehealthCount = enhancedProfiles.filter((profile) => profile.telehealth_available === true || profile.telehealth_available === 'true').length;
+const claimedCount = enhancedProfiles.filter((profile) => profile.claimed === true || profile.claimed === 'true').length;
+const pricingCount = enhancedProfiles.filter((profile) => profile.has_pricing === true || profile.has_pricing === 'true').length;
+
+const ratings = enhancedProfiles.map((profile) => Number.parseFloat(profile.rating)).filter((value) => Number.isFinite(value));
+const avgRating = ratings.length ? (ratings.reduce((sum, value) => sum + value, 0) / ratings.length).toFixed(1) : null;
+
+const examPrices = enhancedProfiles.map((profile) => parsePrice(profile.pricing_exam)).filter(Boolean);
+const vaccinePrices = enhancedProfiles.map((profile) => parsePrice(profile.pricing_vaccine)).filter(Boolean);
+const dentalPrices = enhancedProfiles.map((profile) => parsePrice(profile.pricing_dental)).filter(Boolean);
+
+const allLanguages = new Set();
+enhancedProfiles.forEach((profile) => {
+  parseArray(profile.languages_spoken)
+    .filter((language) => String(language).toLowerCase() !== 'english')
+    .forEach((language) => allLanguages.add(language));
+});
+
+const locationDetails = await getLocationDetails(country, region, city);
+const longDescription = locationDetails?.long_description || '';
 const nearbyCities = await getNearbyCitiesForCity(country, region, city);
 
-// Apply smart limiting to cached cities too
-let limitedCachedCities = nearbyCities;
-if (nearbyCities && nearbyCities.length > 12) {
-  const sortedCached = nearbyCities.sort((a, b) => b.count - a.count);
-  const topCached = sortedCached.slice(0, 6);
-  const remainingCached = sortedCached.slice(6);
-  const shuffledRemainingCached = remainingCached.sort(() => Math.random() - 0.5).slice(0, 6);
-  limitedCachedCities = [...topCached, ...shuffledRemainingCached];
+const cityOverviewParts = [
+  `Compare ${profileCount} veterinary clinics and animal hospitals in ${cityName}.`,
+  emergencyCount > 0 ? `${emergencyCount} list emergency or 24/7 care.` : '',
+  onlineBookingCount > 0 ? `${onlineBookingCount} list online booking.` : '',
+  telehealthCount > 0 ? `${telehealthCount} list telehealth.` : '',
+  pricingCount > 0 ? `${pricingCount} include pricing details.` : '',
+].filter(Boolean);
+const cityOverview = longDescription || `${cityOverviewParts.join(' ')} Use the clinic cards to check hours, phone numbers, services, pet types, and nearby backup options before you call.`;
+
+const personaCollections = [
+  {
+    title: 'Emergency and after-hours',
+    eyebrow: 'Fast access',
+    vets: enhancedProfiles.filter((profile) => profile.emergency_services === true || profile.emergency_services === 'true' || profile.emergency_24_hour === true || profile.emergency_24_hour === 'true').slice(0, 3),
+  },
+  {
+    title: 'Booking and telehealth',
+    eyebrow: 'Digital-first',
+    vets: enhancedProfiles.filter((profile) => profile.online_booking === true || profile.online_booking === 'true' || profile.telehealth_available === true || profile.telehealth_available === 'true').slice(0, 3),
+  },
+  {
+    title: 'Exotics and birds',
+    eyebrow: 'Specialized care',
+    vets: enhancedProfiles.filter((profile) => {
+      const animals = parseArray(profile.pet_types_served || profile.animals_treated).map((animal) => String(animal).toLowerCase());
+      return animals.some((animal) => animal.includes('exotic') || animal.includes('bird') || animal.includes('avian') || animal.includes('reptile'));
+    }).slice(0, 3),
+  },
+].filter((collection) => collection.vets.length > 0);
+
+function collectionBadge(profile) {
+  const rating = Number.parseFloat(profile.rating);
+  if (Number.isFinite(rating) && rating > 0 && rating <= 5) return `${rating.toFixed(1)} / 5`;
+  if (profile.emergency_services === true || profile.emergency_services === 'true' || profile.emergency_24_hour === true || profile.emergency_24_hour === 'true') return 'Emergency';
+  if (profile.online_booking === true || profile.online_booking === 'true') return 'Book online';
+  if (profile.telehealth_available === true || profile.telehealth_available === 'true') return 'Telehealth';
+  return 'Profile';
 }
 
-// If nearbyCities is empty, compute it on the fly
-let finalNearbyCities = limitedCachedCities;
-if (!finalNearbyCities || finalNearbyCities.length === 0) {
-  console.log(`[city].astro: No nearby cities found in cache for ${country}/${region}/${city}, computing on the fly...`);
-  
-  try {
-    // Get all profiles for this region
-    const allProfiles = await getProfessionals();
-    nearbyData = allProfiles.filter(p => 
-      p.country_slug === country && 
-      p.province_slug === region && 
-      p.city_slug !== city
-    );
+const breadcrumbItems = [
+  { label: 'Home', href: '/' },
+  { label: countryName, href: `/${country}/` },
+  { label: regionName, href: `/${country}/${region}/` },
+  { label: cityName, href: `/${country}/${region}/${city}/` },
+];
 
-    const nearbyCityCounts = new Map();
-    nearbyData.forEach(item => {
-      const key = item.city_slug;
-      nearbyCityCounts.set(key, (nearbyCityCounts.get(key) || 0) + 1);
-    });
-
-    const uniqueNearbyCities = [...new Set(nearbyData.map(item => item.city_slug))].map(citySlug => {
-      const cityData = nearbyData.find(item => item.city_slug === citySlug);
-      return { city_slug: citySlug, city: cityData.city, count: nearbyCityCounts.get(citySlug) || 0 };
-    });
-
-    // Sort by count and limit to top cities + some random ones
-    const sortedCities = uniqueNearbyCities.sort((a, b) => b.count - a.count);
-    const topCities = sortedCities.slice(0, 6); // Top 6 by vet count
-    const remainingCities = sortedCities.slice(6);
-    
-    // Shuffle remaining cities and take up to 6 more
-    const shuffledRemaining = remainingCities.sort(() => Math.random() - 0.5).slice(0, 6);
-    
-    finalNearbyCities = [...topCities, ...shuffledRemaining];
-  } catch (e) {
-    console.error(`[city].astro: Error computing nearby cities:`, e.message);
-    finalNearbyCities = [];
-  }
-}
-
-const cityName = profiles?.[0]?.city || toTitleCase(city);
-const profileCount = profiles ? profiles.length : 0;
-const path = Astro.url.pathname.replace(/\/$/, '');
+const generatedCityImage = getGeneratedOgImageUrl('cities', [country, region, city]);
+const socialImage = generatedCityImage || pickFirstProfileImage(enhancedProfiles) || getDefaultOgImageUrl();
+const cityIntentKeywords = [
+  `veterinary services ${cityName}`,
+  `veterinary hospital ${cityName}`,
+  `vet clinic ${cityName}`,
+  `animal hospital ${cityName}`,
+  `veterinarian ${cityName}`,
+  `emergency vet ${cityName}`,
+];
+const pageTitle = `Veterinary Services in ${cityName}, ${regionName} | ${profileCount} Vet Clinics & Animal Hospitals`;
+const pageDescription = `Compare ${profileCount} vet clinics and animal hospitals in ${cityName}, with hours, phone numbers, emergency care, services, pricing details, and clinic profiles.`;
+const canonicalURL = `https://vetlist.org/${country}/${region}/${city}/`;
+const openGraphConfig = {
+  type: 'website',
+  url: canonicalURL,
+  title: pageTitle,
+  description: pageDescription,
+  siteName: 'VetList.org',
+  locale: 'en_US',
+  image: socialImage,
+  imageAlt: `Veterinary services directory for ${cityName}, ${regionName}`,
+};
+const twitterCardConfig = {
+  card: 'summary_large_image',
+  title: pageTitle,
+  description: pageDescription,
+  image: socialImage,
+  imageAlt: `Veterinary services directory for ${cityName}, ${regionName}`,
+};
 ---
 
-<Layout title={`${cityName} Veterinarians`}>
-  <!-- Local business schema for rich snippets -->
+<Layout title={pageTitle} description={pageDescription} openGraph={openGraphConfig} twitterCard={twitterCardConfig}>
   <script type="application/ld+json" set:html={JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    "name": `Veterinarians in ${cityName}`,
-    "description": `Complete directory of veterinary clinics and animal hospitals in ${cityName}, ${toTitleCase(region)}`,
-    "numberOfItems": profiles.length,
-    "itemListOrder": "https://schema.org/ItemListOrderDescending",
-    "itemListElement": profiles.slice(0, 20)
-      .filter(profile => 
-        profile.name && 
-        profile.name_slug && 
-        (profile.phone_number || profile.address) &&
-        profile.name.trim() !== ''
-      )
-      .map((profile, index) => {
-        // Parse address components
-        const addressParts = (profile.address || '').split(',').map(part => part.trim());
-        const streetAddress = addressParts[0] || '';
-        const addressLocality = profile.city || cityName;
-        const addressRegion = profile.province || toTitleCase(region);
-        const addressCountry = profile.country || 'Canada';
-        
-        return {
-          "@type": "ListItem",
-          "position": index + 1,
-          "item": {
-            "@type": "VeterinaryCare",
-            "@id": `https://vetlist.org/${country}/${region}/${city}/${profile.name_slug}/`,
-            "name": profile.name,
-            "address": {
-              "@type": "PostalAddress",
-              "streetAddress": streetAddress,
-              "addressLocality": addressLocality,
-              "addressRegion": addressRegion,
-              "addressCountry": addressCountry
-            },
-            "telephone": profile.phone_number || "",
-            "url": `https://vetlist.org/${country}/${region}/${city}/${profile.name_slug}/`,
-            // Only include rating if it's valid and has proper count data
-            ...(profile.rating && profile.rating > 0 ? {
-              "aggregateRating": {
-                "@type": "AggregateRating",
-                "ratingValue": profile.rating,
-                "bestRating": "5",
-                "worstRating": "1",
-                "ratingCount": profile.rating_count || 1,
-                "reviewCount": profile.review_count || profile.rating_count || 1
-              }
-            } : {})
-          }
-        };
-      }),
-    "mainEntity": {
-      "@type": "City",
-      "name": cityName,
-      "containedInPlace": {
-        "@type": "State", 
-        "name": toTitleCase(region)
-      }
-    }
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: `Veterinarians in ${cityName}`,
+    description: pageDescription,
+    url: canonicalURL,
+    image: socialImage,
+    about: cityIntentKeywords,
+    mainEntity: {
+      '@type': 'ItemList',
+      name: `Veterinary Clinics in ${cityName}`,
+      numberOfItems: profileCount,
+      itemListOrder: 'https://schema.org/ItemListOrderDescending',
+      itemListElement: enhancedProfiles.slice(0, 20).map((profile, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        item: {
+          '@type': 'WebPage',
+          name: profile.name,
+          url: `https://vetlist.org/${country}/${region}/${city}/${profile.name_slug}/`,
+        },
+      })),
+    },
+    breadcrumb: {
+      '@type': 'BreadcrumbList',
+      itemListElement: breadcrumbItems.map((item, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: item.label,
+        item: `https://vetlist.org${item.href}`,
+      })),
+    },
   })} />
-  
-  <Breadcrumbs path={path} />
-  
-  <!-- Hero Section with Disappearing Logic -->
-  <section class="relative overflow-hidden bg-gradient-to-br from-primary-700 via-primary-800 to-primary-900 pt-4 pb-4 md:pt-6 md:pb-6 mb-2" style="margin-left: calc(-50vw + 50%); margin-right: calc(-50vw + 50%); width: 100vw;">
-    <!-- Subtle background elements -->
-    <div class="absolute inset-0 overflow-hidden">
-      <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
-      <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"></div>
-    </div>
 
-    <div class="container mx-auto px-4 md:px-8 lg:px-12 max-w-6xl relative">
-      <!-- Header Container with Dynamic Height -->
-      <div
-        id="hero-header-container"
-        class="text-center transition-all duration-500 ease-out overflow-hidden"
-        style="margin-bottom: 0.5rem;"
-      >
-        <!-- Main Header -->
-        <div id="hero-header" class="transition-all duration-500 ease-out">
-          <h1 class="text-lg md:text-xl xl:text-2xl font-medium text-white/85 mb-1.5 leading-tight tracking-wide">
-            {cityName} Veterinarians
-          </h1>
-          <div class="text-sm xl:text-base text-primary-100/70 leading-relaxed max-w-5xl mx-auto font-light">
-            {longDescription ? (
-              <div class="description-wrapper">
-                <div class="description clamped" id="description" set:html={longDescription}></div>
-                <button class="read-more text-primary-200 hover:text-white underline mt-2" id="readMore">Read More</button>
-                <button class="hide text-primary-200 hover:text-white underline mt-2" id="hide" style="display: none;">Read Less</button>
-              </div>
-            ) : (
-              <p>Find the best veterinary clinics in {cityName}, {toTitleCase(region)}</p>
-            )}
+  <Fragment slot="head">
+    <meta property="business:contact_data:locality" content={cityName} />
+    <meta property="business:contact_data:region" content={regionName} />
+    <meta property="business:contact_data:country_name" content={countryName} />
+  </Fragment>
+
+  <div class="mx-auto max-w-7xl py-6 md:py-8">
+    <Breadcrumbs items={breadcrumbItems} />
+
+    <section class="mt-4 overflow-hidden rounded-[32px] border border-slate-200 bg-slate-950 text-white shadow-2xl">
+      <div class="bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.26),_transparent_26%),radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.16),_transparent_24%)] px-5 py-6 md:px-8 md:py-8">
+        <div class="flex flex-col gap-6 xl:flex-row xl:items-stretch xl:justify-between">
+          <div class="max-w-4xl">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">City directory</p>
+            <h1 class="mt-3 text-4xl font-black tracking-tight text-white md:text-5xl">Veterinary services in {cityName}</h1>
+            <p class="mt-4 max-w-3xl text-lg leading-8 text-slate-200">
+              Compare {profileCount} vet clinics and animal hospitals in {cityName}, including hours, phone numbers, emergency care, services, and full clinic profiles.
+            </p>
+            <div class="mt-5 flex flex-wrap gap-2">
+              <span class="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-slate-100">{profileCount} clinics tracked</span>
+              <span class="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-100"><span data-open-now-count>Checking</span> open now</span>
+              {emergencyCount > 0 && <span class="rounded-full border border-red-400/20 bg-red-400/10 px-4 py-2 text-sm text-red-100">{emergencyCount} emergency-capable</span>}
+              {onlineBookingCount > 0 && <span class="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm text-cyan-100">{onlineBookingCount} with online booking</span>}
+            </div>
           </div>
-        </div>
 
-        <!-- Ultra-minimal Header State - Behind Content -->
-        <div
-          id="hero-header-mini"
-          class="transition-all duration-500 ease-out opacity-0 scale-90 pointer-events-none fixed inset-x-0 z-40"
-          style="top: -10px;"
-        >
-          <div class="container mx-auto px-4 md:px-8 lg:px-12 max-w-6xl">
-            <button
-              id="header-expand-btn"
-              class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-white/70 hover:text-white/90 hover:bg-white/20 transition-all text-xs font-light shadow-lg"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1"
-                stroke="currentColor"
-                class="w-3 h-3"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M19.5 8.25l-7.5 7.5-7.5-7.5"></path>
-              </svg>
-              <span>{cityName} Veterinarians</span>
-            </button>
+          <div class="grid grid-cols-2 gap-3 xl:w-[320px] xl:h-full xl:min-h-[260px] xl:grid-rows-2">
+            <div class="flex h-full flex-col rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">Emergency</p>
+              <p class="mt-auto text-5xl font-black leading-[0.9] text-red-300 drop-shadow-[0_10px_28px_rgba(252,165,165,0.24)] sm:text-6xl">{emergencyCount}</p>
+              <p class="mt-2 text-sm text-slate-300">clinics list urgent care</p>
+            </div>
+            <div class="flex h-full flex-col rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">Open now</p>
+              <p class="mt-auto text-5xl font-black leading-[0.9] text-emerald-300 drop-shadow-[0_10px_28px_rgba(110,231,183,0.23)] sm:text-6xl" data-open-now-count>...</p>
+              <p class="mt-2 text-sm text-slate-300">using your time</p>
+            </div>
+            <div class="flex h-full flex-col rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">Book online</p>
+              <p class="mt-auto text-5xl font-black leading-[0.9] text-cyan-300 drop-shadow-[0_10px_28px_rgba(103,232,249,0.25)] sm:text-6xl">{onlineBookingCount}</p>
+              <p class="mt-2 text-sm text-slate-300">clinics list booking</p>
+            </div>
+            <div class="flex h-full flex-col rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">Avg rating</p>
+              <p class="mt-auto text-5xl font-black leading-[0.9] text-amber-300 drop-shadow-[0_10px_28px_rgba(252,211,77,0.24)] sm:text-6xl">{avgRating || 'NA'}</p>
+              <p class="mt-2 text-sm text-slate-300">public rating</p>
+            </div>
           </div>
         </div>
       </div>
+	    </section>
 
+	    <section id="care-now" class="mt-6 rounded-[28px] border border-emerald-200 bg-[linear-gradient(180deg,#ecfdf5_0%,#ffffff_100%)] p-6 shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
+	      <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+	        <div>
+	          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Need care now?</p>
+	          <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Find a clinic that may be able to help tonight</h2>
+	          <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+	            Start with clinics that are open by your device time, then check emergency coverage, 24/7 notes, telehealth, and nearby cities if nothing local is available.
+	          </p>
+	        </div>
+	        <div class="grid gap-2 sm:grid-cols-2 lg:min-w-[360px]">
+	          <button type="button" data-quick-filter="open-now" class="rounded-full border border-slate-950 bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800">Open now</button>
+	          <button type="button" data-quick-filter="emergency" class="rounded-full border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-800 transition hover:bg-rose-50">Emergency / 24/7</button>
+	          <button type="button" data-quick-filter="telehealth" class="rounded-full border border-cyan-200 bg-white px-4 py-3 text-sm font-bold text-cyan-800 transition hover:bg-cyan-50">Telehealth</button>
+	          <a href="#nearby-cities" class="rounded-full border border-slate-200 bg-white px-4 py-3 text-center text-sm font-bold text-slate-800 transition hover:bg-slate-50">Nearby cities</a>
+	        </div>
+	      </div>
+	      <p class="mt-4 text-xs leading-5 text-slate-500">
+	        Open-now status is calculated in the browser from published hours and your device time. Always call before going, especially for urgent care.
+	      </p>
+	    </section>
 
-    </div>
-  </section>
-
-    <div id="profiles-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {profiles && profiles.length > 0 ? (
-        profiles.slice(0, 36).map(profile => (
-          <div class="profile-card bg-white rounded-xl shadow-card hover:shadow-lg transition group overflow-hidden" data-search-name={profile.name.toLowerCase()} data-search-description={(profile.description || '').toLowerCase()}>
-            {profile.name_slug ? (
-              <a href={`${path}/${profile.name_slug}/`} class="flex h-32">
-                <div class="relative w-32 h-32 bg-primary-50 group-hover:bg-primary-100 flex-shrink-0">
-                  {/* Verified Badge Overlay */}
-                  {profile.claimed && (
-                    <div class="absolute top-2 left-2 z-10">
-                      <div class="relative">
-                        <div class="absolute inset-0 bg-green-400 rounded-lg blur-md opacity-50 animate-pulse"></div>
-                        <div class="relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg p-1.5 shadow-lg">
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="white" 
-                            stroke-width="2.5" 
-                            stroke-linecap="round" 
-                            stroke-linejoin="round" 
-                            class="w-5 h-5"
-                          >
-                            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
-                            <path d="m9 12 2 2 4-4"/>
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {profile.picture ? (
-                    <img 
-                      src={profile.picture} 
-                      alt={`${profile.name} image`} 
-                      class="w-full h-full object-cover"
-                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                    />
-                  ) : null}
-                  <div class={`absolute inset-0 flex items-center justify-center text-primary-500 ${profile.picture ? 'hidden' : 'flex'}`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 14h-4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 18h-4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 8h-4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
-                    </svg>
-                  </div>
-                </div>
-                <div class="flex-1 flex flex-col justify-between p-4 min-w-0">
-                  <div>
-                    <h3 class="text-gray-700 group-hover:text-primary-700 transition font-medium text-sm leading-tight mb-2 truncate">
-                      {profile.name.length > 45 ? profile.name.substring(0, 45) + '...' : profile.name}
-                    </h3>
-                    {profile.description && (
-                      <p class="text-gray-500 text-xs leading-relaxed line-clamp-2 mb-3">
-                        {profile.description.length > 80 ? profile.description.substring(0, 80) + '...' : profile.description}
-                      </p>
-                    )}
-                  </div>
-                  <div class="flex items-center justify-between">
-                    {/* Address - extract street address only */}
-                    {profile.address && (
-                      <div class="flex items-center text-xs text-gray-500 truncate flex-1 mr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3 mr-1 flex-shrink-0">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                        </svg>
-                        <span class="truncate">
-                          {(() => {
-                            // Extract just the street address (first part before comma)
-                            const addressParts = profile.address.split(',');
-                            return addressParts[0].trim();
-                          })()}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {/* Rating */}
-                    {profile.rating && profile.rating > 0 && (
-                      <div class="flex items-center text-xs text-gray-600 flex-shrink-0">
-                        <svg class="w-3 h-3 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                          <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clip-rule="evenodd" />
-                        </svg>
-                        <span class="font-medium">{profile.rating.toFixed(1)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </a>
-            ) : (
-              <div class="flex h-32">
-                <div class="relative w-32 h-32 bg-primary-50 flex-shrink-0">
-                  {/* Verified Badge Overlay */}
-                  {profile.claimed && (
-                    <div class="absolute top-2 left-2 z-10">
-                      <div class="relative">
-                        <div class="absolute inset-0 bg-green-400 rounded-lg blur-md opacity-50 animate-pulse"></div>
-                        <div class="relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg p-1.5 shadow-lg">
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="white" 
-                            stroke-width="2.5" 
-                            stroke-linecap="round" 
-                            stroke-linejoin="round" 
-                            class="w-5 h-5"
-                          >
-                            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
-                            <path d="m9 12 2 2 4-4"/>
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {profile.picture ? (
-                    <img 
-                      src={profile.picture} 
-                      alt={`${profile.name} image`} 
-                      class="w-full h-full object-cover"
-                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                    />
-                  ) : null}
-                  <div class={`absolute inset-0 flex items-center justify-center text-primary-500 ${profile.picture ? 'hidden' : 'flex'}`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 14h-4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 18h-4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 8h-4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
-                    </svg>
-                  </div>
-                </div>
-                <div class="flex-1 flex flex-col justify-between p-4 min-w-0">
-                  <div>
-                    <h3 class="text-gray-700 font-medium text-sm leading-tight mb-2 truncate">
-                      {profile.name.length > 45 ? profile.name.substring(0, 45) + '...' : profile.name}
-                    </h3>
-                    {profile.description && (
-                      <p class="text-gray-500 text-xs leading-relaxed line-clamp-2 mb-3">
-                        {profile.description.length > 80 ? profile.description.substring(0, 80) + '...' : profile.description}
-                      </p>
-                    )}
-                  </div>
-                  <div class="flex items-center justify-between">
-                    {/* Address - extract street address only */}
-                    {profile.address && (
-                      <div class="flex items-center text-xs text-gray-500 truncate flex-1 mr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3 mr-1 flex-shrink-0">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                        </svg>
-                        <span class="truncate">
-                          {(() => {
-                            // Extract just the street address (first part before comma)
-                            const addressParts = profile.address.split(',');
-                            return addressParts[0].trim();
-                          })()}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {/* Rating */}
-                    {profile.rating && profile.rating > 0 && (
-                      <div class="flex items-center text-xs text-gray-600 flex-shrink-0">
-                        <svg class="w-3 h-3 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                          <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clip-rule="evenodd" />
-                        </svg>
-                        <span class="font-medium">{profile.rating.toFixed(1)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        ))
-      ) : (
-        <p class="text-gray-600 col-span-full text-center py-8">No veterinary clinics found in {cityName}.</p>
-      )}
-    </div>
-
-    {/* Additional profiles in simplified row format if more than 36 */}
-    {profiles && profiles.length > 36 && (
-      <div class="mt-12">
-        <div class="flex items-center mb-6">
-          <div class="flex-grow h-px bg-gray-300"></div>
-          <span class="px-4 text-sm font-medium text-gray-500 uppercase tracking-wider">More Clinics</span>
-          <div class="flex-grow h-px bg-gray-300"></div>
+	    <section class="mt-8 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">City snapshot</p>
+        <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div><p class="text-sm text-slate-500">Open now</p><p class="mt-1 text-3xl font-black text-slate-950" data-open-now-count>Checking</p><p class="text-sm text-slate-600">based on your device time</p></div>
+          <div><p class="text-sm text-slate-500">Average rating</p><p class="mt-1 text-3xl font-black text-slate-950">{avgRating || 'Not listed'}</p><p class="text-sm text-slate-600">published public rating</p></div>
+          <div><p class="text-sm text-slate-500">Claimed</p><p class="mt-1 text-3xl font-black text-slate-950">{claimedCount}</p><p class="text-sm text-slate-600">clinic-managed profiles</p></div>
+          <div><p class="text-sm text-slate-500">Telehealth</p><p class="mt-1 text-3xl font-black text-slate-950">{telehealthCount}</p><p class="text-sm text-slate-600">with remote care listed</p></div>
+          <div><p class="text-sm text-slate-500">Transparent pricing</p><p class="mt-1 text-3xl font-black text-slate-950">{pricingCount}</p><p class="text-sm text-slate-600">with pricing listed</p></div>
+          <div><p class="text-sm text-slate-500">Languages</p><p class="mt-1 text-3xl font-black text-slate-950">{allLanguages.size}</p><p class="text-sm text-slate-600">non-English languages listed</p></div>
         </div>
-        <h2 class="text-lg font-semibold text-gray-900 mb-6">More Veterinary Clinics in {cityName}</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {profiles.slice(36).map(profile => (
-            profile.name_slug ? (
-              <a href={`${path}/${profile.name_slug}/`} class="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition group searchable-item" data-search-name={profile.name.toLowerCase()} data-search-description={(profile.description || '').toLowerCase()}>
-                <div class="relative w-8 h-8 rounded-lg overflow-hidden bg-primary-50 group-hover:bg-primary-100 flex-shrink-0">
-                  {profile.picture ? (
-                    <img 
-                      src={profile.picture} 
-                      alt={`${profile.name} image`} 
-                      class="w-full h-full object-cover"
-                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                    />
-                  ) : null}
-                  <div class={`absolute inset-0 flex items-center justify-center text-primary-500 ${profile.picture ? 'hidden' : 'flex'}`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 14h-4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 18h-4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 8h-4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
-                    </svg>
-                  </div>
-                </div>
-                <span class="font-medium text-gray-900 hover:text-primary-600 transition-colors truncate text-sm">{profile.name.length > 40 ? profile.name.substring(0, 40) + '...' : profile.name}</span>
-              </a>
-            ) : (
-              <div class="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm searchable-item" data-search-name={profile.name.toLowerCase()} data-search-description={(profile.description || '').toLowerCase()}>
-                <div class="relative w-8 h-8 rounded-lg overflow-hidden bg-primary-50 flex-shrink-0">
-                  {profile.picture ? (
-                    <img 
-                      src={profile.picture} 
-                      alt={`${profile.name} image`} 
-                      class="w-full h-full object-cover"
-                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                    />
-                  ) : null}
-                  <div class={`absolute inset-0 flex items-center justify-center text-primary-500 ${profile.picture ? 'hidden' : 'flex'}`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 14h-4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 18h-4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 8h-4"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
-                    </svg>
-                  </div>
-                </div>
-                <span class="font-medium text-gray-900 truncate text-sm">{profile.name.length > 40 ? profile.name.substring(0, 40) + '...' : profile.name}</span>
+      </div>
+
+      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pricing and languages</p>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          {examPrices.length > 0 && <div class="rounded-2xl bg-slate-50 p-4"><div class="text-sm text-slate-500">Average exam</div><div class="mt-1 text-2xl font-black text-slate-950">${average(examPrices)}</div></div>}
+          {vaccinePrices.length > 0 && <div class="rounded-2xl bg-slate-50 p-4"><div class="text-sm text-slate-500">Average vaccine</div><div class="mt-1 text-2xl font-black text-slate-950">${average(vaccinePrices)}</div></div>}
+          {dentalPrices.length > 0 && <div class="rounded-2xl bg-slate-50 p-4"><div class="text-sm text-slate-500">Average dental</div><div class="mt-1 text-2xl font-black text-slate-950">${average(dentalPrices)}</div></div>}
+          <div class="rounded-2xl bg-slate-50 p-4">
+            <div class="text-sm text-slate-500">Non-English languages</div>
+            <div class="mt-1 text-2xl font-black text-slate-950">{allLanguages.size}</div>
+          </div>
+        </div>
+        {allLanguages.size > 0 && (
+          <div class="mt-4 flex flex-wrap gap-2">
+            {[...allLanguages].slice(0, 10).map((language) => (
+              <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">{language}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+
+    {personaCollections.length > 0 && (
+      <section class="mt-8">
+        <div class="mb-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Quick picks</p>
+          <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Clinics grouped by care type</h2>
+        </div>
+        <div class="grid gap-4 lg:grid-cols-3">
+          {personaCollections.map((collection) => (
+            <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{collection.eyebrow}</p>
+              <h3 class="mt-2 text-2xl font-black tracking-tight text-slate-950">{collection.title}</h3>
+              <div class="mt-4 space-y-3">
+                {collection.vets.map((profile) => (
+                  <a
+                    href={`/${country}/${region}/${city}/${profile.name_slug}/`}
+                    class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm transition hover:bg-slate-100"
+                  >
+                    <span class="min-w-0 font-semibold text-slate-900">{profile.name}</span>
+                    <span class="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-600">{collectionBadge(profile)}</span>
+                  </a>
+                ))}
               </div>
-            )
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+	    <section class="mt-8">
+	      <div class="mb-4">
+	        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Profiles</p>
+	        <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Open a clinic profile for the full picture</h2>
+	        <p class="mt-2 text-sm leading-6 text-slate-600" data-filter-summary>Showing all clinics in {cityName}.</p>
+	        <div data-active-filter-panel hidden class="mt-4 flex flex-col gap-3 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm text-cyan-950 sm:flex-row sm:items-center sm:justify-between">
+	          <span>
+	            <span class="font-bold" data-active-filter-count>0</span>
+	            <span data-active-filter-label>matching clinics</span>
+	          </span>
+	          <button type="button" data-clear-filter class="rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-cyan-900 transition hover:bg-cyan-100">
+	            Show all clinics
+	          </button>
+	        </div>
+	      </div>
+	      <div id="profiles-grid" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {enhancedProfiles.map((profile) => (
+          <VetCard
+            id={profile.id}
+            name={profile.name}
+            slug={profile.name_slug}
+            address={profile.address}
+            hours={profile.hours}
+            services={profile.services}
+            animals={profile.animals}
+            rating={Number.parseFloat(profile.rating) || 0}
+            vetscore={Number.parseFloat(profile.vetscore) || 0}
+            claimed={profile.claimed === true || profile.claimed === 'true'}
+            country_slug={profile.country_slug}
+            province_slug={profile.province_slug}
+            city_slug={profile.city_slug}
+            emergency_services={profile.emergency_services === true || profile.emergency_services === 'true' || profile.emergency_24_hour === true || profile.emergency_24_hour === 'true'}
+            online_booking={profile.online_booking === true || profile.online_booking === 'true'}
+            telehealth_available={profile.telehealth_available === true || profile.telehealth_available === 'true'}
+            year_established={profile.year_established}
+            languages_spoken={profile.languages_spoken}
+            has_pricing={profile.has_pricing}
+            pricing_exam={profile.pricing_exam}
+            pricing_vaccine={profile.pricing_vaccine}
+            pricing_dental={profile.pricing_dental}
+            pricing_spay_dog={profile.pricing_spay_dog}
+          />
+        ))}
+	      </div>
+	    </section>
+
+	    <script is:inline>
+	      (() => {
+	        const inactiveButtonClasses = {
+	          'open-now': 'border-slate-950 bg-slate-950 text-white hover:bg-slate-800',
+	          emergency: 'border-rose-200 bg-white text-rose-800 hover:bg-rose-50',
+	          telehealth: 'border-cyan-200 bg-white text-cyan-800 hover:bg-cyan-50',
+	        };
+	        const activeButtonClasses = {
+	          'open-now': 'border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700',
+	          emergency: 'border-rose-600 bg-rose-600 text-white hover:bg-rose-700',
+	          telehealth: 'border-cyan-700 bg-cyan-700 text-white hover:bg-cyan-800',
+	        };
+
+	        const setButtonState = (activeFilter) => {
+	          document.querySelectorAll('[data-quick-filter]').forEach((button) => {
+	            const filter = button.getAttribute('data-quick-filter') || '';
+	            const base = 'rounded-full border px-4 py-3 text-sm font-bold transition';
+	            const state = activeFilter === filter ? activeButtonClasses[filter] : inactiveButtonClasses[filter];
+	            button.className = `${base} ${state || inactiveButtonClasses[filter] || ''}`;
+	            button.setAttribute('aria-pressed', activeFilter === filter ? 'true' : 'false');
+	          });
+	        };
+
+	        const dayKeyForDate = (date) => {
+	          const day = date.getDay();
+	          return day === 0 ? '7' : String(day);
+	        };
+
+	        const parseTime = (value) => {
+	          const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})/);
+	          if (!match) return null;
+	          const hours = Number(match[1]);
+	          const minutes = Number(match[2]);
+	          if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+	          return hours * 60 + minutes;
+	        };
+
+	        const formatTime = (minutes) => {
+	          const clamped = ((minutes % 1440) + 1440) % 1440;
+	          const hours = Math.floor(clamped / 60);
+	          const mins = clamped % 60;
+	          const period = hours >= 12 ? 'PM' : 'AM';
+	          const displayHours = hours % 12 || 12;
+	          return `${displayHours}:${String(mins).padStart(2, '0')} ${period}`;
+	        };
+
+	        const parseHours = (raw) => {
+	          try {
+	            const parsed = JSON.parse(raw || '{}');
+	            return parsed && typeof parsed === 'object' ? parsed : {};
+	          } catch {
+	            return {};
+	          }
+	        };
+
+	        const intervalsForDay = (hours, dayKey) => {
+	          const intervals = hours[dayKey] || [];
+	          return Array.isArray(intervals) ? intervals : [];
+	        };
+
+	        const evaluateOpenNow = (hours, now) => {
+	          const currentMinutes = now.getHours() * 60 + now.getMinutes();
+	          const todayIntervals = intervalsForDay(hours, dayKeyForDate(now));
+
+	          for (const interval of todayIntervals) {
+	            const [opensRaw, closesRaw] = String(interval).split('-').map((part) => part.trim());
+	            const opens = parseTime(opensRaw);
+	            const closes = parseTime(closesRaw);
+	            if (opens == null || closes == null) continue;
+
+	            if (opens === 0 && closes >= 1439) return { open: true, status: 'Open 24 hours', detail: 'Published schedule' };
+	            if (closes < opens && (currentMinutes >= opens || currentMinutes < closes)) {
+	              return { open: true, status: 'Open now', detail: `Closes at ${formatTime(closes)}` };
+	            }
+	            if (closes >= opens && currentMinutes >= opens && currentMinutes < closes) {
+	              return { open: true, status: 'Open now', detail: `Closes at ${formatTime(closes)}` };
+	            }
+	            if (currentMinutes < opens) {
+	              return { open: false, status: 'Closed now', detail: `Opens today at ${formatTime(opens)}` };
+	            }
+	          }
+
+	          return { open: false, status: 'Closed now', detail: 'Check next opening on profile' };
+	        };
+
+	        const cards = Array.from(document.querySelectorAll('.vet-card'));
+	        let openCount = 0;
+
+	        cards.forEach((card) => {
+	          const hours = parseHours(card.getAttribute('data-hours'));
+	          const hasHours = Object.keys(hours).length > 0;
+	          const result = hasHours
+	            ? evaluateOpenNow(hours, new Date())
+	            : { open: false, status: 'Call for hours', detail: 'Hours not listed' };
+	          card.dataset.openNow = result.open ? 'true' : 'false';
+	          if (result.open) openCount += 1;
+
+	          const status = card.querySelector('[data-open-status]');
+	          const detail = card.querySelector('[data-open-detail]');
+	          const dot = card.querySelector('[data-open-dot]');
+	          const badge = card.querySelector('.js-card-open-now');
+	          if (status) status.textContent = result.status;
+	          if (detail) detail.textContent = result.detail;
+	          if (dot) dot.className = `h-1.5 w-1.5 rounded-full ${result.open ? 'bg-emerald-600' : 'bg-slate-400'}`;
+	          if (badge) {
+	            badge.className = `js-card-open-now inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${result.open ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`;
+	          }
+	        });
+
+	        document.querySelectorAll('[data-open-now-count]').forEach((node) => {
+	          node.textContent = String(openCount);
+	        });
+
+	        const summary = document.querySelector('[data-filter-summary]');
+	        const grid = document.getElementById('profiles-grid');
+	        const activePanel = document.querySelector('[data-active-filter-panel]');
+	        const activeCount = document.querySelector('[data-active-filter-count]');
+	        const activeLabel = document.querySelector('[data-active-filter-label]');
+	        const clearFilter = document.querySelector('[data-clear-filter]');
+	        const labels = {
+	          'open-now': 'clinics that appear open now',
+	          emergency: 'clinics listing emergency or 24/7 support',
+	          telehealth: 'clinics listing telehealth',
+	          all: 'all clinics',
+	        };
+	        const shortLabels = {
+	          'open-now': 'open-now clinics',
+	          emergency: 'emergency or 24/7 clinics',
+	          telehealth: 'telehealth clinics',
+	          all: 'clinics',
+	        };
+
+	        const matchesFilter = (card, filter) => {
+	          if (filter === 'open-now') return card.dataset.openNow === 'true';
+	          if (filter === 'emergency') return card.dataset.emergencyServices === 'true';
+	          if (filter === 'telehealth') return card.dataset.telehealth === 'true';
+	          return true;
+	        };
+
+	        const applyFilter = (filter) => {
+	          const normalizedFilter = labels[filter] ? filter : 'all';
+	          let visible = 0;
+	          cards.forEach((card) => {
+	            const match = matchesFilter(card, normalizedFilter);
+	            card.classList.toggle('is-filter-hidden', !match);
+	            card.toggleAttribute('hidden', !match);
+	            card.setAttribute('aria-hidden', match ? 'false' : 'true');
+	            if (match) visible += 1;
+	          });
+	          setButtonState(normalizedFilter === 'all' ? '' : normalizedFilter);
+	          if (summary) {
+	            summary.textContent = visible
+	              ? `Showing ${visible} ${labels[normalizedFilter] || labels.all}.`
+	              : `No ${labels[normalizedFilter] || 'matching clinics'} are listed here yet. Try nearby cities or call a clinic directly.`;
+	          }
+	          if (activePanel) {
+	            activePanel.hidden = normalizedFilter === 'all';
+	          }
+	          if (activeCount) {
+	            activeCount.textContent = String(visible);
+	          }
+	          if (activeLabel) {
+	            activeLabel.textContent = shortLabels[normalizedFilter] || shortLabels.all;
+	          }
+	          if (normalizedFilter === 'all') {
+	            window.history.replaceState({}, '', window.location.pathname);
+	          } else {
+	            const nextUrl = new URL(window.location.href);
+	            nextUrl.searchParams.set('need', normalizedFilter);
+	            window.history.replaceState({}, '', nextUrl);
+	          }
+	          grid?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	        };
+
+	        document.querySelectorAll('[data-quick-filter]').forEach((button) => {
+	          button.addEventListener('click', () => applyFilter(button.getAttribute('data-quick-filter') || 'all'));
+	        });
+	        clearFilter?.addEventListener('click', () => applyFilter('all'));
+
+	        const params = new URLSearchParams(window.location.search);
+	        const need = params.get('need');
+	        if (need === 'open-now' || need === 'emergency' || need === 'telehealth') {
+	          requestAnimationFrame(() => applyFilter(need));
+	        }
+	      })();
+	    </script>
+
+	    <style is:global>
+	      .vet-card.is-filter-hidden {
+	        display: none !important;
+	      }
+	    </style>
+
+	    <section class="mt-8 grid gap-4 lg:grid-cols-[1fr_1fr]">
+	      <div class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">About this city page</p>
+        <div class="mt-4 space-y-3 text-sm leading-7 text-slate-600">
+          <p>{cityOverview}</p>
+          <p>
+            In {cityName}, <span class="font-semibold text-slate-950">{emergencyCount}</span> clinics list emergency care,
+            <span class="font-semibold text-slate-950"> {onlineBookingCount}</span> list online booking,
+            <span class="font-semibold text-slate-950"> {telehealthCount}</span> list telehealth, and
+            <span class="font-semibold text-slate-950"> {pricingCount}</span> include pricing details.
+          </p>
+        </div>
+      </div>
+
+      <div id="nearby-cities" class="rounded-[28px] border border-slate-300/70 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Nearby cities</p>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          {(nearbyCities || []).slice(0, 8).map((nearby) => (
+            <a
+              href={`/${country}/${region}/${nearby.city_slug}/`}
+              class="rounded-2xl bg-slate-50 px-4 py-3 text-sm transition hover:bg-slate-100"
+            >
+              <div class="font-semibold text-slate-900">{nearby.city}</div>
+              <div class="text-slate-500">{nearby.count} clinics</div>
+            </a>
           ))}
         </div>
       </div>
-    )}
-
-    <div class="mt-12">
-      <h2 class="text-2xl font-bold text-gray-900 mb-6">Veterinary care in nearby cities</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {finalNearbyCities.length > 0 ? (
-          finalNearbyCities.map(nearby => (
-            <a 
-              href={`/${country}/${region}/${nearby.city_slug}/`}
-              class="city-card flex items-center gap-3 p-4 bg-white rounded-xl shadow-card hover:shadow-lg transition group"
-              data-city-name={nearby.city.toLowerCase()}
-              data-clinic-count={nearby.count}
-            > 
-              <div class="text-primary-500 bg-primary-50 p-2 rounded-full group-hover:bg-primary-100">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                </svg>
-              </div>
-              <div class="flex-1">
-                <span class="text-gray-700 group-hover:text-primary-700 transition font-medium">
-                  {toTitleCase(nearby.city)}
-                </span>
-                <span class="ml-2 text-sm text-gray-500">
-                  {nearby.count} {nearby.count === 1 ? 'Clinic' : 'Clinics'}
-                </span>
-              </div>
-            </a>
-          ))
-        ) : (
-          <p class="text-gray-600 col-span-full text-center py-8">No nearby cities with veterinary clinics found.</p>
-        )}
-      </div>
-    </div>
-
-  <style>
-    .description.clamped {
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      line-height: 1.5em;
-    }
-    
-    .line-clamp-2 {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-  </style>
-
-  <script src="/js/hero-header.js" is:inline></script>
-  <script src="/js/description-toggle.js" is:inline></script>
+    </section>
+  </div>
 </Layout>

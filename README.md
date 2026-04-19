@@ -297,12 +297,79 @@ If you encounter build issues:
 
 2. Check Node.js version compatibility (requires Node 18+)
 
+## Data Maintenance
+
+For common data maintenance tasks like fixing hours of operation, running the scraper, or managing the data cache, see:
+
+📖 **[DATA_MAINTENANCE.md](DATA_MAINTENANCE.md)**
+
+This guide covers:
+- Fixing incorrect hours of operation
+- Running the website scraper
+- Managing the data cache
+- CSV file structure and common tasks
+
 ## Contributing
 
 1. Make your changes
 2. Test locally with `npm run dev`
 3. Build and test with `npm run build && npm run preview`
 4. Ensure search functionality works with `npm run generate-search`
+
+## VetScore System
+
+VetScore™ is our proprietary quality ranking system (0-100) that evaluates veterinary clinics based on:
+
+- **Information Completeness** - Contact info, descriptions, photos
+- **Availability** - Hours, days open, weekend/extended hours
+- **Emergency Services** - 24/7 care, after-hours, telehealth
+- **Services & Animals** - Range of services, exotic animals
+- **Transparency** - Pricing, insurance, languages
+- **Digital Presence** - Social media, online booking
+
+### Calculate VetScores
+
+```bash
+# Calculate/update VetScores for all clinics
+python3 scripts/calculate-vetscore.py
+```
+
+This updates `data/professionals.csv` with VetScore columns and generates `data/vetscore-report.json`.
+
+### Current Stats
+- **Average Score**: 53
+- **Top Score**: 91
+- **3,609 clinics** scored
+
+For full details, see **[VETSCORE_SYSTEM.md](VETSCORE_SYSTEM.md)**
+
+## Outreach CRM
+
+Identify clinics that could become #1 in their city by partnering with VetList.
+
+```bash
+# Generate outreach targets
+python3 scripts/generate-outreach-crm.py
+```
+
+**Output:**
+- `data/outreach-crm.csv` - Import into any CRM/spreadsheet
+- `data/outreach-crm.json` - Detailed analysis
+
+**Current Opportunities:**
+- **206 clinics** could become #1 with a backlink
+- **130 clinics** have email for outreach
+
+For full guide, see **[OUTREACH_CRM_GUIDE.md](OUTREACH_CRM_GUIDE.md)**
+
+## Documentation
+
+- **[README.md](README.md)** - This file (getting started, build commands)
+- **[DATA_MAINTENANCE.md](DATA_MAINTENANCE.md)** - Data maintenance and scraper guide
+- **[BUILD_OPTIMIZATION.md](BUILD_OPTIMIZATION.md)** - Build performance optimization
+- **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Deployment instructions
+- **[VETSCORE_SYSTEM.md](VETSCORE_SYSTEM.md)** - VetScore ranking system
+- **[OUTREACH_CRM_GUIDE.md](OUTREACH_CRM_GUIDE.md)** - Outreach CRM guide
 
 ## License
 

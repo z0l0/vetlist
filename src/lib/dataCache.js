@@ -2,6 +2,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getPrecomputedSiteData } from './siteData.js';
 let Papa; // We'll import this dynamically to prevent build failures
 
 // --- BUILD OPTIMIZATION SETTINGS ---
@@ -39,11 +40,13 @@ let _nearbyCitiesMap = new Map();
 let _relatedVetsMap = new Map();
 let _dataLoaded = false;
 let _dataLoading = false;
+let _precomputedGeneratedAt = null;
 
 /**
  * Try to load data from cache file
  */
 async function loadFromCache() {
+    if (IS_FAST_BUILD) return false;
     if (!_cacheEnabled) return false;
     
     try {
@@ -67,10 +70,41 @@ async function loadFromCache() {
     return false;
 }
 
+async function loadFromPrecomputed() {
+    try {
+        const siteData = await getPrecomputedSiteData();
+        if (!siteData?.professionals) return false;
+
+        _professionals = siteData.professionals;
+        _locations = siteData.locations || [];
+        _precomputedGeneratedAt = siteData.generatedAt || null;
+        buildLookups();
+
+        console.log(`dataCache: Loaded ${_professionals.length} professionals from precomputed site data`);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+async function ensureFreshData() {
+    const siteData = await getPrecomputedSiteData();
+
+    if (_dataLoaded && siteData?.generatedAt && siteData.generatedAt !== _precomputedGeneratedAt) {
+        _dataLoaded = false;
+        _dataLoading = false;
+    }
+
+    if (!_dataLoaded) {
+        await loadData();
+    }
+}
+
 /**
  * Save data to cache file
  */
 async function saveToCache() {
+    if (IS_FAST_BUILD) return;
     if (!_cacheEnabled || !_professionals || !_locations) return;
     
     try {
@@ -96,8 +130,14 @@ async function loadData() {
     _dataLoading = true;
 
     console.log('dataCache: Loading data...');
+
+    if (await loadFromPrecomputed()) {
+        _dataLoaded = true;
+        _dataLoading = false;
+        return;
+    }
     
-    // Try to load from cache first
+    // Try regular cache first
     if (await loadFromCache()) {
         _dataLoaded = true;
         _dataLoading = false;
@@ -112,7 +152,7 @@ async function loadData() {
         // Configure the data loading options for build performance
         configureDataLoading({
             CACHE_ENABLED: true,
-            MAX_PROFILES_PER_FILE: IS_FAST_BUILD ? 100 : 5000, // Limit for static page generation
+            MAX_PROFILES_PER_FILE: IS_FAST_BUILD ? 100 : 0, // 0 = no limit for full builds
             LOAD_ALL_FOR_RELATIONSHIPS: false // Keep it simple - use same data for both
         });
 
@@ -154,37 +194,17 @@ async function loadData() {
         console.log("dataCache: Attempting file-based loading...");
         const dataDir = path.join(__dirname, '..', '..', 'data');
 
-        // Define all CSV files
+        // Define all CSV files - Canada and USA
         const allProfessionalFiles = [
-            path.join(dataDir, 'professionals.csv'),
-            path.join(dataDir, 'professionals2.csv'),
-            path.join(dataDir, 'professionals3.csv'),
-            path.join(dataDir, 'professionals4.csv'),
-            path.join(dataDir, 'professionals5.csv'),
-            path.join(dataDir, 'professionals6.csv'),
-            path.join(dataDir, 'professionals7.csv'),
-            path.join(dataDir, 'professionals8.csv'),
-            path.join(dataDir, 'professionals9.csv'),
-            path.join(dataDir, 'professionals10.csv')
+            path.join(dataDir, 'professionals-canada.csv'),
+            path.join(dataDir, 'professionals-usa.csv')
         ];
-        const allLocationFiles = [
-            path.join(dataDir, 'locations_details.csv'),
-            path.join(dataDir, 'locations_details2.csv'),
-            path.join(dataDir, 'locations_details3.csv'),
-            path.join(dataDir, 'locations_details4.csv'),
-            path.join(dataDir, 'locations_details5.csv'),
-            path.join(dataDir, 'locations_details6.csv'),
-            path.join(dataDir, 'locations_details7.csv'),
-            path.join(dataDir, 'locations_details8.csv'),
-            path.join(dataDir, 'locations_details9.csv'),
-            path.join(dataDir, 'locations_details10.csv')
-        ];
+        // Location details files removed - no longer used
 
         // Use only first file in fast build mode, all files in production mode
         const professionalFiles = IS_FAST_BUILD ? [allProfessionalFiles[0]] : allProfessionalFiles;
-        const locationFiles = IS_FAST_BUILD ? [allLocationFiles[0]] : allLocationFiles;
 
-        console.log(`dataCache: ${IS_FAST_BUILD ? 'FAST BUILD MODE' : 'FULL BUILD MODE'} - Loading ${professionalFiles.length} professional files and ${locationFiles.length} location files`);
+        console.log(`dataCache: ${IS_FAST_BUILD ? 'FAST BUILD MODE' : 'FULL BUILD MODE'} - Loading ${professionalFiles.length} professional files`);
 
         // Load professionals from all files with build optimization
         _professionals = [];
@@ -216,17 +236,8 @@ async function loadData() {
         }
 
         // Load locations from all files
+        // Location files no longer used - removed for performance
         _locations = [];
-        for (const filePath of locationFiles) {
-            try {
-                const locCsv = await fs.readFile(filePath, 'utf-8');
-                const { data: locData } = Papa.parse(locCsv, { header: true, skipEmptyLines: true });
-                _locations.push(...locData);
-            } catch (locError) {
-                console.error(`dataCache: Error loading locations CSV ${filePath}:`, locError.message);
-                // Continue with other files
-            }
-        }
 
         console.log(`dataCache: Loaded ${_professionals?.length || 0} professionals and ${_locations?.length || 0} locations via CSV method.`);
         _isUsingFallback = true;
@@ -333,6 +344,39 @@ function transformProfessionals(data) {
         // This ensures each profile has a unique identifier
         const compositeId = profileId || `${normalizedCountry}-${normalizedProvince}-${normalizedCitySlug}-${cleanNameSlug}`;
 
+        // Parse animals_treated JSON array - check pet_types_served first (enriched), then animals_treated (old)
+        let animalsTreated = [];
+        try {
+            const petData = profile.pet_types_served || profile.animals_treated || '[]';
+            animalsTreated = JSON.parse(petData);
+            // Ensure it's an array and clean/standardize values
+            if (Array.isArray(animalsTreated)) {
+                animalsTreated = animalsTreated.map(animal =>
+                    typeof animal === 'string' ? animal.trim().toLowerCase() : animal
+                ).filter(Boolean);
+            } else {
+                animalsTreated = [];
+            }
+        } catch (e) {
+            animalsTreated = [];
+        }
+
+        // Parse and clean specializations
+        let specializations = [];
+        try {
+            specializations = JSON.parse(profile.specialization || '[]');
+            // Ensure it's an array and clean/standardize values
+            if (Array.isArray(specializations)) {
+                specializations = specializations.map(spec =>
+                    typeof spec === 'string' ? spec.trim() : spec
+                ).filter(Boolean);
+            } else {
+                specializations = [];
+            }
+        } catch (e) {
+            specializations = [];
+        }
+
         return {
             id: profileId,
             composite_id: compositeId, // Store both IDs for flexible lookups
@@ -343,18 +387,99 @@ function transformProfessionals(data) {
             name: profile.name,
             picture: profile.picture,
             description: profile.description,
-            specialization: JSON.parse(profile.specialization || '[]'),
+            specialization: specializations,
+            animals_treated: animalsTreated,
+            pet_types_served: animalsTreated, // Also set pet_types_served for compatibility
             city: profile.city,
             province: profile.province,
             country: profile.country,
             detailed_description: profile.detailed_description,
             address: profile.address,
             phone_number: profile.phone_number,
+            email_address: profile.email_address || '',
             website: profile.website,
+            social_media: profile.social_media || '',
             hours_of_operation: profile.hours_of_operation,
             faqs: JSON.parse(profile.faqs || '[]'),
             rating: parseFloat(profile.rating) || null,
+            vetscore: parseFloat(profile.vetscore) || 0,
+            vetscore_breakdown: profile.vetscore_breakdown || '{}',
+            vetscore_multipliers: profile.vetscore_multipliers || '{}',
             is_verified: profile.is_verified === 'true',
+            claimed: profile.claimed === 'true' || profile.claimed === true,
+            latitude: parseFloat(profile.latitude) || null,
+            longitude: parseFloat(profile.longitude) || null,
+            // ENRICHED FIELDS from scraper
+            emergency_services: profile.emergency_services === 'true',
+            emergency_24_hour: profile.emergency_24_hour === 'true',
+            after_hours_emergency_phone: profile.after_hours_emergency_phone || '',
+            accepts_new_patients: profile.accepts_new_patients === 'true' || profile.accepts_new_patients === true,
+            appointment_required: profile.appointment_required === 'true' || profile.appointment_required === true,
+            walk_ins_welcome: profile.walk_ins_welcome === 'true' || profile.walk_ins_welcome === true,
+            online_booking: profile.online_booking === 'true',
+            online_booking_url: profile.online_booking_url || '',
+            telehealth_available: profile.telehealth_available === 'true',
+            year_established: profile.year_established || '',
+            years_in_business: profile.years_in_business || '',
+            email_scraped: profile.email_scraped || '',
+            fax_number: profile.fax_number || '',
+            has_blog: profile.has_blog === 'true',
+            blog_url: profile.blog_url || '',
+            payment_plans: profile.payment_plans || '',
+            accreditations: profile.accreditations || '',
+            // Additional enriched fields
+            languages_spoken: profile.languages_spoken || '',
+            wheelchair_accessible: profile.wheelchair_accessible === 'true',
+            parking_info: profile.parking_info || '',
+            accepts_pet_insurance: profile.accepts_pet_insurance === 'true',
+            price_range: profile.price_range || '',
+            free_first_visit: profile.free_first_visit === 'true' || profile.free_first_visit === true,
+            insurance_companies: profile.insurance_companies || '',
+            boarding_available: profile.boarding_available === 'true',
+            grooming_available: profile.grooming_available === 'true',
+            daycare_available: profile.daycare_available === 'true',
+            training_available: profile.training_available === 'true',
+            house_calls_available: profile.house_calls_available === 'true',
+            mobile_vet_service: profile.mobile_vet_service === 'true',
+            curbside_service: profile.curbside_service === 'true',
+            pharmacy_onsite: profile.pharmacy_onsite === 'true',
+            lab_onsite: profile.lab_onsite === 'true' || profile.lab_onsite === true,
+            pet_food_sales: profile.pet_food_sales === 'true' || profile.pet_food_sales === true,
+            cremation_services: profile.cremation_services === 'true',
+            hospice_care: profile.hospice_care === 'true',
+            behavioral_services: profile.behavioral_services === 'true',
+            has_client_portal: profile.has_client_portal === 'true',
+            client_portal_url: profile.client_portal_url || '',
+            online_pharmacy_url: profile.online_pharmacy_url || '',
+            payment_methods: profile.payment_methods || '',
+            military_discount: profile.military_discount === 'true',
+            senior_discount: profile.senior_discount === 'true',
+            rescue_discount: profile.rescue_discount === 'true',
+            veterinarian_count: profile.veterinarian_count || '',
+            total_staff: profile.total_staff || '',
+            veterinarian_names: profile.veterinarian_names || '',
+            social_facebook: profile.social_facebook || '',
+            social_instagram: profile.social_instagram || '',
+            profile_weight: profile.profile_weight || '',
+            scraped_at: profile.scraped_at || '',
+            // Pricing fields
+            has_pricing: profile.has_pricing === 'true' || profile.has_pricing === true,
+            pricing_exam: profile.pricing_exam || '',
+            pricing_vaccine: profile.pricing_vaccine || '',
+            pricing_rabies: profile.pricing_rabies || '',
+            pricing_spay_dog: profile.pricing_spay_dog || '',
+            pricing_spay_cat: profile.pricing_spay_cat || '',
+            pricing_neuter_dog: profile.pricing_neuter_dog || '',
+            pricing_neuter_cat: profile.pricing_neuter_cat || '',
+            pricing_dental: profile.pricing_dental || '',
+            pricing_blood_panel: profile.pricing_blood_panel || '',
+            pricing_fecal: profile.pricing_fecal || '',
+            pricing_microchip: profile.pricing_microchip || '',
+            pricing_xray: profile.pricing_xray || '',
+            pricing_nail_trim: profile.pricing_nail_trim || '',
+            pricing_anal_gland: profile.pricing_anal_gland || '',
+            pricing_ear_clean: profile.pricing_ear_clean || '',
+            pricing_other: profile.pricing_other || '',
             source_file: profile.id ?
                 (profile.id < 4000 ? 'professionals.csv' :
                     profile.id < 8000 ? 'professionals2.csv' :
@@ -550,23 +675,17 @@ function buildLookups() {
  * Get all professionals (triggers data loading if needed)
  */
 export async function getProfessionals() {
-    if (!_dataLoaded) await loadData();
+    await ensureFreshData();
     return _professionals || [];
 }
 
-/**
- * Get all locations (triggers data loading if needed)
- */
-export async function getLocations() {
-    if (!_dataLoaded) await loadData();
-    return _locations || [];
-}
+// getLocations function removed - location data no longer used
 
 /**
  * Get a professional by ID
  */
 export async function getProfessionalById(id) {
-    if (!_dataLoaded) await loadData();
+    await ensureFreshData();
 
     // Convert ID to string for consistent comparison
     const idStr = String(id);
@@ -590,7 +709,7 @@ export async function getProfessionalById(id) {
  * Get all professionals for a specific city
  */
 export async function getProfilesForCity(country, region, city) {
-    if (!_dataLoaded) await loadData();
+    await ensureFreshData();
 
     const cityKey = `${country}/${region}/${city}`;
     return _profilesByCity.get(cityKey) || [];
@@ -600,7 +719,7 @@ export async function getProfilesForCity(country, region, city) {
  * Get all professionals for a specific region
  */
 export async function getProfilesForRegion(country, region) {
-    if (!_dataLoaded) await loadData();
+    await ensureFreshData();
 
     const regionKey = `${country}/${region}`;
     return _profilesByRegion.get(regionKey) || [];
@@ -610,7 +729,7 @@ export async function getProfilesForRegion(country, region) {
  * Get all professionals for a specific country
  */
 export async function getProfilesForCountry(country) {
-    if (!_dataLoaded) await loadData();
+    await ensureFreshData();
 
     return _profilesByCountry.get(country) || [];
 }
@@ -619,7 +738,7 @@ export async function getProfilesForCountry(country) {
  * Get nearby cities for a specific city
  */
 export async function getNearbyCitiesForCity(country, region, city) {
-    if (!_dataLoaded) await loadData();
+    await ensureFreshData();
 
     const cityKey = `${country}/${region}/${city}`;
     return _nearbyCitiesMap.get(cityKey) || [];
@@ -629,7 +748,7 @@ export async function getNearbyCitiesForCity(country, region, city) {
  * Get location details for a specific city
  */
 export async function getLocationDetails(country, region, city) {
-    if (!_dataLoaded) await loadData();
+    await ensureFreshData();
 
     return _locations?.find(l =>
         l.country_slug === country &&
@@ -642,7 +761,7 @@ export async function getLocationDetails(country, region, city) {
  * Get related vets for a specific profile
  */
 export async function getRelatedVetsForProfile(profileId) {
-    if (!_dataLoaded) await loadData();
+    await ensureFreshData();
 
     // First try with the provided ID
     const relatedVets = _relatedVetsMap.get(String(profileId));
@@ -662,4 +781,4 @@ export async function getRelatedVetsForProfile(profileId) {
 // Trigger initial data loading
 loadData().catch(err => {
     console.error("dataCache: Initial data loading failed:", err.message);
-}); 
+});

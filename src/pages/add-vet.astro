@@ -2,10 +2,10 @@
 import Layout from '../layouts/Layout.astro';
 
 const title = "Add Your Veterinary Practice | VetList.org";
-const description = "Join VetList.org's comprehensive veterinary directory with over 10,000+ monthly visitors. Increase your practice visibility and attract more pet owners.";
+const description = "Add your veterinary practice to VetList.org so pet owners can find your clinic, contact details, hours, services, and care information.";
 ---
 
-<Layout title={title} description={description}>
+<Layout title={title} description={description} noindex={true}>
   <div class="max-w-4xl mx-auto px-4 py-8">
     <!-- Header with compelling copy -->
     <div class="text-center mb-12">
@@ -14,17 +14,17 @@ const description = "Join VetList.org's comprehensive veterinary directory with 
       </h1>
       <div class="max-w-3xl mx-auto">
         <p class="text-xl text-gray-600 mb-6">
-          Join VetList.org, North America's fastest-growing veterinary directory with over <strong>10,000+ monthly visitors</strong> actively searching for veterinary care.
+          Add your clinic to VetList.org so pet owners can find your contact details, hours, services, and care information.
         </p>
         <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8">
           <div class="grid md:grid-cols-3 gap-6 text-center">
             <div>
-              <div class="text-3xl font-bold text-blue-600 mb-2">10,000+</div>
-              <div class="text-sm text-gray-600">Monthly Visitors</div>
+              <div class="text-3xl font-bold text-blue-600 mb-2">Free</div>
+              <div class="text-sm text-gray-600">Practice Submission</div>
             </div>
             <div>
-              <div class="text-3xl font-bold text-indigo-600 mb-2">30,000+</div>
-              <div class="text-sm text-gray-600">Listed Practices</div>
+              <div class="text-3xl font-bold text-indigo-600 mb-2">Full</div>
+              <div class="text-sm text-gray-600">Clinic Details</div>
             </div>
             <div>
               <div class="text-3xl font-bold text-purple-600 mb-2">24-48hrs</div>
@@ -50,7 +50,7 @@ const description = "Join VetList.org's comprehensive veterinary directory with 
         <input type="hidden" name="_captcha" value="false">
         <input type="hidden" name="_template" value="table">
         <input type="hidden" name="_next" value="/thank-you">
-        <input type="hidden" name="_honeypot" value="">
+        <input type="text" name="_honey" value="" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true">
         <input type="hidden" name="form_type" value="add_practice">
 
         <!-- Basic Information -->
@@ -483,8 +483,8 @@ const description = "Join VetList.org's comprehensive veterinary directory with 
             Hours of Operation
           </label>
           <div class="space-y-3" id="hours-container">
-            <div class="flex items-center gap-4">
-              <div class="w-24 text-sm font-medium text-gray-700">Monday</div>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <div class="w-full text-sm font-medium text-gray-700 sm:w-24">Monday</div>
               <label class="flex items-center">
                 <input
                   type="checkbox"
@@ -497,19 +497,19 @@ const description = "Join VetList.org's comprehensive veterinary directory with 
               <input
                 type="time"
                 name="monday_start"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
               <span class="text-gray-500">to</span>
               <input
                 type="time"
                 name="monday_end"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
             </div>
-            <div class="flex items-center gap-4">
-              <div class="w-24 text-sm font-medium text-gray-700">Tuesday</div>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <div class="w-full text-sm font-medium text-gray-700 sm:w-24">Tuesday</div>
               <label class="flex items-center">
                 <input
                   type="checkbox"
@@ -522,19 +522,19 @@ const description = "Join VetList.org's comprehensive veterinary directory with 
               <input
                 type="time"
                 name="tuesday_start"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
               <span class="text-gray-500">to</span>
               <input
                 type="time"
                 name="tuesday_end"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
             </div>
-            <div class="flex items-center gap-4">
-              <div class="w-24 text-sm font-medium text-gray-700">Wednesday</div>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <div class="w-full text-sm font-medium text-gray-700 sm:w-24">Wednesday</div>
               <label class="flex items-center">
                 <input
                   type="checkbox"
@@ -547,19 +547,19 @@ const description = "Join VetList.org's comprehensive veterinary directory with 
               <input
                 type="time"
                 name="wednesday_start"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
               <span class="text-gray-500">to</span>
               <input
                 type="time"
                 name="wednesday_end"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
             </div>
-            <div class="flex items-center gap-4">
-              <div class="w-24 text-sm font-medium text-gray-700">Thursday</div>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <div class="w-full text-sm font-medium text-gray-700 sm:w-24">Thursday</div>
               <label class="flex items-center">
                 <input
                   type="checkbox"
@@ -572,19 +572,19 @@ const description = "Join VetList.org's comprehensive veterinary directory with 
               <input
                 type="time"
                 name="thursday_start"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
               <span class="text-gray-500">to</span>
               <input
                 type="time"
                 name="thursday_end"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
             </div>
-            <div class="flex items-center gap-4">
-              <div class="w-24 text-sm font-medium text-gray-700">Friday</div>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <div class="w-full text-sm font-medium text-gray-700 sm:w-24">Friday</div>
               <label class="flex items-center">
                 <input
                   type="checkbox"
@@ -597,19 +597,19 @@ const description = "Join VetList.org's comprehensive veterinary directory with 
               <input
                 type="time"
                 name="friday_start"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
               <span class="text-gray-500">to</span>
               <input
                 type="time"
                 name="friday_end"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
             </div>
-            <div class="flex items-center gap-4">
-              <div class="w-24 text-sm font-medium text-gray-700">Saturday</div>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <div class="w-full text-sm font-medium text-gray-700 sm:w-24">Saturday</div>
               <label class="flex items-center">
                 <input
                   type="checkbox"
@@ -622,19 +622,19 @@ const description = "Join VetList.org's comprehensive veterinary directory with 
               <input
                 type="time"
                 name="saturday_start"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
               <span class="text-gray-500">to</span>
               <input
                 type="time"
                 name="saturday_end"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
             </div>
-            <div class="flex items-center gap-4">
-              <div class="w-24 text-sm font-medium text-gray-700">Sunday</div>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <div class="w-full text-sm font-medium text-gray-700 sm:w-24">Sunday</div>
               <label class="flex items-center">
                 <input
                   type="checkbox"
@@ -647,14 +647,14 @@ const description = "Join VetList.org's comprehensive veterinary directory with 
               <input
                 type="time"
                 name="sunday_start"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
               <span class="text-gray-500">to</span>
               <input
                 type="time"
                 name="sunday_end"
-                class="day-time px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="day-time w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:w-auto"
                 disabled
               />
             </div>
@@ -678,7 +678,7 @@ const description = "Join VetList.org's comprehensive veterinary directory with 
         <div class="text-center">
           <button
             type="submit"
-            class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-12 py-4 rounded-full font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-12 py-4 rounded-full font-semibold text-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
           >
             Add My Practice to VetList
           </button>

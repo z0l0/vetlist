@@ -1,52 +1,231 @@
 ---
-const { 
+import { getAnimalEmoji } from '../lib/iconMapper';
+
+interface Props {
+  id?: string | number;
+  name: string;
+  slug: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  hours?: any;
+  services?: string[];
+  animals?: string[];
+  specialties?: string[];
+  rating?: number;
+  vetscore?: number;
+  claimed?: boolean;
+  latitude?: number;
+  longitude?: number;
+  city?: string;
+  province?: string;
+  country?: string;
+  country_slug?: string;
+  province_slug?: string;
+  city_slug?: string;
+  emergency_services?: boolean;
+  online_booking?: boolean;
+  online_booking_url?: string;
+  telehealth_available?: boolean;
+  year_established?: string;
+  languages_spoken?: string;
+  has_pricing?: string;
+  pricing_exam?: string;
+  pricing_vaccine?: string;
+  pricing_dental?: string;
+  pricing_spay_dog?: string;
+}
+
+const {
+  id = '',
   name,
-  image,
-  description,
-  location: { city, region },
-  specializations,
-  slug
+  slug,
+  address = '',
+  hours = null,
+  services = [],
+  animals = [],
+  specialties = [],
+  rating = 0,
+  vetscore = 0,
+  claimed = false,
+  country_slug = '',
+  province_slug = '',
+  city_slug = '',
+  emergency_services = false,
+  online_booking = false,
+  telehealth_available = false,
+  year_established = '',
+  languages_spoken = '',
+  has_pricing = '',
+  pricing_exam = '',
+  pricing_vaccine = '',
+  pricing_dental = '',
+  pricing_spay_dog = '',
 } = Astro.props;
+
+let languages: string[] = [];
+try {
+  if (languages_spoken && languages_spoken !== '[]') {
+    const parsed = typeof languages_spoken === 'string' ? JSON.parse(languages_spoken) : languages_spoken;
+    if (Array.isArray(parsed)) {
+      languages = parsed.filter((language: string) => language !== 'English');
+    }
+  }
+} catch {}
+
+const streetAddress = address ? address.split(',')[0].trim() : '';
+const profileHref = country_slug && province_slug && city_slug && slug
+  ? `/${country_slug}/${province_slug}/${city_slug}/${slug}/`
+  : null;
+const claimClinicId = id != null ? String(id) : '';
+const claimHref = claimClinicId ? `/claim-clinic/?clinic=${encodeURIComponent(claimClinicId)}` : '/claim-clinic/';
+
+const dataAnimals = animals.map((animal) => animal.toLowerCase().replace(/\s+/g, '-')).join(',');
+const dataServices = services.map((service) => service.toLowerCase().replace(/\s+/g, '-')).join(',');
+const searchText = [name, address, services.join(' '), specialties.join(' '), animals.join(' ')].join(' ').toLowerCase();
+const serializedHours = JSON.stringify(hours || {});
+
+const displayServices = services.slice(0, 3);
+const displayAnimals = animals.slice(0, 4);
 ---
-<div class="vet-card">
-  <div class="relative">
-    <div class="w-full h-[200px] bg-primary-100 flex items-center justify-center">
-      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-600">
-        <path d="M12 6v4"/>
-        <path d="M14 14h-4"/>
-        <path d="M14 18h-4"/>
-        <path d="M14 8h-4"/>
-        <path d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2"/>
-        <path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>
-      </svg>
-    </div>
-    <a href={slug} class="absolute inset-0">
-      {image && (
-        <img 
-          src={image} 
-          alt={name} 
-          class="vet-card-image absolute inset-0 w-full h-full object-cover"
-          onerror="this.style.display='none'"
-        />
-      )}
-    </a>
-  </div>
-  <div class="vet-card-content">
-    <div>
-      <h3>
-        <a href={slug}>{name}</a>
-      </h3>
-      <p>{description}</p>
-    </div>
-    <div>
-      <p class="location">{city}, {region}</p>
-      <div class="tags">
-        {specializations.slice(0, 2).map(spec => (
-          <span class="tag">
-            {spec}
+
+<article
+  class="vet-card flex h-full flex-col rounded-[28px] border border-slate-200 bg-white/92 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/70 hover:shadow-[0_24px_60px_rgba(15,23,42,0.12)]"
+  id={slug}
+  data-animals={dataAnimals}
+  data-services={dataServices}
+  data-hours={serializedHours}
+  data-open-now="unknown"
+  data-emergency={emergency_services ? 'true' : 'false'}
+  data-search-text={searchText}
+  data-claimed={claimed ? 'true' : 'false'}
+  data-rating={rating.toString()}
+  data-vetscore={vetscore.toString()}
+  data-name={name.toLowerCase()}
+  data-emergency-services={emergency_services ? 'true' : 'false'}
+  data-online-booking={online_booking ? 'true' : 'false'}
+  data-telehealth={telehealth_available ? 'true' : 'false'}
+  data-multilingual={languages.length > 0 ? 'true' : 'false'}
+>
+  <div class="flex items-start justify-between gap-3">
+    <div class="min-w-0 flex-1">
+      <div class="mb-2 flex items-start justify-between gap-3">
+        {profileHref ? (
+          <a href={profileHref} class="group min-w-0 flex-1">
+            <h3 class="line-clamp-2 text-xl font-extrabold tracking-tight text-slate-950 transition group-hover:text-cyan-700">
+              {name}
+            </h3>
+          </a>
+        ) : (
+          <h3 class="line-clamp-2 text-xl font-extrabold tracking-tight text-slate-950">{name}</h3>
+        )}
+
+        {hours && (
+          <div class="shrink-0 text-right">
+            <span class="js-card-open-now inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+              <span data-open-dot class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
+              <span data-open-status>Checking</span>
+            </span>
+            <p data-open-detail class="mt-1 text-[11px] text-slate-400">Using your time</p>
+          </div>
+        )}
+      </div>
+
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        {vetscore > 0 && (
+          <span class={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+            vetscore >= 80 ? 'bg-green-100 text-green-800' :
+            vetscore >= 60 ? 'bg-blue-100 text-blue-800' :
+            vetscore >= 40 ? 'bg-yellow-100 text-yellow-800' :
+            'bg-slate-100 text-slate-700'
+          }`} title="VetScore">
+            {Math.round(vetscore)}/100
           </span>
-        ))}
+        )}
+        {year_established && <span class="text-xs font-medium text-slate-500">Est. {year_established}</span>}
+        {claimed && <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Verified</span>}
+      </div>
+
+      {(emergency_services || online_booking || telehealth_available || languages.length > 0) && (
+        <div class="flex flex-wrap items-center gap-1.5">
+          {emergency_services && <span class="rounded-full bg-red-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-red-700">Emergency</span>}
+          {online_booking && <span class="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-700">Book online</span>}
+          {telehealth_available && <span class="rounded-full bg-purple-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-purple-700">Telehealth</span>}
+          {languages.length > 0 && <span class="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700">{languages.slice(0, 2).join(', ')}{languages.length > 2 ? ` +${languages.length - 2}` : ''}</span>}
+        </div>
+      )}
+    </div>
+  </div>
+
+  {streetAddress && (
+    <div class="mt-4 flex items-start gap-2 text-sm text-slate-600">
+      <span aria-hidden="true" class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-slate-300"></span>
+      <span class="line-clamp-2 leading-snug">{streetAddress}</span>
+    </div>
+  )}
+
+  {(displayAnimals.length > 0 || displayServices.length > 0) && (
+    <div class="mt-4 space-y-2">
+      {displayAnimals.length > 0 && (
+        <div class="flex flex-wrap gap-1.5">
+          {displayAnimals.map((animal) => (
+            <span class="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700">
+              <span>{getAnimalEmoji(animal)}</span>
+              <span>{animal.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())}</span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {displayServices.length > 0 && (
+        <div class="flex flex-wrap gap-1.5">
+          {displayServices.map((service) => (
+            <span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">{service}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  )}
+
+  {has_pricing === 'true' && (
+    <div class="mt-4 rounded-3xl border border-emerald-200 bg-emerald-50/80 p-3">
+      <div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">Transparent pricing</div>
+      <div class="mt-2 flex flex-wrap gap-2 text-xs text-slate-700">
+        {pricing_exam && <span class="rounded-full bg-white px-2.5 py-1">Exam {pricing_exam}</span>}
+        {pricing_vaccine && <span class="rounded-full bg-white px-2.5 py-1">Vaccine {pricing_vaccine}</span>}
+        {pricing_dental && <span class="rounded-full bg-white px-2.5 py-1">Dental {pricing_dental}</span>}
+        {pricing_spay_dog && <span class="rounded-full bg-white px-2.5 py-1">Spay {pricing_spay_dog}</span>}
       </div>
     </div>
+  )}
+
+  <div class="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+    <div class="min-w-0">
+      {rating > 0 && (
+        <p class="text-sm font-medium text-slate-600">
+          Rated <span class="font-bold text-slate-950">{rating.toFixed(1)}</span> out of 5
+        </p>
+      )}
+    </div>
+
+    {profileHref && (
+      <a href={profileHref} class="shrink-0 rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700">
+        View profile
+      </a>
+    )}
   </div>
-</div>
+</article>
+
+<style>
+  .vet-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  @media (max-width: 640px) {
+    .vet-card {
+      padding: 1rem;
+    }
+  }
+</style>

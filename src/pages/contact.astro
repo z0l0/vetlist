@@ -7,15 +7,25 @@ const description = 'Get in touch with VetList.org for questions about adding yo
 
 <Layout title={title} description={description}>
   <div class="max-w-6xl mx-auto px-4 py-8">
-    <!-- Header -->
-    <div class="text-center mb-12">
-      <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-        Contact Us
-      </h1>
-      <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-        Have questions about adding your practice, claiming your listing, or improving your visibility? We're here to help you connect with more pet owners.
-      </p>
-    </div>
+    <section class="overflow-hidden rounded-[32px] border border-slate-900 bg-slate-950 text-white shadow-2xl mb-12">
+      <div class="bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.24),_transparent_26%),radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.16),_transparent_22%)] px-6 py-8 md:px-10 md:py-10">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">Contact and operations</p>
+        <h1 class="mt-3 text-4xl md:text-6xl font-black tracking-tight text-white">
+          Contact Us
+        </h1>
+        <p class="mt-4 max-w-3xl text-lg leading-8 text-slate-200">
+          Questions about adding your practice, claiming a listing, site updates, or visibility? This is the fastest way to reach the team.
+        </p>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="/claim-clinic/" class="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-5 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/15">
+            Claim a listing
+          </a>
+          <a href="/add-vet/" class="rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/15">
+            Add a clinic
+          </a>
+        </div>
+      </div>
+    </section>
 
     <!-- Main Content Grid -->
     <div class="grid lg:grid-cols-3 gap-8">
@@ -94,7 +104,7 @@ const description = 'Get in touch with VetList.org for questions about adding yo
             <div class="text-center">
               <button
                 type="submit"
-                class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-12 py-4 rounded-full font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-12 py-4 rounded-full font-semibold text-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
               >
                 Send Message
               </button>
@@ -156,7 +166,7 @@ const description = 'Get in touch with VetList.org for questions about adding yo
               </div>
               <div>
                 <p class="font-medium text-gray-900">Add Your Practice</p>
-                <p class="text-sm text-gray-600">Join 30,000+ practices</p>
+                <p class="text-sm text-gray-600">Submit clinic details</p>
               </div>
             </a>
             
@@ -199,18 +209,18 @@ const description = 'Get in touch with VetList.org for questions about adding yo
           </a>
         </div>
 
-        <!-- Stats -->
+        <!-- Quick facts -->
         <div class="bg-white rounded-xl shadow-lg p-6">
-          <h3 class="text-xl font-bold text-gray-900 mb-4">VetList by Numbers</h3>
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Quick Facts</h3>
           
           <div class="space-y-4">
             <div class="flex justify-between items-center">
-              <span class="text-gray-600">Listed Practices</span>
-              <span class="font-bold text-blue-600">30,000+</span>
+              <span class="text-gray-600">Clinic submissions</span>
+              <span class="font-bold text-blue-600">Free</span>
             </div>
             <div class="flex justify-between items-center">
-              <span class="text-gray-600">Monthly Visitors</span>
-              <span class="font-bold text-indigo-600">10,000+</span>
+              <span class="text-gray-600">Listing updates</span>
+              <span class="font-bold text-indigo-600">Owner reviewed</span>
             </div>
             <div class="flex justify-between items-center">
               <span class="text-gray-600">Countries Covered</span>
