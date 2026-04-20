@@ -29,6 +29,7 @@ npm run build:deploy
 
 - `data/derived/` is ignored by git. It is regenerated during `npm run build`.
 - `dist/` is a build artifact. The deployed content comes from the local `dist/` uploaded by Wrangler.
+- Cloudflare Workers assets have a 25 MiB per-file limit. Do not add static API routes that emit the full CSV/profile dataset into `dist/api/`; those files will block deploys.
 - Run a focused check after build when changing routes, for example:
 
 ```bash
