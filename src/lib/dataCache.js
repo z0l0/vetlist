@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { getPrecomputedSiteData } from './siteData.js';
+import { slugify } from './slugify.js';
 let Papa; // We'll import this dynamically to prevent build failures
 
 // --- BUILD OPTIMIZATION SETTINGS ---
@@ -264,18 +265,6 @@ async function loadData() {
  * Transform raw CSV data into the expected professionals format
  */
 function transformProfessionals(data) {
-    // Slugify function from supabase.js
-    function slugify(text) {
-        return text
-            .toString()
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, '-')       // Replace spaces with -
-            .replace(/[^\w-]+/g, '')    // Remove non-word chars except -
-            .replace(/--+/g, '-')       // Replace multiple - with single -
-            .replace(/-?\d+$/, '');     // Remove any trailing numbers, with or without dash
-    }
-
     // Normalize country values
     function normalizeCountry(country) {
         if (!country) return '';

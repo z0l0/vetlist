@@ -21,7 +21,10 @@
     "precompute:data": "node scripts/precompute-site-data.js",
     "merge:enriched": "node scripts/merge-enriched-csv.js",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "deploy:pages": "wrangler pages deploy dist/ --project-name=vetlist --branch=main --commit-dirty=true --exclude=api/professionals.json --exclude=api/load-csv-data",
+    "deploy": "wrangler deploy",
+    "build:deploy": "npm run build && npm run deploy"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.3.0",

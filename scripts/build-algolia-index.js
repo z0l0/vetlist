@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import algoliasearch from 'algoliasearch';
 import dotenv from 'dotenv';
 import Papa from 'papaparse';
+import { slugify } from '../src/lib/slugify.js';
 
 // Load environment variables
 dotenv.config();
@@ -25,18 +26,6 @@ const algoliaIndex = algoliaClient.initIndex(ALGOLIA_INDEX_NAME);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Slugify function to match the one in supabase.js
-function slugify(text) {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')       // Replace spaces with -
-    .replace(/[^\w-]+/g, '')    // Remove non-word chars except -
-    .replace(/--+/g, '-')       // Replace multiple - with single -
-    .replace(/-?\d+$/, '');     // Remove any trailing numbers, with or without dash
-}
 
 // Normalize country values
 function normalizeCountry(country) {

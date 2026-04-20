@@ -3,24 +3,13 @@ import Papa from 'papaparse';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { slugify } from './slugify.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 function isFastBuildEnabled() {
   return process.env.FAST_BUILD === 'true';
-}
-
-// Updated slugify function to properly handle trailing numbers
-function slugify(text) {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')       // Replace spaces with -
-    .replace(/[^\w-]+/g, '')    // Remove non-word chars except -
-    .replace(/--+/g, '-')       // Replace multiple - with single -
-    .replace(/-?\d+$/, '');     // Remove any trailing numbers, with or without dash
 }
 
 // Configuration options for data loading
